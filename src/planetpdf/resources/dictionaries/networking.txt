@@ -1,0 +1,66 @@
+# name: Networking & Telecom
+# about: Internet service, fiber and cable plant, wireless, routing and switching, voice, and telecom regulation.
+# PlanetPDF word list. Lowercase words are accepted in any capitalization; names with capitals
+# inside (VoIP, eNodeB) only as written.
+
+# --- fiber and outside plant ---
+broadband fiber fibers FTTH FTTP FTTC FTTN FTTx GPON XGS EPON NGPON OLT ONT ONTs ONU ONUs splitter splitters
+splice spliced splices splicing splicer OTDR DWDM CWDM WDM SFP SFPs QSFP transceiver transceivers multimode
+singlemode patchcord patchcords pigtail pigtails OFNR OFNP plenum riser conduit conduits innerduct microduct
+microducts handhole handholes pedestal pedestals vault vaults aerial underground boring microtrenching
+trenching trencher makeready lashing lasher strand messenger dropwire coax coaxial hardline DOCSIS CMTS HFC
+headend headends amplifier amplifiers attenuation attenuator attenuators dispersion reflectance wavelength
+wavelengths lambda lambdas dBm dBi dBmV dBuV ferrule ferrules cleaver cleaved polishing connectorized
+preterminated pre-terminated SC LC APC UPC MPO MTP armored ducted direct-buried guy guys anchor anchors
+Corning CommScope Prysmian AFL Sumitomo Fujikura OFS Clearfield Leviton Panduit Belden Amphenol
+
+# --- access, wireless and mobile ---
+DSL ADSL VDSL SHDSL DSLAM xDSL ISDN POTS SONET SDH MPLS PON WISP WISPs LTE NR eNodeB gNodeB eNB gNB RAN ORAN
+vRAN CBRS LoRa LoRaWAN Zigbee Z-Wave WiMAX microwave unlicensed spectrum PtP PtMP CPE CPEs backhaul fronthaul
+midhaul backbone metro WiFi wifi Wi Fi WLAN WLANs SSID SSIDs WPA WPA2 WPA3 WPS mesh repeater repeaters extender
+extenders beamforming MIMO MU-MIMO OFDM OFDMA DFS channelization roaming handover handovers femtocell
+femtocells picocell microcell macrocell smallcell tower towers rooftop rooftops sector sectors omni omnis
+antenna antennas Starlink HughesNet Viasat Kuiper OneWeb geostationary LEO GEO MEO satellite satellites
+
+# --- routing, switching and IP ---
+router routers routing switch switches switched gateway gateways modem modems hub hubs bridge bridged bridging
+VLAN VLANs VXLAN QinQ LACP STP RSTP MSTP LLDP CDP ARP NAT CGNAT CGN PAT DMZ ACL ACLs QoS DSCP DiffServ BGP
+eBGP iBGP OSPF IS-IS ISIS EIGRP RIP ASN ASNs peering peered transit IXP IXPs colocation colo colos datacenter
+datacenters CDN CDNs latency jitter packet packets throughput bandwidth Mbps Gbps Kbps Tbps MHz GHz kHz SNR
+RSSI RSRP RSRQ SINR BER MTU MSS TTL anycast multicast unicast broadcast IGMP PIM VRF VRFs EVPN SD-WAN SDWAN SASE
+ZTNA SDN NFV VNF VNFs PPPoE PPP DHCP DNS DNSSEC IPv4 IPv6 IPsec IP IPs subnet subnets subnetting subnetted
+netmask CIDR supernet supernetting traceroute tracert ping pings nslookup whois iperf speedtest Ookla
+pathping netstat ipconfig ifconfig loopback uplink uplinks downlink downlinks upstream downstream oversubscription
+oversubscribed overprovisioned failover redundant redundancy LAG trunking trunked trunk trunks portchannel
+PoE PoE+ midspan injector injectors rackmount rack racks patchpanel punchdown keystone keystones crimper
+crimped crimping demarc demarcation NID MPOE IDF MDF UPS PDU PDUs Cat5e Cat6 Cat6a RJ45 RJ11 SFTP UTP STP
+
+# --- voice and video ---
+VoIP SIP RTP RTCP codec codecs PBX IPBX UCaaS CCaaS SBC SBCs trunk DID DIDs CNAM LNP porting portability
+tollfree IPTV OTT VOD CATV E911 PSAP STIR SHAKEN robocall robocalls robocaller voicemail voicemails softphone
+softphones ATA ATAs FXS FXO Polycom Yealink Grandstream Avaya Mitel RingCentral Vonage Ooma Twilio Bandwidth
+Asterisk FreePBX 3CX Teams Zoom Webex
+
+# --- operations, billing and support ---
+NOC NOCs SOC MTTR MTBF SLA SLAs uptime outage outages provisioning provision provisioned deprovision
+deprovisioned deprovisioning TR-069 ACS OSS BSS CRM billing churn ARPU installer installers technician
+technicians truckroll RMA RMAs ticketing escalation escalations dispatch dispatched troubleshoot
+troubleshooting troubleshot reboot rebooted rebooting powercycle firmware geocode geocoded serviceable
+unserved underserved homes passed take-rate takerate overbuild overbuilder overbuilders greenfield brownfield
+middle-mile last-mile CLEC CLECs ILEC ILECs RBOC ISP ISPs MVNO MNO MSO MSOs
+
+# --- regulation and funding ---
+FCC FCC's BEAD RDOF ACP USAC NTIA RUS CPNI CALEA USF E-Rate Lifeline CAF NBM BDC NJBPU BPU PUC PSC
+tariff tariffs tariffed interconnection colocated pole-attachment rights-of-way franchise franchises
+Telecommunications Communications Universal Service
+
+# --- equipment makers and providers ---
+Cisco Meraki Juniper Mist Arista Nokia Ericsson Huawei ZTE Calix Adtran Zhone DZS Ciena Infinera Ribbon
+Cambium Tarana Ubiquiti UniFi UISP airMAX MikroTik RouterOS Netgear TP-Link Linksys Eero Aruba Ruckus
+Extreme Brocade Fortinet SonicWall WatchGuard Palo Alto Peplink Cradlepoint Sierra Inseego Casa Harmonic
+Vecima Teleste Technetix Blonder Tongue Viavi EXFO Fluke Netscout Calix's Allot Sandvine
+Comcast Xfinity Verizon Fios AT&T Spectrum Charter Cox Frontier Windstream Kinetic CenturyLink Lumen Quantum
+Brightspeed Altafiber Ziply Consolidated TDS Mediacom Optimum Altice Astound RCN Wave Grande WOW Breezeline
+Sparklight Cable One GCI Hargray Metronet Google Fiber Starlink Viasat HughesNet T-Mobile TMobile UScellular
+Cellcom Boost Visible Mint Cricket MetroPCS Tracfone Zayo Cogent Hurricane Electric Level3 Crown Castle
+SBA American Tower Equinix Digital Realty CoreSite Megaport Akamai Cloudflare Fastly Netflix

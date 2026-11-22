@@ -1,0 +1,183 @@
+<html><head><title>Signatures</title></head><body>
+<h1 id="top">Signatures</h1>
+<p>PlanetPDF signs documents in two different ways: by placing a picture of your handwritten signature on the page (Fill &amp; Sign), or by adding a digital signature that proves who signed and that nothing has changed since. This chapter covers both, plus certifying a document and checking the signatures in a document you receive.</p>
+
+<h2 id="two-kinds">Two kinds of signature</h2>
+<!-- index: electronic signature; e-signature; picture signature; handwritten signature; digital signature; cryptographic signature; difference -->
+<p>It helps to know which kind you need before you start.</p>
+<table>
+  <tr><th></th><th>Signature picture (Fill &amp; Sign)</th><th>Digital signature</th></tr>
+  <tr><td>What it is</td><td>An image of your signature or initials, placed on the page like a stamp.</td><td>A cryptographic seal made with your Digital ID (a certificate and its private key).</td></tr>
+  <tr><td>What it proves</td><td>Only that someone put the picture there.</td><td>Who signed, and that the document hasn't changed since.</td></tr>
+  <tr><td>What you need</td><td>Nothing: you draw, type, or import your signature once.</td><td>A Digital ID: a .pfx / .p12 file, one in the Windows certificate store or the Mac Keychain, or a smart card or USB token.</td></tr>
+  <tr><td>Changing the document afterwards</td><td>Fine. You can still move, resize, or delete the picture until you flatten the page.</td><td>Any later change shows as "changed after signing", or breaks the signature.</td></tr>
+</table>
+<p>You can use both together: a digital signature can show your saved signature picture inside its box.</p>
+
+<h2 id="saved-signatures">Saved signatures and initials</h2>
+<!-- index: fill and sign; sign yourself; signature picture; initials; my signature; create signature -->
+<p>PlanetPDF keeps your signatures and initials in your profile folder, so they follow you to any computer where you sign in with the same Windows profile. You make each one once and then place it with a click whenever you need it. You can keep several (for example a full signature and a short one).</p>
+
+<h3 id="create-signature">Creating a signature or initials</h3>
+<!-- index: new signature; new initials; draw signature; type signature; import signature; scan of signature -->
+<ol>
+  <li>Choose <b>Tools ▸ Fill &amp; Sign</b> (or click <b>Fill &amp; Sign</b> on the tool strip).</li>
+  <li>Click <b>Sign Yourself</b> and choose <b>New Signature…</b> or <b>New Initials…</b>.</li>
+  <li>Pick one of the three tabs:
+    <ul>
+      <li><b>Draw</b>: sign in the box with your mouse, pen, or finger. <b>Clear</b> starts again.</li>
+      <li><b>Type</b>: type your name (or initials) and pick one of the handwriting styles shown below it.</li>
+      <li><b>Import</b>: click <b>Choose Image…</b> and pick a photo or scan of your signature (PNG or JPG). The white background is removed for you.</li>
+    </ul>
+  </li>
+  <li>Choose the <b>Ink color</b>: <b>Blue</b>, <b>Black</b>, or <b>Custom…</b> for any color. Every tab, including an imported picture, shows the signature in that color.</li>
+  <li>Give it a name in <b>Save as</b> and click <b>Save</b>.</li>
+</ol>
+<p>A signature you create from the Sign Yourself menu is placed right away: move the mouse to where it goes and click (see <a href="#place-signature">Placing a signature</a>).</p>
+<p class="note"><b>Tip:</b> If you choose a saved signature and none exists yet, PlanetPDF opens the New Signature window first.</p>
+
+<h3 id="signature-manager">Managing signatures and initials</h3>
+<!-- index: signature manager; delete signature; default signature; change color; signatures and initials window; Manage Signatures and Initials -->
+<p>Open the list of saved signatures with <b>Fill &amp; Sign ▸ More ▸ Manage Signatures and Initials…</b> (also at the bottom of the <b>Sign Yourself</b> menu). The <b>Signatures and Initials</b> window shows each one with a preview, and marks the default ones with "✓ default".</p>
+<ul>
+  <li><b>New Signature…</b> / <b>New Initials…</b>: make another one.</li>
+  <li><b>Use by Default</b>: the selected one is offered first and used when nothing else is chosen.</li>
+  <li><b>Change Color…</b>: repaint the selected one in another ink color. Signatures already placed on pages keep their old color; only new placements use the new one.</li>
+  <li><b>Delete</b>: remove the selected one from your profile (it asks first). Signatures already on pages stay there.</li>
+</ul>
+<p>The window also shows the folder where they are saved.</p>
+
+<h3 id="place-signature">Placing a signature</h3>
+<!-- index: sign a document; place signature; place initials; sign here; add my signature -->
+<ol>
+  <li>Open the document and choose <b>Tools ▸ Fill &amp; Sign</b>.</li>
+  <li>Click <b>Sign Yourself</b>. The menu lists every saved signature and set of initials with a picture of each.</li>
+  <li>Click the one you want. A preview follows the mouse over the page.</li>
+  <li>Click where it should go. Press <b>Esc</b> instead to cancel.</li>
+</ol>
+<p>Signatures are placed 2 inches wide and initials ¾ inch wide; you can change the size afterwards. The one you place becomes the default for next time. Placing is a one-time tool: after one click you are back to the arrow.</p>
+
+<h3 id="adjust-signature">Moving, resizing, and deleting a placed signature</h3>
+<!-- index: move signature; resize signature; nudge; bigger signature; smaller signature; remove signature -->
+<p>A placed signature or set of initials stays adjustable, whatever tool is open, until you flatten the page.</p>
+<ul>
+  <li><b>Move</b>: drag it. You can drag it onto another page too.</li>
+  <li><b>Nudge</b>: click it, then press the arrow keys to move it 1 point at a time, or <b>Shift</b>+arrow for 10 points.</li>
+  <li><b>Resize</b>: drag a corner handle. The proportions stay the same, so the signature never looks stretched.</li>
+  <li><b>Delete</b>: click it and press <b>Delete</b>, or right-click it and choose <b>Delete</b>.</li>
+</ul>
+<p>Each change is one step you can undo with <b>Edit ▸ Undo</b> (<b>Ctrl+Z</b>).</p>
+
+<h3 id="flatten-signature">Flattening: making it part of the page</h3>
+<!-- index: flatten; flatten page; flatten all pages; lock signature; make permanent -->
+<p>Until you flatten, a placed signature is stored as a stamp-like item that other people's PDF programs can also select and move. Flattening draws it, and any text or stamps you placed, permanently into the page.</p>
+<ul>
+  <li><b>Fill &amp; Sign ▸ More ▸ Flatten Page</b>: the page you are looking at.</li>
+  <li><b>Fill &amp; Sign ▸ More ▸ Flatten All Pages</b>: every page.</li>
+</ul>
+<p>Afterwards the items can't be moved or resized any more. You can still undo the flattening until you close the document.</p>
+
+<h2 id="digital-signing">Digital signatures</h2>
+<!-- index: digitally sign; Digital ID; certificate signature; PAdES; cryptographic; sign with certificate -->
+<p>A digital signature is made with your <i>Digital ID</i>: a certificate that says who you are, and a private key that only you hold. Anyone opening the document can check that you signed it and that it hasn't been changed since. PlanetPDF signs to the PAdES standard used by Adobe Acrobat and other PDF programs.</p>
+
+<h3 id="digital-id-sources">Where your Digital ID can come from</h3>
+<!-- index: pfx; p12; PKCS#12; certificate store; Windows certificate store; Keychain; Mac Keychain; smart card; USB token; PKCS#11; hardware token -->
+<p>In the <b>Sign with</b> list of the Digitally Sign window you choose one of these:</p>
+<ul>
+  <li><b>Digital ID file (.pfx / .p12)</b>: a file that holds your certificate and private key, protected by a password. PlanetPDF asks for the password each time you sign and never stores it.</li>
+  <li><b>Windows: …</b> (on a Mac, <b>Keychain: …</b>): each Digital ID in your Windows certificate store, or in your Mac Keychain, is listed by name. The private key never leaves Windows or the Keychain; if the key is protected, Windows or macOS asks for its PIN or password itself. Smart cards that Windows or macOS already knows usually show up here too. Only certificates meant for signing documents are listed (a code-signing certificate, for example, is not).</li>
+  <li><b>Smart card or USB token (its PKCS#11 driver)</b>: for a token that isn't in the list above. Choose the token's driver file in <b>Token driver</b> (ask IT where its PKCS#11 driver is; for example a DLL in <code>C:\Windows\System32</code>) and type the token's <b>PIN</b>. PlanetPDF remembers the driver, never the PIN.</li>
+</ul>
+
+<h3 id="sign-digitally">Signing a document digitally</h3>
+<!-- index: Digitally Sign Document; signature box; draw signature box; reason; location -->
+<ol>
+  <li>Finish all your changes first. If the document has unsaved changes, PlanetPDF asks you to save them before signing.</li>
+  <li>Choose <b>Fill &amp; Sign ▸ More ▸ Digitally Sign Document…</b>, or click <b>Digitally Sign…</b> in the Signatures panel.</li>
+  <li>In <b>Sign with</b>, choose where your Digital ID is (see above), and fill in the certificate file and password, or the token driver and PIN, as asked.</li>
+  <li>Optionally type a <b>Reason</b> (for example "I approve this document") and a <b>Location</b>. Both are remembered for next time.</li>
+  <li>Tick <b>Show my saved signature in the signature box</b> if you want your default signature picture to appear in the box (only available when you have a saved signature).</li>
+  <li>Click <b>Next: Draw Signature Box</b>.</li>
+  <li>Drag a box on the page where the signature should appear. <b>Esc</b> cancels.</li>
+  <li>Choose where to save the signed document. PlanetPDF suggests the same name with <code>_signed</code> added.</li>
+</ol>
+<p>PlanetPDF signs the file (the progress window says "Signing the document…"), then opens the signed copy and checks its signature. The box on the page shows "Digitally signed by" your name, the date, and the reason and location if you gave them.</p>
+<p class="note"><b>Note:</b> Password-protected PDFs can't be signed yet. Save a copy without protection first (see <a href="protect-redact.html#remove-security">Removing protection</a>).</p>
+
+<h3 id="sign-in-place">Signing in place or as a new file</h3>
+<!-- index: save signed copy; overwrite; _signed -->
+<p>In the save window you can keep the suggested new name, which leaves the unsigned original as it was, or choose the document's own name to sign it in place. When you sign in place, PlanetPDF closes the document, replaces the file with the signed version, and opens it again in the same tab. Signing can't be undone: if you want to keep an unsigned version, save as a new file.</p>
+
+<h3 id="timestamp">Timestamp server</h3>
+<!-- index: timestamp; TSA; time of signing; trusted time; RFC 3161 -->
+<p>Normally the time of signing comes from your computer's clock. A timestamp server adds a time that an outside authority vouches for, so the signature shows "(timestamped)" and stays provable even after your certificate expires.</p>
+<ol>
+  <li>Choose <b>Edit ▸ Preferences…</b> (<b>Ctrl+K</b>) and click <b>Signatures</b>.</li>
+  <li>Type the server address in <b>Timestamp server</b>, for example <code>http://timestamp.digicert.com</code>. Leave it empty for none.</li>
+  <li>Click <b>OK</b>.</li>
+</ol>
+<p>The Digitally Sign window shows which timestamp server will be used. Signing then needs an internet connection to reach it.</p>
+
+<h3 id="after-signing">Changes after signing</h3>
+<!-- index: edit signed document; signature broken; changed after signing; invalidated signature; incremental save -->
+<p>A digital signature covers the document exactly as it was when signed. What happens to later changes:</p>
+<ul>
+  <li><b>Saving a signed document</b> adds your changes after the signed part, so the signature itself stays intact; PlanetPDF warns you first. The Signatures panel then says whether the signer allowed that kind of change: filling in forms and adding comments may be allowed, other changes show as <b>Changed after signing</b>.</li>
+  <li><b>Changing pages</b> (moving, deleting, inserting, or rotating pages) in a signed document makes its signatures show as changed. PlanetPDF warns you once per document.</li>
+  <li><b>Commands that rewrite the whole file</b>, such as compressing it, break the signatures; PlanetPDF asks before doing that on a signed document.</li>
+  <li><b>A redacted copy</b> never keeps the signatures (the Apply Redactions window says so).</li>
+</ul>
+<p>So sign last: finish editing, then sign. If several people sign, each signs in turn without changing the document in between.</p>
+
+<h2 id="certify">Certifying a document</h2>
+<!-- index: certified PDF; certify; author signature; DocMDP; allowed changes; Save as Other -->
+<p>Certifying is a special digital signature by the document's author. It says the document comes from you and fixes which changes other people may still make; anything else makes the certification show as changed. A certification must be the first signature in the document.</p>
+<ol>
+  <li>Finish and save the document.</li>
+  <li>Choose <b>File ▸ Save as Other ▸ Certified PDF…</b>.</li>
+  <li>Choose your Digital ID in <b>Sign with</b>, as for a digital signature, and the optional reason and location.</li>
+  <li>In <b>Allowed afterwards</b>, choose one of:
+    <ul>
+      <li><b>No changes allowed</b></li>
+      <li><b>Filling in forms and signing</b> (the usual choice for a form)</li>
+      <li><b>Filling in forms, signing, and commenting</b></li>
+    </ul>
+  </li>
+  <li>A certification is invisible unless you tick <b>Show a visible certification box on the page</b>. Then the button reads <b>Next: Draw Signature Box</b> and you drag a box as for a signature; otherwise click <b>Certify</b>.</li>
+  <li>Choose where to save it (the suggested name ends in <code>_certified</code>).</li>
+</ol>
+<p>If the document is already signed, PlanetPDF says so and doesn't certify it.</p>
+
+<h2 id="check-signatures">Checking signatures</h2>
+<!-- index: validate signature; verify signature; signature status; signatures panel; Check Signatures; is the signature valid -->
+<p>When you open a digitally signed document, PlanetPDF checks every signature and opens the <b>Signatures</b> panel. You can open it yourself with <b>View ▸ Show/Hide ▸ Navigation Panes ▸ Signatures Panel</b>, and check again at any time with <b>Fill &amp; Sign ▸ More ▸ Check Signatures</b> or the panel's <b>Check Again</b> button.</p>
+<p>The panel lists each signature with its status, the signer, when it was signed (with "(timestamped)" when a timestamp server vouched for the time), and details. A line at the top gives the overall result.</p>
+<table>
+  <tr><th>Status</th><th>What it means</th></tr>
+  <tr><td><b>✔ Valid</b></td><td>The signature is intact, the signer's certificate is one you trust, and the document hasn't changed since (or only in ways the signer allowed).</td></tr>
+  <tr><td><b>✔ Intact (signer not trusted)</b></td><td>The document is exactly as signed, but PlanetPDF can't confirm who the signer is because their certificate (or the authority that issued it) isn't among your trusted certificates. See <a href="#trusted-certificates">Trusted certificates</a>.</td></tr>
+  <tr><td><b>⚠ Changed after signing</b></td><td>The signature itself is intact, but the document was changed afterwards in ways the signer didn't allow.</td></tr>
+  <tr><td><b>✖ Invalid</b></td><td>The signed content was altered, or the signature is damaged. Don't rely on this document.</td></tr>
+</table>
+<p>For a certified document the details start with "Certified" and the changes it allows. Checking happens on your computer only: PlanetPDF doesn't go online to check whether a certificate has been revoked.</p>
+
+<h3 id="trusted-certificates">Trusted certificates</h3>
+<!-- index: trust; trusted root; certificate authority; CA; import certificate; signer not trusted; Also trust the certificates Windows trusts -->
+<p>PlanetPDF calls a signer trusted when their certificate was issued by an authority you trust. To add one, such as your company's own certificate authority or a business partner's certificate:</p>
+<ol>
+  <li>Choose <b>Edit ▸ Preferences…</b> and click <b>Signatures</b>.</li>
+  <li>Click <b>Import Certificate…</b> and choose the certificate file (.cer, .crt, .pem, or .der).</li>
+  <li>It appears in the list of trusted certificates. Click <b>OK</b>, then <b>Check Again</b> in the Signatures panel.</li>
+</ol>
+<p>On Windows, <b>Also trust the certificates Windows trusts</b> (on a Mac, <b>Also trust the certificates macOS trusts</b>) is on by default: then the root certificates that Windows trusts (or that macOS trusts, plus the certificates in your Keychain) count too, including a company authority IT has installed. Turn it off to trust only the certificates you imported.</p>
+
+<h2 id="scripts-signing">Scripts and programs must ask before signing</h2>
+<!-- index: approval; Allow Digital Signing; command line signing; API signing; plugin signing; Always Allow This Program -->
+<p>PlanetPDF can be driven by scripts, other programs, and plugins (see <a href="scripting.html#top">Scripts, Programs, and Plugins</a>). Everything they can do runs without asking, except signing: a digital signature is your legal signature, so PlanetPDF always asks you first, in its own <b>Allow Digital Signing?</b> window that a script can't answer for you.</p>
+<ul>
+  <li>A <b>command-line script</b> asks every time it signs: <b>Allow</b> or <b>Don't Allow</b>.</li>
+  <li>A <b>program or plugin</b> using PlanetPDF's API asks the first time: <b>Allow Once</b>, <b>Always Allow This Program</b>, or <b>Don't Allow</b>.</li>
+</ul>
+<p>Allow it only if you started the job yourself. You can take back "always" at any time in <b>Edit ▸ Preferences… ▸ Scripting &amp; Plugins</b>: select the program and click <b>Stop Signing</b>, and it will ask again next time.</p>
+</body></html>

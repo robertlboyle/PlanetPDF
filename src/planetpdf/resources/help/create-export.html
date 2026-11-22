@@ -1,0 +1,234 @@
+<html><head><title>Creating, Converting, and Comparing</title></head><body>
+<h1 id="top">Creating, Converting, and Comparing</h1>
+<p>This chapter covers making new PDFs from other files, web pages, the clipboard, or a blank page; exporting a PDF to Word, Excel, PowerPoint, pictures, and other formats; saving archival and print-ready copies (PDF/A, PDF/X, PDF/E) and checking them; comparing two versions of a document; and the document's properties.</p>
+
+<h2 id="create-pdf">The Create PDF tool</h2>
+<!-- index: Create PDF; new PDF; convert to PDF; make a PDF -->
+<p>Open the <b>Create PDF</b> tool from the tool strip on the right or from <b>Tools ▸ Create PDF</b>. The middle of the window shows the start page, "Create a PDF from any format", with the choices in a list: <b>Single File</b>, <b>Multiple Files</b>, <b>Scanner</b>, <b>Web Page</b>, <b>Clipboard</b>, and <b>Blank Page</b>. Click a choice, set its options on the right, and click the big blue button under them. The tool's bar has the same commands as buttons: <b>PDF from File</b>, <b>Scanner</b>, <b>Web Page</b>, <b>PDF from Clipboard</b>, <b>Blank Page</b>, <b>Combine Files</b>, <b>Multiple PDF Files</b>, <b>Portfolio</b>, and <b>Create Form</b>.</p>
+<p>The same commands are on the <b>File ▸ Create</b> menu. Every new PDF is saved where you choose and opens in a tab of its own; the files you started from aren't changed.</p>
+
+<h3 id="create-single">From a single file</h3>
+<!-- index: PDF from File; picture to PDF; image to PDF; JPEG to PDF; text file to PDF; XPS; EPUB; SVG; TIFF to PDF -->
+<ol>
+  <li>Choose <b>File ▸ Create ▸ PDF from File…</b>, or on the start page click <b>Single File</b>, then <b>Select a File</b> (or the large file tile).</li>
+  <li>Pick the file and click <b>Open</b>. On the start page, click <b>Create</b>.</li>
+  <li>Choose where to save the new PDF.</li>
+</ol>
+<p>These kinds of file can be turned into a PDF this way:</p>
+<ul>
+  <li><b>Pictures:</b> PNG, JPEG, TIFF (every page of a multi-page TIFF), BMP, GIF, JPEG 2000, JPEG XR, PNM/PBM/PGM/PPM.</li>
+  <li><b>Text files (.txt):</b> laid out on Letter pages with margins, wrapped, as many pages as needed.</li>
+  <li><b>XPS and OpenXPS</b>, <b>EPUB</b>, <b>FB2</b>, <b>MOBI</b>, and <b>CBZ</b> e-books and comics, and <b>SVG</b> drawings.</li>
+</ul>
+<p>On the start page, tick <b>Advanced: recognize text afterwards (OCR)</b> to make the text of a scan or picture searchable straight away (see <a href="scans.html#recognize-text">Recognizing text</a>).</p>
+<p class="note"><b>Word, Excel, and PowerPoint files</b> are turned into PDFs through Microsoft Office itself, so Office must be installed on the computer. A window says while Word, Excel, or PowerPoint works on it. On Windows, macros in the file are always turned off while Office opens it for PlanetPDF, whatever Office's own settings say, so a file you received can't run code this way. For many Office files at once, use <a href="#create-multiple-files">Create Multiple PDF Files</a>.</p>
+
+<h3 id="create-multiple">Multiple files</h3>
+<!-- index: Multiple Files; several files; batch convert -->
+<p>On the start page, click <b>Multiple Files</b>, choose one of the three options, and click <b>Next</b>:</p>
+<ul>
+  <li><b>Combine files into one PDF:</b> PDFs and pictures, in the order you choose (see <a href="#combine">Combining files</a>).</li>
+  <li><b>Create a PDF from each file:</b> a separate PDF for every file (see <a href="#create-multiple-files">Create Multiple PDF Files</a>).</li>
+  <li><b>PDF Portfolio:</b> the files kept together, unchanged, inside one PDF (see <a href="#portfolio">PDF Portfolio</a>).</li>
+</ul>
+
+<h3 id="combine">Combining files into one PDF</h3>
+<!-- index: Combine Files; merge PDFs; join PDFs; append; combine pictures -->
+<ol>
+  <li>Choose <b>File ▸ Create ▸ Combine Files into a Single PDF…</b> (or <b>Combine Files</b> on the Create PDF bar).</li>
+  <li>Click <b>Add Files…</b> to add PDFs and pictures. Drag them, or use <b>Move Up</b> and <b>Move Down</b>, to put them in order; <b>Remove</b> takes one out.</li>
+  <li>For pictures, choose <b>Image pages:</b> <b>Same size as the image</b>, <b>Letter (fit the image)</b>, or <b>A4 (fit the image)</b>.</li>
+  <li>Tick <b>Recognize text (OCR) so the result is searchable</b> if the files are scans.</li>
+  <li>Click <b>Create PDF…</b> and choose where to save it.</li>
+</ol>
+<p>If one of the PDFs is password protected, PlanetPDF asks for its password. The progress window counts the files ("Adding file 2 of 5").</p>
+
+<h3 id="create-multiple-files">Create Multiple PDF Files (one PDF per file)</h3>
+<!-- index: Create Multiple PDF Files; Word to PDF; Excel to PDF; PowerPoint to PDF; Office to PDF; docx to PDF; batch PDF -->
+<ol>
+  <li>Choose <b>File ▸ Create ▸ Create Multiple PDF Files…</b>.</li>
+  <li>Click <b>Add Files…</b> or <b>Add Folder…</b> to list the files.</li>
+  <li>In <b>Save in:</b>, choose the folder for the new PDFs (<b>Browse…</b>).</li>
+  <li>Click <b>Create PDFs</b>.</li>
+</ol>
+<p>Each file becomes a PDF of the same name: pictures, text, XPS, EPUB, and SVG files, and, when Microsoft Office is installed, Word (.doc, .docx, .rtf, .odt…), Excel (.xls, .xlsx, .csv, .ods…), and PowerPoint (.ppt, .pptx, .odp…) files. The window says which Office programs it will use. Existing files are never overwritten. At the end PlanetPDF says how many files were done and lists any it couldn't convert, with the reason.</p>
+<ul>
+  <li><b>Word documents</b> keep their headings as bookmarks. If the document has a table of contents but no headings Word can turn into bookmarks, PlanetPDF adds a bookmark for each contents entry.</li>
+  <li><b>On a Mac,</b> macOS asks once per Office program whether PlanetPDF may control it, and once for access to Office's files: click <b>OK</b> / <b>Allow</b>. If Word was already open, a copy named "(PlanetPDF copy)" may stay open in it afterwards.</li>
+</ul>
+
+<h3 id="portfolio">PDF Portfolio</h3>
+<!-- index: Portfolio; package files; attachments; bundle files in a PDF -->
+<p>A portfolio keeps several files of any kind together, unchanged, inside one PDF. Its first page lists them, and viewers that know portfolios show them as a list.</p>
+<ol>
+  <li>Choose <b>File ▸ Create ▸ PDF Portfolio…</b>.</li>
+  <li>Add the files and put them in order.</li>
+  <li>Click <b>Create Portfolio…</b> and choose where to save it.</li>
+</ol>
+<p>The portfolio opens with the <b>Attachments</b> panel showing its files. Select one and click <b>Save As…</b> to save a copy of it; PlanetPDF never runs an attached file.</p>
+
+<h3 id="create-scanner">From a scanner</h3>
+<!-- index: PDF from Scanner -->
+<p>Choose <b>File ▸ Create ▸ PDF from Scanner…</b>, or <b>Scanner</b> on the start page. See <a href="scans.html#scanning">Scanning paper into a PDF</a>.</p>
+
+<h3 id="create-web">From a web page</h3>
+<!-- index: PDF from Web Page; capture web page; save website as PDF; HTML to PDF; Edge; Chrome -->
+<p>PlanetPDF prints a web page to a PDF through Microsoft Edge (or Google Chrome when Edge isn't there; on a Mac also Chromium or Brave), without opening a browser window.</p>
+<ol>
+  <li>Choose <b>File ▸ Create ▸ PDF from Web Page…</b>, or <b>Web Page</b> on the start page.</li>
+  <li>Type the address, for example <code>www.example.com</code> (PlanetPDF adds <code>https://</code>), or the path of an .html file on your computer.</li>
+  <li>Click <b>OK</b>. The progress window counts the seconds the page takes to load ("12 of at most 120 seconds"); <b>Cancel</b> stops.</li>
+  <li>Choose where to save the PDF.</li>
+</ol>
+<p>Only web (http, https) addresses and files can be captured. The page is loaded in a fresh, empty browser profile, so pages that need you to sign in show as they do for a visitor who isn't signed in. To add a web page to the open document instead, choose <b>File ▸ Insert Pages ▸ From Web Page…</b>.</p>
+
+<h3 id="create-clipboard">From the clipboard</h3>
+<!-- index: PDF from Clipboard; paste as PDF; screenshot to PDF -->
+<p>Copy a picture (for example a screenshot) or some text in any program, then choose <b>File ▸ Create ▸ PDF from Clipboard</b> (or <b>Clipboard</b> on the start page). A picture becomes one page its size (shrunk to fit Letter if larger); text is laid out on Letter pages. If the clipboard holds neither, PlanetPDF says so. <b>File ▸ Insert Pages ▸ From Clipboard…</b> adds it to the open document instead.</p>
+
+<h3 id="create-blank">A blank page</h3>
+<!-- index: Blank Page; new empty PDF; new document -->
+<p>Choose <b>File ▸ Create ▸ Blank Page</b> (or <b>Blank Page</b> on the start page) for a new PDF with one empty Letter-size page. Add text with <b>Edit ▸ Add Text</b>, or start a form on it with <b>File ▸ Create ▸ Create Form…</b> (see <a href="forms.html#top">Forms</a>).</p>
+
+<h2 id="export">Exporting a PDF to other formats</h2>
+<!-- index: Export; Export PDF; Save As Word; convert PDF; Export To -->
+<p>Exporting makes a new file in another format. The PDF itself isn't changed, and any unsaved changes are included in the export. There are three ways to start:</p>
+<ul>
+  <li><b>File ▸ Export To</b> and the format.</li>
+  <li>The <b>Export PDF</b> tool: its start page, "Export your PDF to any format", shows the document on the left and the kinds of file in a list (<b>Microsoft Word</b>, <b>Spreadsheet</b>, <b>Microsoft PowerPoint</b>, <b>Image</b>, <b>HTML Web Page</b>, <b>More Formats</b>). Choose one, pick a format with its round button, and click <b>Export</b>. The ⚙ beside a format opens its settings. The tool's bar has buttons for the same formats.</li>
+  <li><b>Ctrl+E</b> opens the Export window with the format you used last.</li>
+</ul>
+<h3 id="export-window">The Export window</h3>
+<!-- index: export settings; export pages; resolution; JPG quality -->
+<ol>
+  <li><b>Format:</b> the kind of file. You can change it here.</li>
+  <li><b>Pages:</b> the pages to export, for example <code>1,5,8-12</code>. Pages are exported in the order typed. The pages selected in the Pages panel are filled in.</li>
+  <li>The format's own settings, if it has any (see the table below). A note under them says what to expect from the format.</li>
+  <li>Click <b>Export…</b>, then choose the file name and folder.</li>
+</ol>
+<p>The progress window counts the pages ("Exporting page 3 of 10"). Formats that make one file per page name them after the file you choose, with the page number added (for example <code>Report_p01.png</code>, <code>Report_p02.png</code>). PlanetPDF remembers the format and settings for next time.</p>
+
+<h3 id="export-formats">The formats</h3>
+<!-- index: Word; docx; doc; Excel; xlsx; XML Spreadsheet 2003; PowerPoint; pptx; RTF; Rich Text; plain text; accessible text; HTML; XML; PNG; JPEG; JPG; TIFF; JPEG 2000; image-only PDF; PostScript; EPS -->
+<table>
+  <tr><th>Format (menu)</th><th>What you get</th><th>Settings</th></tr>
+  <tr><td><b>Microsoft Word ▸ Word Document</b> (.docx)</td><td>Text, pictures, tables, and layout you can edit in Word, converted as closely as possible. Complex pages may need touching up. If parts of a page couldn't be converted, PlanetPDF lists them afterwards.</td><td><b>Recognize text on scanned pages (OCR)</b></td></tr>
+  <tr><td><b>Microsoft Word ▸ Word 97-2003 Document</b> (.doc)</td><td>The Word export first, then Microsoft Word saves it in the old format. Word must be installed. See the note below.</td><td><b>Recognize text on scanned pages (OCR)</b></td></tr>
+  <tr><td><b>Spreadsheet ▸ Microsoft Excel Workbook</b> (.xlsx)</td><td>One sheet per page. Tables found on the page come out cell for cell, with numbers stored as numbers ("1,234.50", "$99", and "12%" add up); other text one line per row.</td><td>None</td></tr>
+  <tr><td><b>Spreadsheet ▸ XML Spreadsheet 2003</b> (.xml)</td><td>The same rows as the Excel workbook, in the older XML format Excel opens.</td><td>None</td></tr>
+  <tr><td><b>Microsoft PowerPoint Presentation</b> (.pptx)</td><td>One slide per page, the size of the page. The page's pictures and shapes are the slide's background, and its text is editable text boxes where it was, in its size, color, bold, and italics.</td><td><b>Resolution</b> of the backgrounds</td></tr>
+  <tr><td><b>Image ▸ JPEG</b>, <b>JPEG2000</b>, <b>PNG</b>, <b>TIFF</b></td><td>One picture file per page.</td><td><b>Resolution</b> (dpi); <b>JPG quality</b> for JPEG and JPEG 2000</td></tr>
+  <tr><td><b>Image ▸ Multi-page TIFF</b></td><td>All the pages in one TIFF file.</td><td><b>Resolution</b></td></tr>
+  <tr><td><b>Image ▸ Image-only PDF</b></td><td>A PDF whose pages are pictures of the original pages. Text can't be searched or copied, and links, forms, and layers are dropped: useful to send a document nobody can pick apart.</td><td><b>Resolution</b>; <b>Compress pictures as JPEG (much smaller file)</b> and its <b>JPG quality</b></td></tr>
+  <tr><td><b>HTML Web Page</b> (.html)</td><td>One web page: each PDF page's text as headings and paragraphs, keeping bold and italics, with the pictures inside the file. Pages are separated by a line.</td><td>None</td></tr>
+  <tr><td><b>Rich Text Format</b> (.rtf)</td><td>Text reflowed into paragraphs with fonts, sizes, bold, italics, colors, and pictures, a page break between pages. The page layout isn't kept.</td><td><b>Recognize text on scanned pages (OCR)</b></td></tr>
+  <tr><td><b>Encapsulated PostScript</b> (.eps)</td><td>One page as PostScript, for placing in layout programs. Choose a single page.</td><td>See below</td></tr>
+  <tr><td><b>PostScript</b> (.ps)</td><td>The pages as PostScript, for print shops and older printing systems.</td><td>See below</td></tr>
+  <tr><td><b>Text (Accessible)</b> (.txt)</td><td>For screen readers and other tools: paragraphs in reading order (not the page's line breaks, and words split by a hyphen at a line end are joined again), a "Page N" heading per page, and "[Picture]" where a picture is.</td><td>None</td></tr>
+  <tr><td><b>Text (Plain)</b> (.txt)</td><td>The text of each page in reading order, pages separated by a page break.</td><td><b>Recognize text on scanned pages (OCR)</b></td></tr>
+  <tr><td><b>XML 1.0</b> (.xml)</td><td>The text with its structure, for other programs: pages, blocks, lines, and pieces of text with their font, size, color, bold, italics, and position, and where the pictures are.</td><td>None</td></tr>
+</table>
+<ul>
+  <li><b>Recognize text on scanned pages (OCR)</b> reads the text of pages that have none before exporting. It needs text recognition to be installed.</li>
+  <li><b>PostScript and EPS</b> are written with real text and shapes when Ghostscript is installed (it comes with PlanetPDF). Without it, the pages are pictures in the PostScript file, the window says so, and <b>Resolution</b> appears.</li>
+  <li><b>A password-protected document:</b> for <b>Image-only PDF</b>, PlanetPDF asks whether to protect the new file too.</li>
+</ul>
+<p class="note"><b>Word 97-2003 (.doc) at Planet Networks:</b> the company's Microsoft 365 policy blocks Word from saving Word 97-2003 files. PlanetPDF then says Word isn't allowed to save that format, because of the organization's Office policy (File Block settings). Export to <b>Word Document</b> (.docx) instead; every current version of Word opens it. Ask IT if you really need .doc files.</p>
+<p>To save some pages as a new PDF, use <b>Extract Pages</b> in the Organize Pages tool (see <a href="pages.html#top">Organizing Pages</a>).</p>
+
+<h3 id="ai-reading">AI text reading (Unlimited-OCR)</h3>
+<!-- index: AI; artificial intelligence; Unlimited-OCR; OCR for Word; scan to Word; flowing text; NVIDIA; graphics card -->
+<p>For exports to <b>Word</b>, <b>Word 97-2003</b>, <b>Rich Text</b>, <b>text</b>, <b>accessible text</b>, and
+<b>HTML</b>, PlanetPDF can read the pages with <b>Unlimited-OCR</b>, an AI model. It reads the whole document
+at once and writes one flowing document: headings as Word headings, paragraphs joined across lines and pages,
+lists, and tables as real tables, all in reading order. It works best on scanned documents, which the usual
+conversion can only turn into separate lines of text. Pictures and the page layout aren't kept.</p>
+<ol>
+  <li>Choose <b>File ▸ Export</b> (<b>Ctrl+E</b>) and one of the formats above.</li>
+  <li>Tick <b>Read the pages with AI (Unlimited-OCR)</b>, then click <b>Export…</b> and choose where to save.</li>
+  <li>The first export loads the model onto the graphics card, which takes a little while; then it counts the
+  pages as it reads them ("Reading page 3 of 12"). The model stays loaded for a few minutes, so the next
+  export starts at once (Preferences ▸ Performance).</li>
+</ol>
+<p class="note"><b>What it needs:</b> the optional <b>PlanetPDF AI Text Reading</b> add-on (its own installer,
+about 10 GB), and a Windows computer with an <b>NVIDIA graphics card with about 8 GB of memory</b> and a current
+NVIDIA driver. Without them the box is grayed out, and pointing at it says why. Everything runs on this
+computer: no document is sent anywhere.</p>
+
+<h2 id="standards">PDF/A, PDF/X, and PDF/E</h2>
+<!-- index: PDF Standards tool; Save as Other; archive; archival PDF; long-term storage; print-ready; press; engineering; ISO -->
+<p>Some places ask for a PDF that follows a standard:</p>
+<ul>
+  <li><b>PDF/A</b> (PlanetPDF makes PDF/A-2b) is for <b>long-term archiving</b>: courts, government agencies, and records departments often require it. Everything needed to show the file is inside it (fonts, color profile), and nothing that could stop it showing the same way in years to come (scripts, sound, video, links to other files) is allowed.</li>
+  <li><b>PDF/X</b> (PDF/X-3) is for a <b>printing press</b>: colors in CMYK, no transparency, every page with a trim box.</li>
+  <li><b>PDF/E</b> (PDF/E-1) is for <b>engineering documents</b> such as drawings.</li>
+</ul>
+<p>Saving in a standard always makes a <b>copy</b>; the open document doesn't change. These conversions use Ghostscript, which comes with PlanetPDF. If it is missing, PlanetPDF says so: ask IT to install it.</p>
+
+<h3 id="save-standard">Saving a copy as PDF/A, PDF/X, or PDF/E</h3>
+<!-- index: Archivable PDF; Press-Ready PDF; Save as PDF/A; Save as PDF/X; Save as PDF/E -->
+<ol>
+  <li>Choose <b>File ▸ Save as Other ▸ Archivable PDF (PDF/A)…</b>, <b>Press-Ready PDF (PDF/X)…</b>, or <b>PDF/E…</b>, or open the <b>PDF Standards</b> tool and click <b>Save as PDF/A</b>, <b>Save as PDF/X</b>, or <b>Save as PDF/E</b>.</li>
+  <li>Choose a name for the copy. PlanetPDF suggests "<i>name</i>_pdfa.pdf" (or _pdfx, _pdfe). It can't replace the open document.</li>
+  <li>The progress window counts the pages; <b>Cancel</b> stops.</li>
+</ol>
+<p>Before converting, PlanetPDF fixes on the copy what the standard forbids: it removes scripts and forbidden actions, sound, video, and attached files, sets comments to print and gives them a look, and (for PDF/X) sets each page's trim box. Ghostscript then embeds the fonts, adds the color profile and the standard's markings, and (for PDF/X) converts colors to CMYK and flattens transparency. At the end PlanetPDF lists what was changed. PDF/A and PDF/X copies can't be password protected: the standards don't allow it.</p>
+
+<h3 id="check-compliance">Check Compliance</h3>
+<!-- index: Check Compliance; preflight; validate PDF/A; verify PDF/A; conformance; compliance report -->
+<p><b>Check Compliance</b> checks the open document against PDF/A, PDF/X, or PDF/E and tells you what, if anything, stands in the way.</p>
+<ol>
+  <li>Open the <b>PDF Standards</b> tool and click <b>Check Compliance</b>. The check runs at once against PDF/A.</li>
+  <li>To check against another standard, choose it in <b>Check against:</b> and click <b>Analyze</b>.</li>
+  <li>Read the summary at the top ("N problems to fix", "No problems found…", or "This file meets…"), then the list of checks.</li>
+</ol>
+<p>Each check shows one of these results:</p>
+<table>
+  <tr><th>Result</th><th>Meaning</th></tr>
+  <tr><td><b>Pass</b></td><td>The document meets this rule.</td></tr>
+  <tr><td><b>N/A</b></td><td>The document doesn't use what's checked (for example, it has no comments), so there is nothing to fix. Counts as a pass.</td></tr>
+  <tr><td><b>Added when saved</b></td><td>Something every file of the standard carries, such as its identification, metadata, color profile, or a PDF/X trim box. It is added when you save in that format, so it is never a problem.</td></tr>
+  <tr><td><b>Warning</b></td><td>Worth a look, but not a failure.</td></tr>
+  <tr><td><b>Fail</b></td><td>A real problem, such as fonts not embedded, scripts or forbidden actions, sound or video, comments that don't print, password protection, or (for PDF/X) transparency or RGB colors. Each failure has a "How to fix:" line under it, and the pages it affects; double-click a page to go to it.</td></tr>
+</table>
+<p>The checks are: the file is marked as the standard, metadata, color profile (output intent), not password protected, document title, all fonts are embedded, no scripts or forbidden actions, no sound, video, 3D, or attached files, comments and fields print as they look, and, for PDF/X, no transparency, no RGB colors, and a trim box on every page.</p>
+
+<h3 id="fix-and-save">Fix and Save</h3>
+<!-- index: Fix and Save as PDF/A; fix compliance problems; Open Fixed Copy; Save Report -->
+<p>When something fails, the main button is <b>Fix and Save as PDF/A…</b> (or PDF/X, PDF/E); when nothing fails it is <b>Save as PDF/A…</b>. Click it and choose a name. PlanetPDF makes a corrected copy the same way as <a href="#save-standard">Save as</a>, checks the copy again, and shows the copy's results: what was changed, and anything "Not fixed automatically" that you must change in the document yourself before trying again.</p>
+<ul>
+  <li><b>Open Fixed Copy</b> opens the copy in a new tab.</li>
+  <li><b>Save Report…</b> saves the results as a text file.</li>
+</ul>
+<p class="note"><b>Note:</b> Check Compliance covers the rules that most often fail. It isn't a certified validator: when an archive or a print shop must be certain, check the copy with their validator too.</p>
+
+<h2 id="compare">Comparing two versions</h2>
+<!-- index: Compare Files; compare documents; differences; changes between versions; redline; diff -->
+<p><b>Compare Files</b> finds the text that was added, removed, or changed between two versions of a document.</p>
+<ol>
+  <li>Open the newer version.</li>
+  <li>Choose <b>View ▸ Compare Files</b> or <b>Tools ▸ Compare Files</b> (or click <b>Compare Files</b> on the tool strip).</li>
+  <li>Choose the older version and click <b>Open</b>. If it is password protected, PlanetPDF asks for the password.</li>
+</ol>
+<p>The progress window counts the pages compared. Then a window titled "Compare with <i>file</i>" opens beside the document. It stays open while you work, and shows:</p>
+<ul>
+  <li>Which file is <b>Old</b> and which is <b>New</b>, and a summary ("3 changed, 2 added, 1 removed", and the page counts if they differ). If the text is the same, it says "No differences in the text."</li>
+  <li>A list of the changes, each with its kind (<b>Added</b>, <b>Removed</b>, <b>Changed</b>), its page, and the words. Point at one to see the old and new text.</li>
+</ul>
+<p>Every change is highlighted in the open document. Click a change in the list to go to it; it is highlighted more strongly. Removed text exists only in the other file, so clicking it just says so in the status bar.</p>
+<ul>
+  <li><b>Swap Old and New:</b> treat the open document as the old version instead.</li>
+  <li><b>Save Comparison Report…:</b> saves a PDF report: summary pages, then the old and new pages side by side with the changes marked in red (removed), green (added), and amber (changed). PlanetPDF suggests "<i>name</i> - comparison.pdf"; it can't be one of the two files being compared.</li>
+  <li><b>Close</b> closes the window and the highlights go away.</li>
+</ul>
+<p>Compare looks at the words, not at pictures, layout, or formatting. Scans need their text recognized first (see <a href="scans.html#recognize-text">Recognizing text</a>).</p>
+
+<h2 id="properties">Document properties</h2>
+<!-- index: Document Properties; metadata; title; author; subject; keywords; file information; PDF version; fonts used -->
+<p>Choose <b>File ▸ Properties…</b> (<b>Ctrl+D</b>) to see facts about the document and change its description.</p>
+<ul>
+  <li><b>Description:</b> <b>Title</b>, <b>Author</b>, <b>Subject</b>, and <b>Keywords</b>. These are stored in the PDF; search tools, document systems, and some viewers' title bars show them. Change them and click <b>Save Changes</b>. The change is one undo step; save the document to keep it.</li>
+  <li><b>File</b> (read only): location, size, number of pages, page size, PDF version, when it was created and last modified, the program it was created with and the PDF producer, whether it is password protected, digitally signed, or has form fields, and the fonts it uses. You can select and copy these.</li>
+</ul>
+<p>To remove the description and other hidden information before sharing a file, see <a href="protect-redact.html#top">Protecting and Redacting</a>.</p>
+</body></html>

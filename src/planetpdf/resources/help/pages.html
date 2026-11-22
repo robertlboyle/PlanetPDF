@@ -1,0 +1,300 @@
+<html><head><title>Organizing Pages</title></head><body>
+<h1 id="top">Organizing Pages</h1>
+<p>This chapter covers how to arrange a document's pages: putting them in a new order, adding and deleting pages, turning, cropping, splitting and combining files, numbering pages, adding headers, footers, watermarks, and backgrounds, and making bookmarks. Every change here can be undone with <b>Edit ▸ Undo</b> (<b>Ctrl+Z</b>) until you close the document.</p>
+
+<h2 id="page-ranges">Typing page numbers</h2>
+<!-- index: page range; pages box; which pages; all pages; 1-3; odd pages; even pages -->
+<p>Many commands in this chapter have a <b>Pages</b> box. It starts with the pages you have selected (or <b>all</b>). You can type:</p>
+<table>
+  <tr><th>You type</th><th>It means</th></tr>
+  <tr><td><code>all</code></td><td>Every page.</td></tr>
+  <tr><td><code>3</code></td><td>Page 3 only.</td></tr>
+  <tr><td><code>1,5,8-12</code></td><td>Pages 1, 5, and 8 through 12.</td></tr>
+  <tr><td><code>5-</code></td><td>Page 5 to the end.</td></tr>
+  <tr><td><code>-3</code></td><td>Pages 1 through 3.</td></tr>
+  <tr><td><code>12-8</code></td><td>Pages 12 down to 8, in that order.</td></tr>
+</table>
+<p>Page numbers are counted from 1, the way they appear under the thumbnails. When the order matters (for example, when you extract pages), PlanetPDF keeps the order you typed. A page typed twice is used once.</p>
+
+<h2 id="selecting-pages">Selecting pages</h2>
+<!-- index: select pages; several pages; Ctrl+click; Shift+click; current page; target pages -->
+<p>Commands that work on "the selected pages" use the pages selected in the Pages panel or in the Organize Pages grid. If no page is selected, they work on the page you are looking at.</p>
+<ul>
+  <li>Click a page to select it.</li>
+  <li><b>Ctrl</b>+click adds a page to the selection or takes it out.</li>
+  <li><b>Shift</b>+click selects every page from the last one you clicked to this one.</li>
+</ul>
+<p>To show the Pages panel, choose <b>View ▸ Show/Hide ▸ Navigation Panes ▸ Page Thumbnails</b>, click the <b>Pages</b> button at the edge of the window, or press <b>F4</b> (which shows or hides the navigation panes). Right-click a thumbnail for <b>Rotate Clockwise 90°</b>, <b>Rotate Counterclockwise 90°</b>, <b>Rotate Pages…</b>, <b>Insert Blank Page</b>, <b>Insert Pages from File…</b>, <b>Extract Pages…</b>, and <b>Delete Selected Pages</b>.</p>
+
+<h2 id="organize-tool">The Organize Pages tool</h2>
+<!-- index: Organize Pages; page grid; page tiles; organizer; thumbnails view -->
+<p>Organize Pages shows every page of the document as a large tile in place of the page view, so you can see the whole document at once and rearrange it.</p>
+<ol>
+  <li>Choose <b>Tools ▸ Organize Pages</b>, or click <b>Organize Pages</b> on the tool strip.</li>
+  <li>The pages appear as a grid. The Organize Pages bar appears under the main toolbar.</li>
+  <li>When you are done, click <b>Close</b> at the right end of the bar. Double-clicking a tile also closes the grid and opens that page.</li>
+</ol>
+<h3 id="organize-bar">The Organize Pages bar</h3>
+<!-- index: All Pages; Even Pages; Odd Pages; Portrait Pages; Landscape Pages; page set box -->
+<table>
+  <tr><th>Item</th><th>What it does</th></tr>
+  <tr><td>Page box</td><td>Shows the selected pages (for example <code>3</code> or <code>1-4, 7</code>, or <b>All Pages</b>). Type pages and press <b>Enter</b> to select them, or open the list and choose <b>All Pages</b>, <b>Even Pages</b>, <b>Odd Pages</b>, <b>Portrait Pages</b>, or <b>Landscape Pages</b>.</td></tr>
+  <tr><td>Rotate buttons and trash can</td><td>Turn the selected pages counterclockwise or clockwise 90°, or delete them.</td></tr>
+  <tr><td><b>Extract</b></td><td>Saves the selected pages as a new PDF (see <a href="#extract">Extracting pages</a>).</td></tr>
+  <tr><td><b>Insert ▾</b></td><td><b>From File…</b>, <b>From Clipboard…</b>, <b>Blank Page</b>, <b>From Scanner…</b>, <b>From Web Page…</b>.</td></tr>
+  <tr><td><b>Replace</b></td><td>Replaces pages with pages from another PDF.</td></tr>
+  <tr><td><b>Split</b></td><td>Splits the document into several files.</td></tr>
+  <tr><td><b>More ▾</b></td><td><b>Rotate Pages…</b>, <b>Crop Pages…</b>, <b>Add Page Numbers…</b>, <b>Header &amp; Footer…</b>, <b>Page Labels…</b>.</td></tr>
+</table>
+<h3 id="organize-hover">Buttons on a tile</h3>
+<!-- index: hover buttons; rotate one page; delete one page -->
+<p>When you point at a tile, three small buttons appear on it: rotate counterclockwise, rotate clockwise, and delete page. They act on that one page.</p>
+
+<h2 id="reorder">Putting pages in a different order</h2>
+<!-- index: move pages; reorder; rearrange; drag pages; page order -->
+<p>You can drag pages in the Organize Pages grid or in the Pages panel.</p>
+<ol>
+  <li>Select the pages to move (one page, or several with <b>Ctrl</b> or <b>Shift</b>).</li>
+  <li>Press on one of them and drag. A line shows where the pages will go.</li>
+  <li>Let go of the mouse button. The pages move there, in their original order.</li>
+</ol>
+<p>Press <b>Esc</b> while dragging to cancel.</p>
+<h3 id="copy-pages">Copying pages by dragging</h3>
+<!-- index: duplicate pages; copy page; Shift drag -->
+<p>Hold <b>Shift</b> when you let go of the mouse button: copies of the pages go there, and the originals stay where they were. The copies keep their comments.</p>
+<h3 id="pages-between-documents">Dragging pages into another document</h3>
+<!-- index: copy pages to another file; drag pages between windows; other document -->
+<p>When two documents are open in separate windows (see <b>Window ▸ Move to New Window</b>), you can drag pages from one document's Pages panel or Organize Pages grid into the other window:</p>
+<ul>
+  <li>Drop them on the other window's Pages panel or Organize Pages grid: a line shows where they will go.</li>
+  <li>Drop them on the other window's page view: they go before or after the page under the mouse.</li>
+</ul>
+<p>This always copies the pages; the first document doesn't change. In the receiving document the copy is one undo step, named "Copy N Pages from" the other file.</p>
+<p class="note"><b>Note:</b> If the document is digitally signed, PlanetPDF warns you once that adding, removing, or moving pages invalidates its signatures, and asks whether to continue.</p>
+
+<h2 id="insert">Inserting pages</h2>
+<!-- index: add pages; insert pages; insert file; append; merge into this document -->
+<p>New pages go after the last selected page (or after the page you are looking at). You can insert pages from several places:</p>
+<table>
+  <tr><th>Where from</th><th>How</th></tr>
+  <tr><td>Another PDF</td><td><b>File ▸ Insert Pages ▸ From File…</b> (<b>Shift+Ctrl+I</b>). Every page of the chosen PDF is inserted. If the file has a password, PlanetPDF asks for it.</td></tr>
+  <tr><td>The clipboard</td><td><b>File ▸ Insert Pages ▸ From Clipboard…</b>. A picture on the clipboard becomes a page; copied text becomes pages of text.</td></tr>
+  <tr><td>A scanner</td><td><b>File ▸ Insert Pages ▸ From Scanner…</b>. See <a href="scans.html#top">Scans, Text Recognition, and File Size</a>.</td></tr>
+  <tr><td>A web page</td><td><b>File ▸ Insert Pages ▸ From Web Page…</b>. Needs Microsoft Edge or Google Chrome. See <a href="create-export.html#top">Creating, Converting, and Comparing</a>.</td></tr>
+  <tr><td>A blank page</td><td><b>File ▸ Insert Pages ▸ A Blank Page…</b>. The new page is the same size as the page next to it.</td></tr>
+</table>
+<p>The same commands are on the Organize Pages bar under <b>Insert ▾</b>, and the Scan &amp; OCR bar has <b>Insert ▾</b> with <b>From File…</b> and <b>From Scanner</b>.</p>
+<h3 id="insert-by-dropping">Inserting by dropping files</h3>
+<!-- index: drag from Explorer; drop PDF; drop files on thumbnails -->
+<p>Drag PDF files from File Explorer (Finder on a Mac) onto the Pages panel or the Organize Pages grid. Their pages are inserted where you drop them, between the two pages on either side of the drop line. Dropping a file anywhere else in the window opens it as a new document instead.</p>
+
+<h2 id="delete">Deleting pages</h2>
+<!-- index: remove pages; delete page; Delete key -->
+<ol>
+  <li>Select the pages in the Pages panel or the Organize Pages grid.</li>
+  <li>Choose <b>Edit ▸ Delete Pages</b> (<b>Shift+Ctrl+D</b>), press <b>Delete</b> while the Pages panel or grid has the focus, or click the trash can on the Organize Pages or Scan &amp; OCR bar.</li>
+</ol>
+<p>A PDF must keep at least one page, so you can't delete every page. Use <b>Edit ▸ Undo</b> to bring deleted pages back.</p>
+
+<h2 id="rotate">Rotating pages</h2>
+<!-- index: turn pages; rotate pages; landscape; upside down; sideways; Rotate Pages -->
+<p>Rotating a page changes the document: the page stays turned when you save, print, or open it in another program. Nothing on the page is redrawn or loses quality.</p>
+<ul>
+  <li><b>Edit ▸ Rotate Clockwise</b> and <b>Edit ▸ Rotate Counterclockwise</b> turn the selected pages (or the current page) 90°. The same buttons are on the Organize Pages and Scan &amp; OCR bars.</li>
+  <li><b>Rotate Pages…</b> (<b>Shift+Ctrl+R</b>, also under <b>More ▾</b> on the Organize Pages bar) opens a dialog: choose <b>Selected pages</b>, <b>All pages</b>, or <b>These pages</b>, then the <b>Direction</b> (Clockwise or Counterclockwise) and the <b>Angle</b> (90°, 180°, or 270°), and click <b>OK</b>.</li>
+</ul>
+<h3 id="rotate-view-vs-pages">Rotate View is different</h3>
+<!-- index: Rotate View; turn the display; view only -->
+<p><b>View ▸ Rotate View ▸ Clockwise</b> (<b>Shift+Ctrl+Plus</b>) and <b>Counterclockwise</b> (<b>Shift+Ctrl+Minus</b>) only turn how the pages are shown on your screen, for reading. The file isn't changed, and nothing needs saving. Use Rotate Pages when the page itself is the wrong way up.</p>
+
+<h2 id="extract">Extracting pages</h2>
+<!-- index: extract pages; export pages; save pages as new PDF; copy pages to new file -->
+<p>Extracting saves some pages as a new PDF. The open document isn't changed, and unsaved changes are included in the new file.</p>
+<ol>
+  <li>Select the pages, then click <b>Extract</b> on the Organize Pages bar (or right-click a thumbnail and choose <b>Extract Pages…</b>).</li>
+  <li>Check the <b>Pages</b> box. The pages go into the new file in the order you type them.</li>
+  <li>Click <b>OK</b>, choose a name and folder (PlanetPDF suggests the document's name with "_pages"), and save.</li>
+</ol>
+<p>If the document is password protected, PlanetPDF asks whether to protect the new file too.</p>
+
+<h2 id="split">Splitting a document</h2>
+<!-- index: split; break apart; separate files; split by bookmarks; split every page -->
+<p>Splitting writes the document out as several smaller PDFs. The open document isn't changed.</p>
+<ol>
+  <li>Click <b>Split</b> on the Organize Pages bar.</li>
+  <li>Choose how to split:
+    <ul>
+      <li><b>Every</b> N <b>page(s) per file</b>: for example 1 makes one file per page.</li>
+      <li><b>These groups:</b> type the groups separated by semicolons, for example <code>1-3; 4-10; 11-</code>.</li>
+      <li><b>At each top-level bookmark</b>: each file runs from one top-level bookmark to the next (only when the document has bookmarks). Pages before the first bookmark go into a file of their own.</li>
+    </ul>
+  </li>
+  <li>Click <b>Choose Folder…</b> and pick the folder for the new files.</li>
+</ol>
+<p>The files are named after the document with a number (and the bookmark's title when you split at bookmarks), for example <code>Report_01.pdf</code>, <code>Report_02 - Introduction.pdf</code>. The window shows "Writing file 2 of 5" as it works; you can cancel it. If the document is protected, PlanetPDF asks whether to protect the new files too.</p>
+
+<h2 id="replace">Replacing pages</h2>
+<!-- index: replace pages; swap pages; substitute pages -->
+<p>Replace Pages swaps some pages of this document for pages of another PDF, for example a corrected page.</p>
+<ol>
+  <li>Click <b>Replace</b> on the Organize Pages bar.</li>
+  <li>In <b>Replace pages</b>, type the pages to take out.</li>
+  <li>Click <b>Choose File…</b> and pick the other PDF.</li>
+  <li>In <b>Its pages</b>, type which of its pages to use (<code>all</code>, or for example <code>1-3</code>).</li>
+  <li>Click <b>Replace</b>.</li>
+</ol>
+<p>The new pages go where the first replaced page was. The numbers don't have to match: you can replace two pages with five. It is one undo step.</p>
+
+<h2 id="crop">Cropping pages</h2>
+<!-- index: crop; trim margins; cut edges; crop box -->
+<p>Cropping hides the edges of a page. Nothing is deleted: the hidden part is still in the file, and the crop can be undone.</p>
+<h3 id="crop-dialog">With the Crop Pages dialog</h3>
+<ol>
+  <li>Choose <b>Crop Pages…</b> (<b>Shift+Ctrl+T</b>): it's under <b>More ▾</b> on the Organize Pages bar and is the <b>Crop page</b> button on the Edit PDF bar.</li>
+  <li>Enter how much to trim from each side in inches: <b>Trim left</b>, <b>Trim top</b>, <b>Trim right</b>, <b>Trim bottom</b>.</li>
+  <li>Check the <b>Pages</b> box and click <b>Crop</b>.</li>
+</ol>
+<p>To draw the area instead, click <b>Draw Crop Box on the Page Instead…</b>, then drag a box around the part of the page to keep. <b>Esc</b> cancels.</p>
+<h3 id="crop-draw">By drawing a box (Scan &amp; OCR)</h3>
+<!-- index: crop scan; Crop Pages button -->
+<ol>
+  <li>Open <b>Tools ▸ Scan &amp; OCR</b> and click the <b>Crop Pages</b> button.</li>
+  <li>Drag a box around the part of the page to keep. That page is cropped at once.</li>
+</ol>
+<p>The tool turns off after one crop. To crop many pages the same way, use the Crop Pages dialog.</p>
+
+<h2 id="page-labels">Page labels</h2>
+<!-- index: page labels; roman numerals; page numbering style; i ii iii; prefix -->
+<p>Page labels change how pages are numbered in the Pages panel and in other PDF readers' page boxes, for example i–iv for the front matter and then 1, 2, 3. The pages themselves don't change, and nothing is printed on them (for printed numbers, see <a href="#page-numbers">Page numbers</a>).</p>
+<ol>
+  <li>Choose <b>Page Labels…</b> under <b>More ▾</b> on the Organize Pages bar.</li>
+  <li>Each row is a range that runs until the next row's first page. Set:
+    <ul>
+      <li><b>From page</b>: the range's first page.</li>
+      <li><b>Style</b>: 1, 2, 3 · i, ii, iii · I, II, III · a, b, c · A, B, C · or None (prefix only).</li>
+      <li><b>Prefix</b>: text in front of the number, for example <code>A-</code>.</li>
+      <li><b>Start at</b>: the number of the range's first page.</li>
+    </ul>
+  </li>
+  <li>Use <b>Add Range</b> and <b>Remove Range</b> as needed, or <b>Remove All Labels</b> to number the pages 1, 2, 3 again. Click <b>OK</b>.</li>
+</ol>
+
+<h2 id="combine">Combining files</h2>
+<!-- index: combine files; merge PDFs; join files; one PDF from several -->
+<p>Combine Files makes one new PDF from several PDFs and pictures.</p>
+<ol>
+  <li>Choose <b>File ▸ Create ▸ Combine Files into a Single PDF…</b> (the Create PDF tool's Multiple Files choice does the same).</li>
+  <li>Click <b>Add Files…</b> and choose PDFs and pictures. Add more as needed.</li>
+  <li>Put them in order: drag them in the list, or use <b>Move Up</b> and <b>Move Down</b>. <b>Remove</b> takes a file out of the list.</li>
+  <li>For pictures, choose <b>Image pages</b>: <b>Same size as the image</b>, <b>Letter (fit the image)</b>, or <b>A4 (fit the image)</b>.</li>
+  <li>Tick <b>Recognize text (OCR) so the result is searchable</b> if the pictures are scans and you want to search them (only when text recognition is installed).</li>
+  <li>Click <b>Create PDF…</b>, choose a name and folder, and save.</li>
+</ol>
+<p>The window shows "Adding file 2 of 6" as it works. If a PDF has a password, PlanetPDF asks for it. The new PDF opens when it's done.</p>
+<p class="note"><b>Tip:</b> To add pages from another file to the document already open, use <a href="#insert">Inserting pages</a> instead.</p>
+
+<h2 id="page-marks">Headers, footers, page numbers, Bates numbers, watermarks, and backgrounds</h2>
+<!-- index: page marks; text on every page; stamp every page -->
+<p>These add text or a picture to many pages at once. They become part of each page, so every viewer and printer shows them. PlanetPDF remembers the ones it added, so you can change them later with <b>Update…</b> or take them off with <b>Remove…</b>.</p>
+<p>You find them in several places:</p>
+<ul>
+  <li>Edit PDF bar: <b>Header &amp; Footer ▾</b> (<b>Add…</b>, <b>Update…</b>, <b>Remove…</b>), <b>Watermark ▾</b> (<b>Add…</b>, <b>Update…</b>, <b>Remove…</b>), and <b>More ▾</b> with <b>Add Page Numbers…</b>, <b>Bates Numbering…</b>, and <b>Background ▸</b> (<b>Add…</b>, <b>Update…</b>, <b>Remove…</b>).</li>
+  <li>Organize Pages bar, <b>More ▾</b>: <b>Add Page Numbers…</b> and <b>Header &amp; Footer…</b>.</li>
+  <li>Stamp and Scan &amp; OCR bars: <b>Bates Numbering ▾</b> with <b>Add…</b> and <b>Remove…</b>.</li>
+</ul>
+<p class="note"><b>Note:</b> Update and Remove only find headers, watermarks, and so on that this version of PlanetPDF added. Ones added by other programs (or by an earlier PlanetPDF) are part of the page content and can't be told apart from it; PlanetPDF says so when it finds none.</p>
+
+<h3 id="header-footer">Header &amp; footer</h3>
+<!-- index: header; footer; date on every page; file name on every page -->
+<ol>
+  <li>Choose <b>Header &amp; Footer ▾ ▸ Add…</b>.</li>
+  <li>Type text in any of the six boxes: <b>Top left</b>, <b>Top center</b>, <b>Top right</b>, <b>Bottom left</b>, <b>Bottom center</b>, <b>Bottom right</b>.</li>
+  <li>Use these fields in the text; they are filled in on each page:
+    <table>
+      <tr><th>Field</th><th>Becomes</th></tr>
+      <tr><td><code>{page}</code></td><td>The page number.</td></tr>
+      <tr><td><code>{pages}</code></td><td>The total number of pages.</td></tr>
+      <tr><td><code>{bates}</code></td><td>The Bates number.</td></tr>
+      <tr><td><code>{date}</code></td><td>Today's date.</td></tr>
+      <tr><td><code>{file}</code></td><td>The file name.</td></tr>
+    </table>
+  </li>
+  <li>Set the look: <b>Font</b> (Helvetica or Times) and <b>Bold</b>, <b>Size</b>, <b>Color</b>, <b>Distance from edge</b> (inches), and <b>First page number</b> (the number <code>{page}</code> starts at).</li>
+  <li>Check the <b>Pages</b> box and click <b>Add</b>.</li>
+</ol>
+<p>To change it later, choose <b>Header &amp; Footer ▾ ▸ Update…</b>: the dialog opens with the settings you used; change them and click <b>Update</b>. <b>Header &amp; Footer ▾ ▸ Remove…</b> takes it off every page.</p>
+
+<h3 id="page-numbers">Page numbers</h3>
+<!-- index: number pages; add page numbers; Page 1 of 10 -->
+<p><b>Add Page Numbers…</b> opens the same dialog with <code>Page {page} of {pages}</code> already in <b>Bottom center</b>. Change the text or position if you like, and click <b>Add</b>. Page numbers count as a header and footer: change or remove them with <b>Header &amp; Footer ▾ ▸ Update…</b> or <b>Remove…</b>.</p>
+
+<h3 id="bates">Bates numbering</h3>
+<!-- index: Bates numbers; legal numbering; document numbering -->
+<p>Bates numbers give every page a unique number, as used for legal documents.</p>
+<ol>
+  <li>Choose <b>Bates Numbering…</b> (or <b>Bates Numbering ▾ ▸ Add…</b>). The dialog puts <code>{bates}</code> in <b>Bottom right</b>.</li>
+  <li>Under <b>Bates numbering ({bates})</b>, set the <b>Prefix</b> (for example <code>PN-</code>), <b>Suffix</b>, <b>Start at</b>, and <b>Digits</b> (6 digits makes <code>PN-000001</code>).</li>
+  <li>Check the <b>Pages</b> box and click <b>Add</b>.</li>
+</ol>
+<p><b>Bates Numbering ▾ ▸ Remove…</b> takes PlanetPDF's Bates numbers off every page.</p>
+
+<h3 id="watermark">Watermark</h3>
+<!-- index: watermark; CONFIDENTIAL; DRAFT; text behind page; image watermark -->
+<p>A watermark is large, faint text or a picture across the page, usually behind the content. (A stamp, by contrast, sits on top: see <a href="comments.html#top">Comments, Notes, and Stamps</a>.)</p>
+<ol>
+  <li>Choose <b>Watermark ▾ ▸ Add…</b>.</li>
+  <li>Choose <b>Text:</b> and type it (it starts as CONFIDENTIAL), or choose <b>Image:</b> and click <b>Choose…</b> for a PNG or JPEG picture.</li>
+  <li>Set the <b>Color</b> (for text), <b>Opacity</b>, <b>Rotation</b> (−90° to 90°), and <b>Size</b> (a percentage of the page width).</li>
+  <li><b>Behind the page content</b> is ticked: untick it to put the watermark on top.</li>
+  <li>Check the <b>Pages</b> box and click <b>Add</b>.</li>
+</ol>
+<p><b>Watermark ▾ ▸ Update…</b> changes it; <b>Watermark ▾ ▸ Remove…</b> takes it off.</p>
+
+<h3 id="background">Background</h3>
+<!-- index: page background; background color; paper color; background picture -->
+<p>A background is a color or a picture under everything on the page.</p>
+<ol>
+  <li>On the Edit PDF bar, choose <b>More ▾ ▸ Background ▸ Add…</b>.</li>
+  <li>Choose <b>Color:</b> and pick one, or <b>Picture:</b> and click <b>Choose…</b>. For a picture, set the <b>Picture size</b> (a percentage of the page).</li>
+  <li>Set the <b>Opacity</b>, check the <b>Pages</b> box, and click <b>Add</b>.</li>
+</ol>
+<p><b>Background ▸ Update…</b> changes it; <b>Background ▸ Remove…</b> takes it off.</p>
+
+<h2 id="bookmarks">Bookmarks</h2>
+<!-- index: bookmarks; outline; table of contents; navigation; jump to section -->
+<p>Bookmarks are a clickable list of a document's sections. They show in the Bookmarks panel here and in every other PDF reader. To show the panel, click the <b>Bookmarks</b> button at the edge of the window or choose <b>View ▸ Show/Hide ▸ Navigation Panes ▸ Bookmarks</b>. A file that has bookmarks opens with the panel showing.</p>
+<p>Click a bookmark to go to its place. Bookmarks with others under them can be opened and closed with the small arrow beside them.</p>
+
+<h3 id="bookmark-tool">The Bookmarks tool</h3>
+<!-- index: add bookmark from text; bookmark a heading; Enter to bookmark -->
+<p>The quickest way to make bookmarks is to select a heading and press <b>Enter</b>.</p>
+<ol>
+  <li>Choose <b>Tools ▸ Bookmarks</b>, or click <b>Bookmarks</b> on the tool strip. The pointer becomes the I-beam for selecting text, and the Bookmarks panel opens.</li>
+  <li>Drag over a heading on the page to select it.</li>
+  <li>Press <b>Enter</b> or <b>+</b>, click <b>Add Bookmark</b> on the bar, or right-click and choose <b>Add Bookmark</b>.</li>
+</ol>
+<p>The bookmark takes the selected text as its title (up to 120 characters) and goes to that spot on the page. It is placed in reading order among the other bookmarks, at the same level as the bookmark before it. With no text selected, <b>Add Bookmark</b> bookmarks the current page.</p>
+<p class="note"><b>Tip:</b> Right-click ▸ <b>Add Bookmark</b> on selected text works with any tool, not only the Bookmarks tool.</p>
+
+<h3 id="bookmarks-automatic">Adding bookmarks automatically</h3>
+<!-- index: automatic bookmarks; detect headings; table of contents to bookmarks; chapters -->
+<p><b>Add Bookmarks Automatically…</b> on the Bookmarks bar looks through the document for its sections.</p>
+<ol>
+  <li>Click <b>Add Bookmarks Automatically…</b>. PlanetPDF first looks for a table of contents in the first pages (lines ending in page numbers, often with dot leaders). Without one, it looks for headings: lines in larger or bold type such as "Chapter 3" or "2.1 Scope", skipping text repeated at the top of every page.</li>
+  <li>A list of what it found opens, with levels nested under each other. Untick any you don't want.</li>
+  <li>If the document already has bookmarks, choose <b>Replace the N bookmarks already here</b> or <b>Add them to the bookmarks already here</b>.</li>
+  <li>Click <b>Add Bookmarks</b>. All of them are one undo step.</li>
+</ol>
+<p>If nothing is found, PlanetPDF says so; select the headings and press Enter to bookmark them yourself.</p>
+
+<h3 id="bookmark-panel">Adding, renaming, and deleting in the panel</h3>
+<!-- index: rename bookmark; delete bookmark; Set Destination; move bookmark target; F2 -->
+<ul>
+  <li><b>Add</b> (at the bottom of the panel) bookmarks the current page and lets you type its title in the list.</li>
+  <li><b>Rename</b>: select a bookmark and press <b>F2</b>, or right-click it and choose <b>Rename</b>. Type the new title and press <b>Enter</b>. A plain click never renames; it only jumps.</li>
+  <li><b>Set Destination</b>: to point a bookmark somewhere else, select text on the page (or go to the page), then right-click the bookmark and choose <b>Set Destination</b>. It now goes to the selected text, or to the top of the page shown. Its title, color, and style stay.</li>
+  <li><b>Delete</b>: select it and click <b>Delete</b> in the panel or <b>Delete Bookmark</b> on the Bookmarks bar, or right-click ▸ <b>Delete</b>. Bookmarks under it are deleted too.</li>
+  <li>Right-click also offers <b>Go to Bookmark</b> and <b>Add Bookmark</b>.</li>
+</ul>
+<p>Renaming and adding never move the other bookmarks: each keeps exactly the place it had.</p>
+</body></html>

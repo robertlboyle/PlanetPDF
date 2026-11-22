@@ -1,0 +1,41 @@
+# name: Companies & Brands
+# about: Well-known companies, brands and services, with their proper capitals (PayPal, eBay, McDonald's).
+# PlanetPDF word list. Names with capitals inside are accepted only as written.
+
+# --- technology ---
+Microsoft Apple Google Alphabet Amazon Meta Facebook Instagram WhatsApp Messenger Threads Netflix Adobe Oracle
+IBM Intel AMD Nvidia Qualcomm Broadcom Cisco Dell Lenovo Asus Acer Samsung Sony Panasonic Toshiba Hitachi
+Fujitsu Philips Siemens Bosch Ericsson Nokia Huawei Xiaomi Oppo OnePlus Motorola Logitech Corsair Razer
+Seagate Kingston SanDisk Micron Hynix Foxconn TSMC Salesforce ServiceNow Workday SAP Intuit QuickBooks TurboTax
+Mint Autodesk Atlassian Jira Confluence Trello Asana Monday Notion Airtable Smartsheet Basecamp Slack Zoom
+Webex GoToMeeting Dropbox Box DocuSign HelloSign PandaDoc Adobe's Zendesk Freshdesk HubSpot Mailchimp
+Constant Contact SurveyMonkey Qualtrics Typeform Canva Figma Sketch InVision Miro Loom Calendly Grammarly
+Evernote Todoist LastPass Okta Twilio Stripe Square Shopify Etsy eBay Craigslist Yelp Zillow Redfin Realtor
+Trulia Expedia Booking Priceline Kayak Tripadvisor Airbnb Vrbo Uber Lyft DoorDash Grubhub Instacart Postmates
+Spotify Pandora SiriusXM Hulu Disney Pixar Marvel Lucasfilm Paramount Peacock Roku Twitch Discord Reddit
+Pinterest Snapchat TikTok ByteDance LinkedIn Twitter Tumblr Quora Wikipedia Mozilla Yahoo AOL Bing DuckDuckGo
+OpenAI Anthropic DeepMind xAI Palantir Snowflake Databricks MongoDB Elastic Splunk Datadog Cloudflare
+CrowdStrike Zscaler Fortinet Akamai Fastly Equinix GoDaddy Namecheap Squarespace Wix WordPress Automattic
+Tesla SpaceX Neuralink Starlink Rivian Lucid PayPal Venmo Zelle Robinhood Coinbase Binance Kraken
+Plaid Chime SoFi Klarna Afterpay Affirm Wise Revolut
+
+# --- finance, insurance, consulting ---
+Visa Mastercard Amex Discover JPMorgan Chase Citibank Citigroup Citi Wells Fargo Goldman Sachs Morgan Stanley
+BlackRock Vanguard Fidelity Schwab TD Ameritrade Merrill Lynch Edward Jones Raymond James Ameriprise
+Prudential MetLife Allstate Geico Progressive Nationwide Liberty Mutual Travelers Hartford Aflac Cigna Aetna
+Humana Anthem Elevance UnitedHealth UnitedHealthcare Optum Kaiser Permanente BlueCross BlueShield Horizon
+Deloitte Accenture KPMG PwC EY McKinsey BCG Bain Gartner Forrester Moody's Experian Equifax TransUnion FICO
+Bloomberg Reuters Nasdaq NYSE Dow Jones Freddie Fannie
+
+# --- retail, food, consumer, industry ---
+Walmart Target Costco Kroger Walgreens CVS Albertsons Safeway Publix Wegmans ShopRite Aldi Lidl
+Trader Joe's Whole Foods Lowe's Menards IKEA Wayfair Staples OfficeMax Macy's Nordstrom
+Kohl's JCPenney Sears TJ Maxx Marshalls HomeGoods Sephora Ulta Nike Adidas Puma Reebok Patagonia Starbucks
+Dunkin McDonald's McDonald Wendy's Chick-fil-A Chipotle Domino's Subway KFC Popeyes Arby's Applebee's Denny's
+IHOP Panera Wawa QuickChek Sheetz PepsiCo Pepsi Coca Cola Keurig Nestle Kraft Heinz Kellogg's Mondelez Mars
+Hershey Unilever Procter Gamble Colgate Palmolive Johnson Pfizer Moderna Merck AstraZeneca Novartis Roche
+AbbVie Abbott Amgen Gilead Bristol Myers Squibb Lilly Novo Nordisk Sanofi GSK Bayer Medtronic Stryker
+ExxonMobil Chevron Shell BP ConocoPhillips Duke Dominion PSEG JCP&L Exelon ConEd Boeing Airbus Lockheed Martin
+Raytheon Northrop Grumman GE Honeywell Caterpillar Deere 3M FedEx UPS USPS DHL Amtrak Delta United Southwest
+JetBlue Spirit Frontier Alaska Toyota Honda Nissan Hyundai Kia Subaru Mazda Volkswagen Audi Porsche BMW
+Mercedes Benz Volvo Ford Chevrolet Chevy GMC Cadillac Buick Chrysler Jeep Dodge Ram Lexus Acura Infiniti

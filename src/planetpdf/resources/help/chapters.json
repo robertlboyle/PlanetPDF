@@ -1,0 +1,21 @@
+[
+  {"file": "index.html", "title": "Welcome to PlanetPDF"},
+  {"file": "getting-started.html", "title": "Getting Started"},
+  {"file": "viewing.html", "title": "Reading and Finding"},
+  {"file": "pages.html", "title": "Organizing Pages"},
+  {"file": "editing.html", "title": "Editing Text and Pictures"},
+  {"file": "comments.html", "title": "Comments, Notes, and Stamps"},
+  {"file": "forms.html", "title": "Forms: Filling In and Making"},
+  {"file": "signatures.html", "title": "Signatures"},
+  {"file": "protect-redact.html", "title": "Protecting and Redacting"},
+  {"file": "scans.html", "title": "Scans, Text Recognition, and File Size"},
+  {"file": "create-export.html", "title": "Creating, Converting, and Comparing"},
+  {"file": "printing.html", "title": "Printing and the PlanetPDF Printer"},
+  {"file": "scripting.html", "title": "Scripts, Programs, and Plugins"},
+  {"file": "preferences.html", "title": "Preferences"},
+  {"file": "accessibility.html", "title": "Accessibility: Screen Readers, Keyboard, and Contrast"},
+  {"file": "menus.html", "title": "Menu Reference", "generated": true},
+  {"file": "shortcuts.html", "title": "Keyboard Shortcuts", "generated": true},
+  {"file": "troubleshooting.html", "title": "Troubleshooting"},
+  {"file": "whats-new.html", "title": "What's New"}
+]

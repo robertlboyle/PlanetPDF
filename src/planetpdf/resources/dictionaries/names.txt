@@ -1,0 +1,128 @@
+# name: People's Names
+# about: Common first names and family names in the US (English, Spanish, Irish, Italian, German, Polish, Asian and more).
+# PlanetPDF word list. Names with capitals inside (McDonald, O'Brien, DeLuca) are accepted only as written.
+
+# --- first names ---
+James John Robert Michael William David Richard Joseph Thomas Charles Christopher Daniel Matthew Anthony Mark
+Donald Steven Paul Andrew Joshua Kenneth Kevin Brian George Timothy Ronald Edward Jason Jeffrey Ryan Jacob Gary
+Nicholas Eric Jonathan Stephen Larry Justin Scott Brandon Benjamin Samuel Gregory Alexander Frank Patrick
+Raymond Jack Dennis Jerry Tyler Aaron Jose Adam Nathan Henry Douglas Zachary Peter Kyle Ethan Walter Noah Jeremy
+Christian Keith Roger Terry Gerald Harold Sean Austin Carl Arthur Lawrence Dylan Jesse Jordan Bryan Billy Joe
+Bruce Gabriel Logan Albert Willie Alan Juan Wayne Elijah Randy Roy Vincent Ralph Eugene Russell Bobby Mason
+Philip Louis Liam Lucas Oliver Aiden Jayden Caleb Owen Wyatt Hunter Connor Landon Carter Grayson Levi Isaac
+Julian Luke Lincoln Jaxon Asher Theodore Hudson Easton Nolan Colton Cooper Brody Declan Silas Ezra Miles Micah
+Mary Patricia Jennifer Linda Elizabeth Barbara Susan Jessica Sarah Karen Lisa Nancy Betty Margaret Sandra
+Ashley Kimberly Emily Donna Michelle Carol Amanda Dorothy Melissa Deborah Stephanie Rebecca Sharon Laura
+Cynthia Kathleen Amy Angela Shirley Anna Brenda Pamela Emma Nicole Helen Samantha Katherine Christine Debra
+Rachel Carolyn Janet Catherine Maria Heather Diane Ruth Julie Olivia Joyce Virginia Victoria Kelly Lauren
+Christina Joan Evelyn Judith Megan Andrea Cheryl Hannah Jacqueline Martha Gloria Teresa Ann Sara Madison
+Frances Kathryn Janice Jean Abigail Alice Judy Sophia Grace Denise Amber Doris Marilyn Danielle Beverly
+Isabella Theresa Diana Natalie Brittany Charlotte Marie Kayla Alexis Lori Mia Ava Harper Aria Chloe Zoe Layla
+Riley Nora Lily Ellie Hazel Aurora Savannah Brooklyn Leah Stella Paisley Violet Camila Penelope Scarlett Avery
+Addison Kaylee Mackenzie Makayla Brianna Jasmine Destiny Tiffany Crystal Erica Monica Wendy Tracy Stacy
+Kristen Kristin Courtney Lindsey Lindsay Allison Erin Kelsey Caitlin Kaitlyn Meghan Colleen Maureen Eileen
+Kathy Patti Peggy Bonnie Connie Lora Rosemary Geraldine Lorraine Jeanne Francine Yvonne Marisol Yolanda
+Mateo Santiago Diego Carlos Luis Miguel Alejandro Javier Rafael Fernando Ricardo Eduardo Sergio Andres Pablo
+Jorge Francisco Antonio Manuel Pedro Alberto Roberto Enrique Hector Raul Ramon Julio Cesar Arturo Guillermo
+Lucia Sofia Valentina Ximena Gabriela Daniela Mariana Alejandra Guadalupe Rosa Carmen Ana Elena Isabel
+Mohammed Muhammad Mohamed Ahmed Ali Omar Hassan Hussein Ibrahim Yusuf Khalid Tariq Fatima Aisha Zainab Mariam
+Priya Raj Rahul Anil Sanjay Vikram Deepak Arjun Amit Rohit Sunil Ravi Anita Sunita Kavita Pooja Neha Divya
+Wei Ming Chen Hiroshi Yuki Kenji Takashi Haruto Sakura Hana Mei Ling Xiao Jian Hui Jin Seung Hyun Soo Thanh
+Minh Ngoc Linh Duc Trang Nguyen Olga Svetlana Natasha Irina Dmitri Sergei Ivan Vladimir Katarzyna Agnieszka
+Malgorzata Krzysztof Piotr Tomasz Siobhan Niamh Aoife Ciara Saoirse Padraig Cormac Eamon Seamus Brendan
+Giovanni Giuseppe Francesca Giulia Alessandro Matteo Lorenzo Klaus Jurgen Wolfgang Helmut Dieter Ingrid
+Poe
+
+# --- family names ---
+Smith Johnson Williams Brown Jones Garcia Miller Davis Rodriguez Martinez Hernandez Lopez Gonzalez Wilson
+Anderson Thomas Taylor Moore Jackson Martin Lee Perez Thompson White Harris Sanchez Clark Ramirez Lewis
+Robinson Walker Young Allen King Wright Scott Torres Nguyen Hill Flores Green Adams Nelson Baker Hall Rivera
+Campbell Mitchell Carter Roberts Gomez Phillips Evans Turner Diaz Parker Cruz Edwards Collins Reyes Stewart
+Morris Morales Murphy Cook Rogers Gutierrez Ortiz Morgan Cooper Peterson Bailey Reed Kelly Howard Ramos Kim
+Cox Ward Richardson Watson Brooks Chavez Wood James Bennett Gray Mendoza Ruiz Hughes Price Alvarez Castillo
+Sanders Patel Myers Long Ross Foster Jimenez Powell Jenkins Perry Russell Sullivan Bell Coleman Butler
+Henderson Barnes Gonzales Fisher Vasquez Simmons Romero Jordan Patterson Alexander Hamilton Graham Reynolds
+Griffin Wallace Moreno West Cole Hayes Bryant Herrera Gibson Ellis Tran Medina Aguilar Stevens Murray Ford
+Castro Marshall Owens Harrison Fernandez McDonald Woods Washington Kennedy Wells Vargas Henry Chen Freeman
+Webb Tucker Guzman Burns Crawford Olson Simpson Porter Hunter Gordon Mendez Silva Shaw Snyder Mason Dixon
+Munoz Hunt Hicks Holmes Palmer Wagner Black Robertson Boyd Rose Stone Salazar Fox Warren Mills Meyer Rice
+Schmidt Garza Daniels Ferguson Nichols Stephens Soto Weaver Ryan Gardner Payne Grant Dunn Kelley Spencer
+Hawkins Arnold Pierce Vazquez Hansen Peters Santos Hart Bradley Knight Elliott Cunningham Duncan Armstrong
+Hudson Carroll Lane Riley Andrews Alvarado Ray Delgado Berry Perkins Hoffman Johnston Matthews Pena Richards
+Contreras Willis Carpenter Lawrence Sandoval Guerrero George Chapman Rios Estrada Ortega Watkins Greene
+Nunez Wheeler Valdez Harper Burke Larson Santiago Maldonado Morrison Franklin Carlson Austin Dominguez Carr
+Lawson Jacobs O'Brien Lynch Singh Vega Bishop Montgomery Oliver Jensen Harvey Williamson Gilbert Dean Sims
+Espinoza Howell Wong Reid Hanson McCoy Garrett Burton Fuller Wang Weber Welch Rojas Lucas Marquez Fields
+Park Yang Little Banks Padilla Day Walsh Bowman Schultz Luna Fowler Mejia Davidson Acosta Brewer May Holland
+Juarez Newman Pearson Curtis Cortez Douglas Schneider Joseph Barrett Navarro Figueroa Keller Avila Wade
+Molina Stanley Hopkins Campos Barnett Bates Chambers Caldwell Beck Lambert Miranda Byrd Craig Ayala Lowe
+Frazier Powers Neal Leonard Gregory Carrillo Sutton Fleming Rhodes Shelton Schwartz Norris Jennings Watts
+Duran Walters Cohen McDaniel Moran Parks Steele Vaughn Becker Holt DeLeon Barker Terry Hale Leon Benson Haynes
+Horton Miles Lyons Pham Graves Bush Thornton Wolfe Warner Cabrera McKinney Mann Zimmerman Dawson Lara Fletcher
+Page McCarthy Love Robles Cervantes Solis Erickson Reeves Chang Klein Salinas Fuentes Baldwin Simon Velasquez
+Hardy Higgins Aguirre Lin Cummings Chandler Sharp Barber Bowen Ochoa Dennis Robbins Liu Ramsey Francis
+Griffith Blair O'Connor Cardenas Pacheco Cross Calderon Quinn Moss Swanson Chan Rivas Khan Rodgers Serrano
+Fitzgerald Rosales Stevenson Christensen Manning Gill Curry McLaughlin Harmon McGee Gross Doyle Garner Newton
+Burgess Reese Walton Blake Trujillo Adkins Brady Goodman Roman Webster Goodwin Fischer Huang Potter DeLaCruz
+Montoya Todd Hines Mullins Castaneda Malone Cannon Tate Mack Sherman Hubbard Hodges Zhang Guerra Wolf Valencia
+Saunders Franco Rowe Gallagher Farmer Hammond Hampton Townsend Ingram Wise Gallegos Clarke Barton Schroeder
+Maxwell Waters Logan Camacho Strickland Norman Person Colon Parsons Frank Harrington Glover Osborne Buchanan
+Casey Floyd Patton Ibarra Ball Tyler Suarez Bowers Orozco Salas Cobb Gibbs Andrade Bauer Conner Moody Escobar
+McGuire Lloyd Mueller Hartman French Kramer McBride Pope Lindsey Velazquez Norton McCormick Sparks Flynn
+Yates Hogan Marsh Macias Villanueva Zamora Pratt Stokes Owen Ballard Lang Brock Villarreal Charles Drake
+Barrera Cain Patrick Pineda Burnett Mercado Santana Shepherd Bautista Shaffer Lamb Trevino McKenzie Hess
+Olsen Cochran Morton Nash Wilkins Petersen Briggs Shah Roth Nicholson Holloway Lozano Rangel Flowers Hoover
+Short Arias Mora Valenzuela Meyers Weiss Underwood Bass Greer Summers Houston Carson Morrow Clayton Whitaker
+Decker Yoder Collier Zuniga Carey Wilcox Melendez Poole Roberson Larsen Conley Davenport Copeland Massey Lam
+Huff Rocha Cameron Jefferson Hood Monroe Pittman Huynh Randall Singleton Kirk Combs Mathis Skinner Bradford
+Galvan Wall Boone Kirby Wilkinson Bridges Bruce Atkinson Velez Meza Roy Vincent York Hodge Villa Abbott
+Allison Tapia Gates Chase Sosa Sweeney Farrell Wyatt Dalton Horn Barron Phelps Dickerson Heath Foley Atkins
+Mathews Bonilla Acevedo Benitez Zavala Hensley Glenn Cisneros Harrell Shields Rubio Choi Huffman Boyer
+Garrison Arroyo Bond Kane Hancock Callahan Dillon Cline Wiggins Grimes Arellano Melton O'Neill Savage Beltran
+Pitts Parrish Ponce Rich Booth Koch Golden Ware Brennan McDowell Marks Cantu Humphrey Baxter Sawyer Clay
+Tanner Hutchinson Kaur Berg Wiley Gilmore Russo Villegas Hobbs Wilkerson Beard McClain Montes Mata Rosario
+Vang Henson O'Neal Mosley McClure Beasley Stephenson Snow Huerta Preston Vance Barry Johns Eaton Blackwell
+Dyer Prince MacDonald Solomon Guevara Stafford English Hurst Woodard Cortes Shannon Kemp Nolan McCullough
+Merritt Murillo Moon Salgado Strong Kline Cordova Barajas Roach Rosas Winters Jacobson Lester Knox Bullock
+Kerr Leach Meadows Orr Davila Whitehead Pruitt Kent Conway McKee Barr David DeJesus Marin Berger McIntyre
+Blankenship Gaines Palacios Cuevas Bartlett Durham Dorsey McCall O'Donnell Stein Browning Stout Lowery Sloan
+McLean Hendricks Calhoun Sexton Chung Gentry Hull Duarte Ellison Nielsen Gillespie Buck Middleton Sellers
+LeBlanc Esparza Hardin Bradshaw McIntosh Howe Livingston Frost Glass Morse Knapp Herman Stark Bravo Noble
+Spears Weeks Corona Frederick Buckley McFarland Hebert Enriquez Hickman Quintero Randolph Schaefer Walls
+Trejo House Reilly Pennington Conrad Giles Crosby Fitzpatrick Donovan Mays Mahoney Valentine Medrano Hahn
+McMillan Small Bentley Felix Peck Lucero Boyle Hanna Pace Rush Hurley Harding McConnell Bernal Nava Ayers
+Everett Ventura Pugh Mayer Bender Shepard McMahon Landry Case Sampson Moses Magana Blackburn Dunlap Gould
+Duffy Vaughan Herring McKay Espinosa Rivers Farley Bernard Friedman Potts Truong Costa Correa Blevins Nixon
+Clements Fry DeLaRosa Best Benton Lugo Portillo Dougherty Crane Haley Phan Villalobos Blanchard Horne Finley
+Quintana Lynn Esquivel Bean Dodson Mullen Xiong Hayden Cano Levy Huber Richmond Moyer Lim Frye Sheppard
+McCarty Avalos Booker Waller Parra Woodward Jaramillo Krueger Rasmussen Brandt Peralta Donaldson Stuart
+Faulkner Maynard Galindo Coffey Estes Sanford Burch Maddox O'Connell Andersen Spence McPherson Church Schmitt
+Stanton Leal Cherry Compton Dudley Sierra Pollard Alfaro Hester Proctor Hinton Novak Good Madden McCann
+Terrell Jarvis Dickson Reyna Cantrell Mayo Branch Hendrix Rollins Rowland Whitney Duke Odom Daugherty Travis
+Tang Kowalski Nowak Wisniewski Kaminski Lewandowski Zielinski Szymanski Wozniak Dabrowski Kozlowski
+Jankowski Mazur Kwiatkowski Krawczyk Piotrowski Grabowski Esposito Bianchi Romano Colombo Ricci Marino Greco
+Bruno Gallo Conti DeLuca Mancini Giordano Rizzo Lombardi Moretti Barbieri Fontana Santoro Mariani Rinaldi
+Caruso Ferrara Galli Martini Leone Longo Gentile Martinelli Vitale Lombardo Serra Coppola DeSantis D'Amico
+Marchetti Parisi Conte Ferraro Ferri Fabbri Bianco Marini Grasso Valentini Messina Gatti Pellegrini Palumbo
+Farina Rizzi Monti Cattaneo Morelli Amato Silvestri Mazza Testa Grassi Pellegrino Carbone Giuliani Benedetti
+Barone Rossetti Caputo Montanari Palmieri Bernardi Martino Fiore Ferrante DiMaggio DiNapoli Schulz Hoffmann
+Schafer Richter Neumann Schwarz Zimmermann Braun Kruger Hofmann Hartmann Lange Werner Schmitz Krause Meier
+Lehmann Schmid Schulze Maier Kohler Herrmann Konig Kaiser Fuchs Scholz Moller Jung Schubert Vogel Friedrich
+Winkler Lorenz Baumann Franke Albrecht Schuster Ludwig Bohm Winter Kraus Schumacher Vogt Sommer Seidel
+Heinrich Haas Schreiber Graf Schulte Dietrich Ziegler Kuhn Pohl Engel Busch Bergmann Voigt Sauer Wolff
+Pfeiffer Byrne Doherty Connolly Daly Dunne Maguire Callaghan O'Sullivan O'Reilly O'Leary O'Shea O'Keeffe
+O'Donovan O'Mahony O'Hara O'Rourke Kavanagh McGrath Donnelly Regan Flanagan Sheehan Whelan Cullen Keane Maher
+McKenna Magee McNamara Ahern Mahon McManus McGowan McCabe McHugh Nakamura Tanaka Watanabe Suzuki Takahashi
+Yamamoto Kobayashi Sato Ito Yoshida Yamada Sasaki Kato Hayashi Shimizu Mori Abe Ikeda Hashimoto Ishikawa
+Park Choi Jeong Kang Cho Yoon Jang Lim Han Shin Seo Kwon Hwang Ahn Song Hong Yoo Ko Moon Yang Bae Baek Wu Zhao
+Zhou Xu Sun Ma Zhu Hu Guo He Gao Luo Zheng Liang Xie Tang Han Feng Deng Cao Peng Zeng Xiao Tian Dong Pan Yuan
+Jiang Cai Yu Du Ye Cheng Wei Su Lu Ding Ren Shen Yao Lui Tsai Hsu Kuo Hsieh Wong Leung Cheung Ho Lau Yip Kwan
+Le Vo Vu Dang Bui Do Ngo Duong Ly Truong Sharma Gupta Kumar Singh Reddy Rao Iyer Nair Menon Pillai Mehta Shah
+Desai Joshi Chopra Kapoor Malhotra Agarwal Bhatt Banerjee Chatterjee Mukherjee Das Bose Ghosh Chowdhury
+Rahman Hossain Islam Hussain Akhtar Qureshi Siddiqui Malik Butt Cohen Levy Katz Friedman Goldberg Rosenberg
+Shapiro Kaplan Greenberg Weinstein Feldman Rubin Silverman Horowitz Abrams Ivanov Petrov Smirnov Popov
+Volkov Sokolov Kuznetsov Novikov Morozov Pavlov Andersson Johansson Karlsson Nilsson Eriksson Larsson
+Olsson Persson Svensson Gustafsson Hansen Pedersen Nielsen Christiansen Rasmussen Jorgensen Halvorsen
+Papadopoulos Georgiou Nikolaidis
+# (also written without the inner capital)
+Macdonald Deleon Leblanc Dejesus Delacruz Delarosa Deluca Desantis Dimaggio

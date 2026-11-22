@@ -1,0 +1,11 @@
+{
+  "id": "net.planet.example.page-count",
+  "name": "Page Count",
+  "version": "1.0",
+  "publisher": "PlanetPDF example",
+  "description": "Shows how many pages and words the open document has: an example of a plugin.",
+  "api": 1,
+  "run": ["python", "page_count.py"],
+  "permissions": ["read"],
+  "menu_items": [{"menu": "Tools", "title": "Count Pages and Words", "command": "count", "needs_document": true}]
+}

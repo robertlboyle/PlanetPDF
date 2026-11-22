@@ -1,0 +1,63 @@
+# name: Legal
+# about: Legal terms, Latin phrases used in law, contract and court vocabulary.
+# PlanetPDF word list. Lowercase words are accepted in any capitalization.
+
+# --- parties and people ---
+plaintiff plaintiffs defendant defendants appellant appellants appellee appellees petitioner petitioners
+respondent respondents litigant litigants intervenor intervenors affiant affiants deponent deponents
+arbitrator arbitrators mediator mediators assignor assignors assignee assignees grantor grantors grantee
+grantees lessor lessors lessee lessees licensor licensors licensee licensees sublicensee sublicensees
+mortgagor mortgagors mortgagee mortgagees obligor obligors obligee obligees payor payors payee payees
+promisor promisee bailor bailee trustor trustee trustees settlor testator testatrix decedent decedents
+executor executrix administratrix beneficiary beneficiaries fiduciary fiduciaries conservator conservatee
+guarantor guarantors indemnitee indemnitees indemnitor indemnitors franchisor franchisee franchisees
+transferor transferee transferees vendee vendor juror jurors jurist jurists magistrate paralegal paralegals
+litigator litigators prosecutor prosecutors prosecutorial notary notaries
+
+# --- Latin and law French ---
+res judicata collateral stare decisis certiorari mandamus habeas corpus subpoena subpoenas subpoenaed duces
+tecum voir dire amicus curiae curiam per se prima facie de facto de jure de novo ab initio inter alia sua
+sponte pro bono se tem ex parte camera limine nunc tunc mens rea actus reus quid quo bona fide fides caveat
+emptor ultra vires sui generis pendente lite lis pendens forum non conveniens ipsa loquitur respondeat
+superior quantum meruit force majeure nolo contendere sub judice ad litem guardian alter ego mutatis mutandis
+pari passu inter vivos causa mortis corpus delicti in rem in personam ejusdem expressio unius exclusio alterius
+nulla poena sine lege obiter dicta dictum ratio decidendi seriatim sic supra infra viz arguendo
+
+# --- court and procedure ---
+litigation litigate litigated litigating adjudicate adjudicated adjudication adjudicative adjudicatory
+arbitration arbitral arbitrable arbitrability mediation mediated affidavit affidavits deposition depositions
+deposed interrogatory interrogatories estoppel laches tort torts tortious tortiously tortfeasor tortfeasors
+remittitur additur demurrer demurrers replevin garnishment garnishments garnishee garnish garnished
+jurisprudence jurisdiction jurisdictions jurisdictional justiciable justiciability mootness ripeness venue
+venues adjournment adjourned continuance continuances stipulation stipulations stipulate stipulated
+injunction injunctions injunctive enjoin enjoined enjoining vacatur vacate vacated remand remanded
+reversible appellate judiciary sequester sequestered sequestration acquittal acquitted indictment indictments
+indicted arraignment arraigned misdemeanor misdemeanors felony felonies felon probation probationary parole
+paroled recidivism recidivist exculpatory inculpatory hearsay admissible inadmissible admissibility
+evidentiary testimony testimonial impeach impeachment perjury perjured suborn subornation contempt sanctions
+counterclaim counterclaims counterclaimant crossclaim crossclaims joinder interpleader impleader impleaded
+pleadings pleading complaint memorandum memoranda docket dockets docketed caption summons subpoenaing
+recusal recuse recused voidable unenforceable enforceability severability severable notarize notarized
+notarial jurat apostille apostilled acknowledgment acknowledgments nonsuit dismissal dismissals sua
+continuance deliberations deliberate unanimity extradition extradite extradited expunge expunged expungement
+pardon commutation clemency allocution restitution forfeiture forfeit forfeited bailiff bailiffs clerk
+docketing pro rata ex post facto
+
+# --- contracts and property ---
+hereinafter hereinabove hereinbefore hereunder hereto heretofore herewith hereby herein hereof thereof therein
+thereto thereunder therewith thereafter theretofore thereby whereof wherein whereby whereas whereupon
+aforementioned aforesaid aforestated notwithstanding indemnify indemnified indemnifies indemnification
+indemnity indemnities subrogation subrogated subrogate novation rescission rescind rescinded rescissory
+escrow escrowed easement easements encumbrance encumbrances encumber encumbered lien liens lienholder
+lienholders quitclaim deed deeds conveyance conveyances conveyancing covenant covenants covenantor covenantee
+appurtenant appurtenance appurtenances counterpart counterparts addendum addenda amendment amendments rider
+riders recital recitals warranties warranty warrantor warrantee disclaimer disclaimers infringement
+infringements infringe infringed infringing infringer trademark trademarks trademarked copyright copyrights
+copyrighted copyrightable patent patents patented patentee patentable patentability licensable sublicense
+sublicensed sublicensable sublicensing noncompete noncompetition nonsolicitation nonsolicit nondisclosure
+confidentiality nonexclusive nontransferable nonassignable irrevocable irrevocably assignability
+merchantability fitness liquidated liquidation consideration bailment probate probated codicil codicils
+intestate intestacy testamentary guardianship conservatorship decedent's devise devisee devisor bequest
+bequeath bequeathed legatee legacy usufruct leasehold freehold fee simple tenancy tenancies subtenant
+sublessee sublessor sublease subleased holdover eviction evicted unlawful detainer zoning variance eminent
+domain condemnation adverse possession prescriptive abstract title titleholder escheat escheated

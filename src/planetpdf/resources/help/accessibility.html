@@ -1,0 +1,135 @@
+<html><head><title>Accessibility: Screen Readers, Keyboard, and Contrast</title></head><body>
+<h1 id="top">Accessibility: Screen Readers, Keyboard, and Contrast</h1>
+<p>PlanetPDF can be used with a screen reader, with the keyboard alone, with a Windows contrast
+theme, and with larger text. This chapter tells you how each part of the program works that way.</p>
+
+<h2 id="screen-readers">Using a screen reader</h2>
+<!-- index: blind; visually impaired; Narrator; NVDA; JAWS; VoiceOver; screen reader; accessible -->
+<p>PlanetPDF works with Windows Narrator, NVDA, and other screen readers on Windows, and with
+VoiceOver on a Mac. Every button, box, list, and panel has a name the screen reader says, including
+the buttons that show only an icon.</p>
+<ul>
+  <li><b>Menus</b> hold every command, so you can do everything from the menu bar (<b>Alt</b>, then the
+  arrow keys). The shortcuts are listed in <a href="shortcuts.html#top">Keyboard Shortcuts</a>.</li>
+  <li><b>Messages</b> in the status bar at the bottom of the window ("Saved", "Added the bookmark") are
+  read out as they appear.</li>
+  <li><b>Long jobs</b> (exporting, recognizing text, printing) say what they are doing when they start,
+  and then every few seconds: "Exporting to Word. Reading page 7 of 10".</li>
+  <li><b>Opening a file</b> says its name, how many pages it has, and the page you are on. Turning pages
+  says the new page number.</li>
+</ul>
+
+<h2 id="reading-pages">Reading a page's text</h2>
+<!-- index: read page; page text; Reflow; headings; screen reader reading; Ctrl+4 -->
+<p>The page itself is a picture, so a screen reader can't read it directly. <b>View ▸ Zoom ▸ Reflow</b>
+(<b>Ctrl+4</b>) shows the page's text as ordinary text the screen reader can read:</p>
+<ul>
+  <li>The text is in reading order. Headings are marked as headings, so your screen reader's heading
+  keys (<b>H</b> in NVDA's browse mode, for example) jump between them.</li>
+  <li>Each picture on the page is mentioned as "[Picture]".</li>
+  <li>A page with no text (a scan, for example) says so. <b>Scan &amp; OCR ▸ Recognize Text</b> finds the
+  words in a scan; after that, Reflow can read them. See <a href="scans.html#top">Scans</a>.</li>
+  <li>The arrow keys move a cursor through the text, so you can read by character, word, and line.
+  <b>Page Down</b> at the end of the text, or <b>Ctrl+Page Down</b> anywhere, goes to the next page
+  (<b>Page Up</b> / <b>Ctrl+Page Up</b>: the previous one).</li>
+  <li><b>Ctrl+4</b> again goes back to the page.</li>
+</ul>
+<p class="note"><b>Tip:</b> <b>View ▸ Read Out Loud</b> reads pages aloud with PlanetPDF's own voices, if
+you prefer that to your screen reader.</p>
+
+<h2 id="filling-forms-keyboard">Filling in forms with the keyboard</h2>
+<!-- index: forms with screen reader; fill form keyboard; Fill Form panel; form fields accessible -->
+<p>The fields on the page can't be reached by a screen reader, so fill them in from the
+<b>Fill Form panel</b> instead:</p>
+<ol>
+  <li>Open the document. When it has form fields, the Fill Form panel opens on its own (otherwise choose
+  <b>View ▸ Show/Hide ▸ Navigation Panes ▸ Fill Form Panel</b>).</li>
+  <li>Press <b>F6</b> until you reach the Fill Form panel. Its list has every field in order, with its
+  type and value; required fields end with an asterisk (*).</li>
+  <li>Choose a field with the arrow keys and press <b>Enter</b>. The keyboard goes to the box below the
+  list, named after the field: a text box, a check box, or a drop-down list of the choices.</li>
+  <li>Type or choose the value. In a text box, <b>Enter</b> saves it and goes on to the next field.
+  Check boxes and choices are saved as soon as you change them.</li>
+</ol>
+<p>Each value you enter is one step of <b>Edit ▸ Undo</b>. Signature fields and read-only fields say why they
+can't be filled in there.</p>
+
+<h2 id="comments-keyboard">Comments with the keyboard</h2>
+<!-- index: comments with screen reader; read comments; reply by keyboard; Comments panel keys -->
+<p>Comments are read and answered in the <b>Comments</b> panel (open the <b>Comment</b> tool, or
+<b>View ▸ Show/Hide ▸ Navigation Panes ▸ Comments Panel</b>). Press <b>F6</b> until you reach it.</p>
+<ul>
+  <li>From the <b>Search comments</b> box, <b>Down Arrow</b> goes to the first comment. Each comment is
+  read in full: its kind, its author, its page, its date, its words, and its replies. The page shows
+  the comment as you reach it.</li>
+  <li><b>Up</b> and <b>Down Arrow</b> go to the previous and next comment; <b>Home</b> and <b>End</b> go to
+  the first and last.</li>
+  <li><b>Enter</b> (or <b>F2</b>) edits the comment's words; <b>Ctrl+Enter</b> saves them and <b>Esc</b>
+  cancels.</li>
+  <li><b>R</b> goes to the reply box; type the reply and press <b>Ctrl+Enter</b> to post it.</li>
+  <li><b>Delete</b> deletes the comment (<b>Ctrl+Z</b> brings it back), and the menu key or
+  <b>Shift+F10</b> opens its menu (Edit, Delete, Flatten).</li>
+</ul>
+
+<h2 id="placing-keyboard">Placing stamps, signatures, and text with the keyboard</h2>
+<!-- index: place stamp keyboard; place signature keyboard; add text keyboard; move with arrow keys; nudge -->
+<p>Stamps, signatures, initials, <b>Add Text</b>, symbols, sticky notes, and text boxes can be placed
+without a mouse:</p>
+<ol>
+  <li>Choose what to place from its menu or tool bar (for example <b>Tools ▸ Stamp</b>, then a stamp from
+  the <b>Stamp</b> menu, or <b>Sign Yourself</b> on the Fill &amp; Sign bar). For stamps and signatures,
+  the keyboard goes to the page at once; for the other tools, press <b>F6</b> until you reach the page.</li>
+  <li>Press <b>Enter</b>. It is placed in the middle of the part of the page that shows, and a screen
+  reader says so. Added text opens for typing straight away.</li>
+  <li>Move it with the arrow keys (one point at a time), or <b>Shift</b> and an arrow key (ten points). A
+  screen reader says where it is, in inches from the left and the top of the page. <b>Delete</b>
+  removes it.</li>
+</ol>
+<p class="note"><b>Tip:</b> To place it on another page, go to that page first (<b>Page Down</b>, or
+<b>Ctrl+Shift+N</b> and its number), then press <b>Enter</b>.</p>
+
+<h2 id="keyboard">Working with the keyboard</h2>
+<!-- index: keyboard only; no mouse; F6; panes; toolbars with keyboard; focus; tab order -->
+<p><b>F6</b> moves the keyboard to the next part of the window, and <b>Shift+F6</b> to the previous one
+(also <b>Window ▸ Next Pane</b> and <b>Previous Pane</b>), in this order: the main toolbar, the open tool's
+bar, the text format bar and the Find bar when they show, the page (or Reflow's text, or the Organize
+Pages grid), the Pages or Bookmarks panel, each panel that is open, and the tool strip on the right.
+A screen reader says which part you reached.</p>
+<ul>
+  <li>In a toolbar, the <b>Left</b> and <b>Right Arrow</b> keys go from button to button (<b>Up</b> and
+  <b>Down</b> on the tool strip); <b>Home</b> and <b>End</b> go to the first and last. <b>Enter</b> or
+  <b>Space</b> presses the button or opens its menu, and <b>Down Arrow</b> opens a button's ▾ menu.
+  <b>Esc</b> goes back to the page.</li>
+  <li><b>Tab</b> and <b>Shift+Tab</b> move between the boxes and buttons of a panel or dialog, in the order
+  you see them: top to bottom, and left to right.</li>
+  <li>In the <b>Pages</b> panel, each thumbnail is read as "Page 3 of 10" (with its page label, when the
+  document has them).</li>
+  <li>A ring in your highlight color shows which toolbar button the keyboard is on, and a ring around
+  the page shows when the keyboard is on the page.</li>
+  <li>On the page, <b>Page Down</b> / <b>Page Up</b> turn pages, <b>Home</b> / <b>End</b> go to the first
+  and last page, and <b>Ctrl+Shift+N</b> goes to a page by number.</li>
+</ul>
+
+<h2 id="contrast">Contrast themes</h2>
+<!-- index: high contrast; contrast theme; low vision; colors; Increase contrast -->
+<p>When Windows uses a contrast theme (<b>Settings ▸ Accessibility ▸ Contrast themes</b>), or a Mac has
+<b>Increase contrast</b> on, PlanetPDF uses its colors, whatever you chose in <b>View ▸ Display
+Theme</b>. Icons are drawn in the theme's text color, and the tool that is switched on is marked in
+the theme's highlight color with a border. PlanetPDF follows the setting as soon as you change it; icons
+that were already showing change color the next time PlanetPDF starts.</p>
+<p>The pages of your documents always show as they will print. To see them larger, zoom in
+(<b>Ctrl+=</b>), or use Reflow (<b>Ctrl+4</b>), which shows the text larger as you zoom.</p>
+
+<h2 id="text-size">Larger text</h2>
+<!-- index: text size; bigger text; font size; large print; zoom the program -->
+<p><b>Edit ▸ Preferences ▸ Appearance ▸ Text size</b> (on a Mac, Preferences is in the <b>PlanetPDF</b>
+menu) makes the text of the menus, toolbars, panels, and dialogs larger: Normal, 125%, 150%, 175%, or
+200%. It applies to every window as soon as you click <b>Save</b>. PlanetPDF also grows with the
+display scale you set in Windows (<b>Settings ▸ System ▸ Display ▸ Scale</b>).</p>
+
+<h2 id="accessible-pdfs">PDF files for people who use screen readers</h2>
+<!-- index: tagged PDF; accessible PDF; PDF/UA; tags -->
+<p>This chapter is about using PlanetPDF itself. PlanetPDF doesn't yet add the "tags" that let a screen
+reader read a PDF file well in other programs (Acrobat's Accessibility tool, PDF/UA). Text you export
+with <b>File ▸ Export To ▸ Text (Accessible)</b> or to Word keeps the words in reading order.</p>
+</body></html>

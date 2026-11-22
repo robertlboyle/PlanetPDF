@@ -1,0 +1,786 @@
+[
+ {
+  "name": "pymupdf",
+  "version": "1.28.2",
+  "license": "Dual Licensed - GNU AFFERO GPL 3.0 or Artifex Commercial License",
+  "url": "https://github.com/pymupdf/pymupdf",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "PySide6_Essentials",
+  "version": "6.11.2",
+  "license": "LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only",
+  "url": "https://pyside.org",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "shiboken6",
+  "version": "6.11.2",
+  "license": "LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only",
+  "url": "https://pyside.org",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "pypdf",
+  "version": "6.19.0",
+  "license": "BSD-3-Clause",
+  "url": "https://github.com/py-pdf/pypdf",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "pillow",
+  "version": "13.0.0",
+  "license": "MIT-CMU",
+  "url": "https://python-pillow.org",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "pdf2docx",
+  "version": "0.5.13",
+  "license": "MIT",
+  "url": "https://artifex.com/",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "python-docx",
+  "version": "1.2.0",
+  "license": "MIT License",
+  "url": "https://github.com/python-openxml/python-docx",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "lxml",
+  "version": "6.1.3",
+  "license": "BSD-3-Clause",
+  "url": "https://lxml.de/",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "fonttools",
+  "version": "4.66.1",
+  "license": "MIT",
+  "url": "http://github.com/fonttools/fonttools",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "numpy",
+  "version": "2.5.3",
+  "license": "BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0",
+  "url": "https://numpy.org",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "opencv-python-headless",
+  "version": "5.0.0.93",
+  "license": "Apache Software License",
+  "url": "https://github.com/opencv/opencv-python",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "fire",
+  "version": "0.7.1",
+  "license": "Apache-2.0",
+  "url": "https://github.com/google/python-fire",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "termcolor",
+  "version": "3.3.0",
+  "license": "MIT",
+  "url": "https://github.com/termcolor/termcolor",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "typing_extensions",
+  "version": "4.16.0",
+  "license": "PSF-2.0",
+  "url": "https://github.com/python/typing_extensions",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "pyHanko",
+  "version": "0.37.0",
+  "license": "MIT",
+  "url": "https://github.com/MatthiasValvekens/pyHanko",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "pyhanko-certvalidator",
+  "version": "0.32.1",
+  "license": "MIT",
+  "url": "https://github.com/MatthiasValvekens/pyHanko/tree/master/pkgs/pyhanko-certvalidator",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "asn1crypto",
+  "version": "1.5.1",
+  "license": "MIT License",
+  "url": "https://github.com/wbond/asn1crypto",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "cryptography",
+  "version": "50.0.1",
+  "license": "Apache-2.0 OR BSD-3-Clause",
+  "url": "https://github.com/pyca/cryptography",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "cffi",
+  "version": "2.1.1",
+  "license": "MIT-0",
+  "url": "https://cffi.readthedocs.io/en/latest/whatsnew.html",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "pycparser",
+  "version": "3.0",
+  "license": "BSD-3-Clause",
+  "url": "https://github.com/eliben/pycparser",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "oscrypto",
+  "version": "1.3.0",
+  "license": "MIT License",
+  "url": "https://github.com/wbond/oscrypto",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "tzlocal",
+  "version": "5.4.4",
+  "license": "MIT",
+  "url": "https://github.com/regebro/tzlocal/blob/master/CHANGES.txt",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "tzdata",
+  "version": "2026.4",
+  "license": "Apache-2.0",
+  "url": "https://github.com/python/tzdata",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "uritools",
+  "version": "6.1.3",
+  "license": "MIT",
+  "url": "https://github.com/tkem/uritools/",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "certifi",
+  "version": "2026.7.22",
+  "license": "Mozilla Public License 2.0 (MPL 2.0)",
+  "url": "https://github.com/certifi/python-certifi",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "idna",
+  "version": "3.20",
+  "license": "BSD-3-Clause",
+  "url": "https://github.com/kjd/idna",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "aiohttp",
+  "version": "3.14.3",
+  "license": "Apache-2.0 AND MIT",
+  "url": "https://github.com/aio-libs/aiohttp",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "aiohappyeyeballs",
+  "version": "2.7.1",
+  "license": "Python Software Foundation License",
+  "url": "https://github.com/aio-libs/aiohappyeyeballs",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "aiosignal",
+  "version": "1.4.0",
+  "license": "Apache Software License",
+  "url": "https://github.com/aio-libs/aiosignal",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "attrs",
+  "version": "26.1.0",
+  "license": "MIT",
+  "url": "https://www.attrs.org/en/stable/changelog.html",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "frozenlist",
+  "version": "1.8.0",
+  "license": "Apache-2.0",
+  "url": "https://github.com/aio-libs/frozenlist",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "multidict",
+  "version": "6.9.1",
+  "license": "Apache License 2.0",
+  "url": "https://github.com/aio-libs/multidict",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "propcache",
+  "version": "0.5.4",
+  "license": "Apache-2.0",
+  "url": "https://github.com/aio-libs/propcache",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "yarl",
+  "version": "1.25.1",
+  "license": "Apache-2.0",
+  "url": "https://github.com/aio-libs/yarl",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "openpyxl",
+  "version": "3.1.5",
+  "license": "MIT License",
+  "url": "https://openpyxl.readthedocs.io",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "et_xmlfile",
+  "version": "2.0.0",
+  "license": "MIT License",
+  "url": "https://foss.heptapod.net/openpyxl/et_xmlfile",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "python-pptx",
+  "version": "1.0.2",
+  "license": "MIT License",
+  "url": "https://github.com/scanny/python-pptx",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "xlsxwriter",
+  "version": "3.2.9",
+  "license": "BSD License",
+  "url": "https://github.com/jmcnamara/XlsxWriter",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "pyspellchecker",
+  "version": "0.9.0",
+  "license": "MIT",
+  "url": "https://github.com/barrust/pyspellchecker",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "python-pkcs11",
+  "version": "0.10.0",
+  "license": "MIT",
+  "url": "https://python-pkcs11.readthedocs.io/en/latest/",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "kokoro-onnx",
+  "version": "0.4.7",
+  "license": "MIT",
+  "url": "https://github.com/thewh1teagle/kokoro-onnx",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "piper-tts",
+  "version": "1.8.0",
+  "license": "GPL-3.0-or-later",
+  "url": "http://github.com/OHF-voice/piper1-gpl",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "onnxruntime",
+  "version": "1.30.0",
+  "license": "MIT License",
+  "url": "https://onnxruntime.ai",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "sounddevice",
+  "version": "0.5.6",
+  "license": "MIT",
+  "url": "https://github.com/spatialaudio/python-sounddevice/",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "phonemizer-fork",
+  "version": "3.3.1",
+  "license": "GNU General Public License v3 or later (GPLv3+)",
+  "url": "https://github.com/bootphon/phonemizer",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "espeakng-loader",
+  "version": "0.2.4",
+  "license": "MIT",
+  "url": "https://github.com/thewh1teagle/espeakng-loader",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "colorlog",
+  "version": "6.12.0",
+  "license": "MIT License",
+  "url": "https://github.com/borntyping/python-colorlog",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "flatbuffers",
+  "version": "25.12.19",
+  "license": "Apache Software License",
+  "url": "https://google.github.io/flatbuffers/",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "protobuf",
+  "version": "7.36.2",
+  "license": "3-Clause BSD License",
+  "url": "https://developers.google.com/protocol-buffers/",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "packaging",
+  "version": "26.3",
+  "license": "Apache-2.0 OR BSD-2-Clause",
+  "url": "https://github.com/pypa/packaging",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "dlinfo",
+  "version": "2.0.0",
+  "license": "MIT",
+  "url": "https://github.com/fphammerle/python-dlinfo",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "joblib",
+  "version": "1.6.0",
+  "license": "BSD-3-Clause",
+  "url": "https://joblib.readthedocs.io",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "segments",
+  "version": "2.4.0",
+  "license": "Apache Software License",
+  "url": "https://github.com/cldf/segments",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "csvw",
+  "version": "4.1.0",
+  "license": "Apache Software License",
+  "url": "https://github.com/cldf/csvw",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "rfc3986",
+  "version": "1.5.0",
+  "license": "Apache Software License",
+  "url": "http://rfc3986.readthedocs.io",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "uritemplate",
+  "version": "4.2.0",
+  "license": "BSD 3-Clause OR Apache-2.0",
+  "url": "https://uritemplate.readthedocs.org",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "babel",
+  "version": "2.18.0",
+  "license": "BSD License",
+  "url": "https://babel.pocoo.org/",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "isodate",
+  "version": "0.7.2",
+  "license": "BSD License",
+  "url": "https://github.com/gweis/isodate/",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "jsonschema",
+  "version": "4.26.0",
+  "license": "MIT",
+  "url": "https://github.com/python-jsonschema/jsonschema",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "jsonschema-specifications",
+  "version": "2025.9.1",
+  "license": "MIT",
+  "url": "https://github.com/python-jsonschema/jsonschema-specifications",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "referencing",
+  "version": "0.37.0",
+  "license": "MIT",
+  "url": "https://github.com/python-jsonschema/referencing",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "rpds-py",
+  "version": "2026.6.3",
+  "license": "MIT",
+  "url": "https://github.com/crate-py/rpds",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "language-tags",
+  "version": "1.3.1",
+  "license": "MIT",
+  "url": "https://github.com/OnroerendErfgoed/language-tags",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "python-dateutil",
+  "version": "2.9.0.post0",
+  "license": "Apache Software License; BSD License",
+  "url": "https://github.com/dateutil/dateutil",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "six",
+  "version": "1.17.0",
+  "license": "MIT License",
+  "url": "https://github.com/benjaminp/six",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "rdflib",
+  "version": "7.6.0",
+  "license": "BSD License",
+  "url": "https://github.com/RDFLib/rdflib",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "pyparsing",
+  "version": "3.3.3",
+  "license": "MIT",
+  "url": "https://github.com/pyparsing/pyparsing/",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "regex",
+  "version": "2026.9.29",
+  "license": "Apache-2.0 AND CNRI-Python",
+  "url": "https://github.com/mrabarnett/mrab-regex",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "cloudpickle",
+  "version": "3.1.2",
+  "license": "BSD License",
+  "url": "https://github.com/cloudpipe/cloudpickle",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "pathvalidate",
+  "version": "3.3.1",
+  "license": "MIT License",
+  "url": "https://github.com/thombashi/pathvalidate",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "segno",
+  "version": "1.6.6",
+  "license": "BSD License",
+  "url": "https://github.com/heuer/segno/",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "pdf417gen",
+  "version": "0.8.1",
+  "license": "MIT License",
+  "url": "https://github.com/ihabunek/pdf417-py/",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "comtypes",
+  "version": "1.4.17",
+  "license": "MIT",
+  "url": "https://github.com/enthought/comtypes",
+  "kind": "Python package",
+  "part_of": ""
+ },
+ {
+  "name": "Python",
+  "version": "3.14.10",
+  "license": "PSF-2.0",
+  "url": "https://www.python.org",
+  "kind": "Bundled",
+  "part_of": "the PlanetPDF runtime"
+ },
+ {
+  "name": "Qt",
+  "version": "6.11.2",
+  "license": "LGPL-3.0-only",
+  "url": "https://www.qt.io/licensing/open-source-lgpl-obligations",
+  "kind": "Bundled",
+  "part_of": "PySide6-Essentials"
+ },
+ {
+  "name": "MuPDF",
+  "version": "1.28.2",
+  "license": "AGPL-3.0-or-later",
+  "url": "https://mupdf.com",
+  "kind": "Bundled",
+  "part_of": "PyMuPDF"
+ },
+ {
+  "name": "FFmpeg",
+  "version": "(bundled build)",
+  "license": "LGPL-2.1-or-later",
+  "url": "https://ffmpeg.org",
+  "kind": "Bundled",
+  "part_of": "opencv-python-headless"
+ },
+ {
+  "name": "Ghostscript (PDF/A, PDF/X, PDF/E, PostScript)",
+  "version": "10.08.0",
+  "license": "AGPL-3.0-or-later",
+  "url": "https://www.ghostscript.com",
+  "kind": "Bundled",
+  "part_of": "the installed program (ghostscript folder), run as a separate program"
+ },
+ {
+  "name": "PyInstaller bootloader",
+  "version": "6.22.3",
+  "license": "GPL-2.0-or-later WITH Bootloader-exception",
+  "url": "https://pyinstaller.org",
+  "kind": "Bundled",
+  "part_of": "PlanetPDF.exe (the program's starter)"
+ },
+ {
+  "name": "Rust standard library",
+  "version": "stable",
+  "license": "MIT OR Apache-2.0",
+  "url": "https://www.rust-lang.org",
+  "kind": "Bundled",
+  "part_of": "PlanetPDF.exe in the install folder (the launcher, launcher\\)"
+ },
+ {
+  "name": "PortAudio (sound for Read Out Loud)",
+  "version": "19.7.0",
+  "license": "MIT",
+  "url": "https://www.portaudio.com",
+  "kind": "Bundled",
+  "part_of": "the Linux packages (_internal/libportaudio.so.2)"
+ },
+ {
+  "name": "XCB utility libraries (xcb-util-cursor, -image, -util, -render-util, -icccm, -keysyms)",
+  "version": "",
+  "license": "MIT",
+  "url": "https://xcb.freedesktop.org",
+  "kind": "Bundled",
+  "part_of": "the Linux packages (_internal/libxcb-*.so)"
+ },
+ {
+  "name": "Tesseract OCR language data (tessdata: eng, osd)",
+  "version": "4.x",
+  "license": "Apache-2.0",
+  "url": "https://github.com/tesseract-ocr/tessdata",
+  "kind": "Bundled",
+  "part_of": "the packaged app (OCR)"
+ },
+ {
+  "name": "Kokoro-82M voice model (kokoro-v1.0.onnx, voices-v1.0.bin)",
+  "version": "1.0",
+  "license": "Apache-2.0",
+  "url": "https://github.com/thewh1teagle/kokoro-onnx/releases/tag/model-files-v1.0",
+  "kind": "Bundled",
+  "part_of": "models/kokoro (Read Out Loud)"
+ },
+ {
+  "name": "Piper voices: Kristin (en_US-kristin-medium), Joe (en_US-joe-medium)",
+  "version": "medium",
+  "license": "Public domain (Kristin, LibriVox recordings) / CC0-1.0 (Joe)",
+  "url": "https://huggingface.co/rhasspy/piper-voices",
+  "kind": "Bundled",
+  "part_of": "models/piper (Read Out Loud)"
+ },
+ {
+  "name": "eSpeak NG (pronunciation, inside piper-tts and espeakng-loader)",
+  "version": "",
+  "license": "GPL-3.0-or-later",
+  "url": "https://github.com/espeak-ng/espeak-ng",
+  "kind": "Bundled",
+  "part_of": "Read Out Loud"
+ },
+ {
+  "name": "Unlimited-OCR (AI text reading model, Baidu)",
+  "version": "8249d20",
+  "license": "MIT",
+  "url": "https://huggingface.co/baidu/Unlimited-OCR",
+  "kind": "Bundled",
+  "part_of": "the optional AI Text Reading add-on (a separate installer; ai-ocr folder)"
+ },
+ {
+  "name": "PyTorch (with NVIDIA CUDA 12.8)",
+  "version": "2.10.0",
+  "license": "BSD-3-Clause",
+  "url": "https://pytorch.org",
+  "kind": "Bundled",
+  "part_of": "the optional AI Text Reading add-on (a separate installer; ai-ocr folder)"
+ },
+ {
+  "name": "Hugging Face Transformers",
+  "version": "4.57.1",
+  "license": "Apache-2.0",
+  "url": "https://github.com/huggingface/transformers",
+  "kind": "Bundled",
+  "part_of": "the optional AI Text Reading add-on (a separate installer; ai-ocr folder)"
+ },
+ {
+  "name": "Python (the add-on's own, embeddable)",
+  "version": "3.12.10",
+  "license": "PSF-2.0",
+  "url": "https://www.python.org",
+  "kind": "Bundled",
+  "part_of": "the optional AI Text Reading add-on (a separate installer; ai-ocr folder)"
+ },
+ {
+  "name": "Noto Sans (font)",
+  "version": "",
+  "license": "OFL-1.1",
+  "url": "https://openfontlicense.org",
+  "kind": "Bundled",
+  "part_of": "resources/fonts"
+ },
+ {
+  "name": "Noto Serif (font)",
+  "version": "",
+  "license": "OFL-1.1",
+  "url": "https://openfontlicense.org",
+  "kind": "Bundled",
+  "part_of": "resources/fonts"
+ },
+ {
+  "name": "Dancing Script (font)",
+  "version": "",
+  "license": "OFL-1.1",
+  "url": "https://openfontlicense.org",
+  "kind": "Bundled",
+  "part_of": "resources/fonts"
+ },
+ {
+  "name": "Great Vibes (font)",
+  "version": "",
+  "license": "OFL-1.1",
+  "url": "https://openfontlicense.org",
+  "kind": "Bundled",
+  "part_of": "resources/fonts"
+ },
+ {
+  "name": "Caveat (font)",
+  "version": "",
+  "license": "OFL-1.1",
+  "url": "https://openfontlicense.org",
+  "kind": "Bundled",
+  "part_of": "resources/fonts"
+ },
+ {
+  "name": "Barlow Condensed (font)",
+  "version": "",
+  "license": "OFL-1.1",
+  "url": "https://openfontlicense.org",
+  "kind": "Bundled",
+  "part_of": "resources/fonts"
+ },
+ {
+  "name": "Font Awesome Free (icons)",
+  "version": "6.7.2",
+  "license": "CC-BY-4.0 (icons); see LICENSE.txt",
+  "url": "https://fontawesome.com/license/free",
+  "kind": "Bundled",
+  "part_of": "resources/icons/free"
+ },
+ {
+  "name": "Font Awesome Pro (icons)",
+  "version": "",
+  "license": "Font Awesome Pro commercial license",
+  "url": "https://fontawesome.com/license",
+  "kind": "Bundled",
+  "part_of": "resources/icons/fa"
+ }
+]

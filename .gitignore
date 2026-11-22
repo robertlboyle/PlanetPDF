@@ -1,0 +1,30 @@
+# Kept current so `git init` later is clean (Git is deferred; see CLAUDE.md).
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+build/
+dist/
+*.egg-info/
+.~planetpdf-*
+
+# Licensed downloads (e.g. the full Font Awesome Pro package); only what we use is bundled
+resources-incoming/
+
+# Kokoro text-to-speech model (115 MB, downloaded; bundled at packaging time)
+models/
+
+# made by scripts/make_test_scans.py (large; regenerate any time)
+test-scans/*.pdf
+
+# signed update files made by scripts/release_update.py (uploaded to the update server)
+update-site/
+
+# the launcher's build output (build.ps1 puts it in %LOCALAPPDATA%\PlanetPDF-build\launcher-target)
+/launcher/target/
+
+# macOS Finder's folder settings
+.DS_Store
+
+# Claude Code's local preview setup (per computer)
+.claude/launch.json

@@ -1,0 +1,124 @@
+<html><head><title>Printing and the PlanetPDF Printer</title></head><body>
+<h1 id="top">Printing and the PlanetPDF Printer</h1>
+<p>This chapter covers two things: printing a PDF from PlanetPDF on paper, and the <b>PlanetPDF printer</b>, which lets any other program (Word, Excel, Outlook, a web browser) "print" to a PDF that you save and open in PlanetPDF.</p>
+
+<h2 id="print">Printing a PDF</h2>
+<!-- index: print; printer; paper; hard copy; Ctrl+P; print dialog -->
+<p>PlanetPDF prints to any printer installed on your computer, using the system's own print dialog.</p>
+<ol>
+  <li>Open the PDF.</li>
+  <li>Choose <b>File ▸ Print…</b>, press <b>Ctrl+P</b> (<b>⌘P</b> on a Mac), or click the printer button on the main toolbar.</li>
+  <li>PlanetPDF first checks that the printer is ready (see <a href="#printer-check">The printer check</a>). This usually takes a moment.</li>
+  <li>In the print dialog, choose the printer, the pages, the number of copies, and the paper size.</li>
+  <li>Click <b>Print</b>. A progress window shows "Printing page 3 of 10…". Click <b>Cancel</b> there to stop.</li>
+</ol>
+<p>When the pages have been sent, the status bar says <b>Sent to</b> and the printer's name. PlanetPDF remembers that printer and starts with it the next time you print.</p>
+<p class="note"><b>Tip:</b> what you print is the document as it looks now, including changes you haven't saved yet.</p>
+
+<h3 id="print-pages">Choosing which pages to print</h3>
+<!-- index: page range; print some pages; current page; print selection; collate; copies -->
+<p>The print dialog offers:</p>
+<ul>
+  <li><b>All</b> pages.</li>
+  <li><b>Current page</b>: the page you are looking at.</li>
+  <li><b>Pages</b>: a range you type, such as <b>1-3</b> or <b>2-5, 8</b>.</li>
+  <li><b>Selection</b>: shown when you have selected more than one page in the Pages panel (click the thumbnails with <b>Ctrl</b> or <b>Shift</b> held). Only those pages print.</li>
+</ul>
+<p>For several copies, set <b>Copies</b>, and tick <b>Collate</b> to get complete sets (1, 2, 3, 1, 2, 3) rather than each page several times in a row (1, 1, 2, 2, 3, 3). If the printer can't make copies itself, PlanetPDF sends the pages that many times in the same order.</p>
+
+<h3 id="print-scaling">How pages fit the paper</h3>
+<!-- index: scaling; fit to page; shrink to fit; landscape; portrait; orientation; rotate to fit; print quality; resolution -->
+<p>PlanetPDF fits every page to the area the printer can print on, so nothing is cut off at the edges:</p>
+<ul>
+  <li>Each page is made as large as it can be without changing its proportions, and centered on the paper.</li>
+  <li>A page whose orientation doesn't match the paper (a landscape page on portrait paper) is turned a quarter turn so it fills the sheet.</li>
+  <li>Pages are sent to the printer as pictures at up to 300 dots per inch, which gives sharp text on office printers.</li>
+</ul>
+<p>To print on a different paper size, choose it in the print dialog; the pages are fitted to that size.</p>
+
+<h2 id="printer-check">The printer check</h2>
+<!-- index: Checking that the printer is ready; printer driver; printer freezes; printer crash; hang; Please wait -->
+<p>Some printer drivers, especially for network printers that are turned off or out of reach, can freeze or even close a program the moment it asks them anything. To protect your work, PlanetPDF asks the printer's driver in a separate, short-lived helper program first. If the driver misbehaves, only the helper is affected and PlanetPDF keeps running.</p>
+<p>While the check runs you see "Checking that the printer … is ready: 3 of at most 30 seconds… Please wait…". Most printers answer in a second or two. You can click <b>Cancel</b> to stop; nothing is printed. A printer that passed the check isn't checked again until you next start PlanetPDF.</p>
+<p>If you pick a different printer in the print dialog, PlanetPDF checks that one too before printing.</p>
+
+<h3 id="printer-fallback">When the usual printer doesn't answer</h3>
+<!-- index: Microsoft Print to PDF; printer unavailable; fallback printer; default printer offline -->
+<p>If the printer you used last (or your default printer) fails the check, PlanetPDF tells you why ("The printer “Office Brother” is unavailable (it didn't answer within 30 seconds)") and opens the print dialog with <b>Microsoft Print to PDF</b> (or Microsoft XPS Document Writer) chosen instead, so you can still pick another printer that works. If no such printer is installed either, you see only the message.</p>
+
+<h3 id="printer-messages">What the printer messages mean</h3>
+<!-- index: Printer Unavailable; Printing Didn't Work; offline; out of paper; door open; Use Printer Offline; stopped responding; Open Printer Settings; no printers installed -->
+<table>
+  <tr><th>Message</th><th>What it means and what to do</th></tr>
+  <tr><td>No printers are installed on this computer.</td><td>Add a printer in Windows Settings (Bluetooth &amp; devices ▸ Printers &amp; scanners) or, on a Mac, System Settings ▸ Printers &amp; Scanners. The <b>Open Printer Settings</b> button takes you there.</td></tr>
+  <tr><td>The printer “…” is unavailable (it is set to “Use Printer Offline”).</td><td>Windows has been told to hold jobs for this printer. Open the printer's queue in Windows and untick <b>Use Printer Offline</b>.</td></tr>
+  <tr><td>… unavailable (offline / it's out of paper / its door is open / it needs attention / paper is jammed / it's out of toner / it's paused)</td><td>The printer itself reports the problem. Fix it at the printer (or resume it in the system's printer settings) and print again.</td></tr>
+  <tr><td>… unavailable (it didn't answer within 30 seconds)</td><td>The printer's driver didn't respond. The printer is probably off, asleep, or not reachable on the network. Turn it on, check its cable or network, or choose another printer.</td></tr>
+  <tr><td>… unavailable (its driver stopped working when PlanetPDF asked for its settings)</td><td>The driver failed in the helper check. PlanetPDF is fine. Try again once the printer is on; if it keeps happening, ask IT to reinstall the printer.</td></tr>
+  <tr><td>… unavailable (it isn't installed on this computer)</td><td>The printer was removed or renamed. Choose another one.</td></tr>
+  <tr><td>The printer “…” stopped responding after 4 of 10 pages were sent.</td><td>The printer went away in the middle of the job. Pages already sent may still come out; check what printed and print the rest again.</td></tr>
+  <tr><td>Printing Didn't Work</td><td>Something unexpected went wrong in the print system. Nothing was printed. The details are written to the log file named in the message; send it in if it keeps happening (see <a href="troubleshooting.html#report">Reporting a problem</a>).</td></tr>
+</table>
+<p>Nothing in these messages closes your document or loses changes.</p>
+
+<h2 id="planetpdf-printer">The PlanetPDF printer (Windows)</h2>
+<!-- index: print to PDF; virtual printer; PDF printer; save as PDF from any program; PlanetPDF Print Service; print from Word; print from Outlook; print from browser -->
+<p>The installer can add a printer named <b>PlanetPDF</b> to Windows (the "The PlanetPDF printer" part of the installation, chosen by default). Printing to it from any program makes a PDF of what you printed: PlanetPDF asks where to save it and can open it straight away, ready to sign, comment, combine, or send.</p>
+<ol>
+  <li>In any program, choose its <b>Print</b> command.</li>
+  <li>Choose the printer <b>PlanetPDF</b> and click <b>Print</b>.</li>
+  <li>PlanetPDF comes forward (it starts if it wasn't running) and asks "Open “…” in PlanetPDF after it's saved?". Click <b>Open It</b> or <b>Don't Open It</b>. Tick <b>Remember my answer</b> if you don't want to be asked again (see <a href="#printer-open">Opening the printout</a>).</li>
+  <li>The <b>Print to PlanetPDF</b> save window appears. It is Windows' own Save dialog, with your Desktop, OneDrive, Dropbox, recent folders, and drives. It starts in the folder you saved a printout to last (the first time, your Documents folder), and the name is the printed document's name.</li>
+  <li>Change the folder or name if you like and click <b>Save</b>.</li>
+</ol>
+<p>If you click <b>Cancel</b> in the save window, the printout is thrown away and the status bar says it wasn't saved. If you chose not to open it, the status bar shows where it was saved.</p>
+<p class="note"><b>Tip:</b> the file name comes from what the program calls the document: "Quote 1043.docx" printed from Word becomes "Quote 1043.pdf". A program's own name in front ("Microsoft Word - ") and characters Windows doesn't allow in file names are left out.</p>
+
+<h3 id="printer-open">Opening the printout</h3>
+<!-- index: Open It; Don't Open It; Remember my answer; After saving; open printout automatically -->
+<p>Before the save window, PlanetPDF asks whether to open the printout once it's saved. With <b>Remember my answer</b> ticked, it does the same every time without asking. You can change this at any time in <b>Edit ▸ Preferences…</b> ▸ <b>Documents</b> ▸ <b>After saving</b>: <b>Ask each time</b>, <b>Open the PDF</b>, or <b>Don't open it</b>.</p>
+
+<h3 id="printer-folder">Saving printouts without being asked</h3>
+<!-- index: default folder; printout folder; save automatically; file name template; {document}; {date}; {time}; {user}; {computer} -->
+<p>If you always want printouts in the same folder, you can skip the save window:</p>
+<ol>
+  <li>Choose <b>Edit ▸ Preferences…</b> and click <b>Documents</b>.</li>
+  <li>Under <b>PlanetPDF printer</b>, choose <b>Save printouts in this folder without asking</b> and type the folder or click <b>Browse…</b>.</li>
+  <li>In <b>File name</b>, type how printouts should be named. You can use:
+    <ul>
+      <li><code>{document}</code>: the printed document's name (this alone is the default)</li>
+      <li><code>{date}</code>: today's date, as year-month-day (2026-10-18)</li>
+      <li><code>{time}</code>: the time, as hours-minutes-seconds (14-05-32)</li>
+      <li><code>{user}</code>: your Windows sign-in name</li>
+      <li><code>{computer}</code>: this computer's name</li>
+    </ul>
+    For example, <code>{date} {document}</code> gives "2026-10-18 Quote 1043.pdf".</li>
+  <li>Click <b>Save</b>.</li>
+</ol>
+<p>Printouts then go straight into that folder. A printout never replaces an existing file: a second "Quote 1043.pdf" is saved as "Quote 1043 (2).pdf". The name template is also used for the suggested name in the save window when you are asked.</p>
+<p>If the folder can't be used (a network drive that isn't connected, for example), PlanetPDF says so and shows the save window instead.</p>
+
+<h3 id="printer-it">Settings for IT</h3>
+<!-- index: PLANETPDF_PRINT_FOLDER; PLANETPDF_PRINT_NAME; environment variable; group policy; terminal server; Remote Desktop; Citrix; planetpdf-printer-setup -->
+<p>IT can set a printout folder and name for everyone on a computer with two environment variables:</p>
+<ul>
+  <li><code>PLANETPDF_PRINT_FOLDER</code>: the folder printouts are saved to without asking (environment variables such as <code>%USERPROFILE%</code> in it are filled in).</li>
+  <li><code>PLANETPDF_PRINT_NAME</code>: the file name template, with the same <code>{document}</code>, <code>{date}</code>, <code>{time}</code>, <code>{user}</code>, and <code>{computer}</code>.</li>
+</ul>
+<p>A folder or name you set in Preferences comes first; the environment variables apply when yours are empty. When IT has set a folder, the Documents page of Preferences says so.</p>
+<p><b>Terminal servers.</b> The PlanetPDF printer works for each person signed in to a shared computer (Remote Desktop, Citrix). Every printout goes only to the person who printed it, in their own session, and is saved with their own rights, so their redirected Documents folder and network drives work.</p>
+<p><b>How it works.</b> The PlanetPDF printer uses Windows' own Microsoft Print To PDF driver. A small Windows service, the <b>PlanetPDF Print Service</b>, receives each job only from Windows' print spooler (or the print helpers the spooler starts), keeps it in a folder only administrators can read, finds who printed it, and hands it to that person's PlanetPDF. Its log is <code>%ProgramData%\PlanetPDF\Spool\printer.log</code> (administrators only). In the install folder, <code>printer\planetpdf-printer-setup.exe status</code> reports whether the service, port, and printer are in place; <code>install</code> and <code>uninstall</code> add or remove them (run as administrator; the installer does this for you).</p>
+
+<h3 id="printer-closed">Printouts while PlanetPDF is closed</h3>
+<!-- index: printout waiting; PlanetPDF not running; printout didn't appear -->
+<p>You don't need PlanetPDF open to print to it: the printer starts PlanetPDF for you. If PlanetPDF couldn't be started at that moment (for example, a session that was disconnected), the printout waits, and the next time you start PlanetPDF it asks about each printout that is waiting, oldest first, in the usual way.</p>
+
+<h2 id="mac-pdf-menu">Printing to PlanetPDF on a Mac</h2>
+<!-- index: Mac; macOS; Open in PlanetPDF; PDF menu; print dialog PDF button; PDF Services -->
+<p>On a Mac, every print dialog has a <b>PDF</b> menu at the bottom left. PlanetPDF adds <b>Open in PlanetPDF</b> to it (it does this each time it starts, so it is always current).</p>
+<ol>
+  <li>In any app, choose <b>File ▸ Print…</b> (<b>⌘P</b>).</li>
+  <li>Click the <b>PDF</b> menu and choose <b>Open in PlanetPDF</b>.</li>
+  <li>PlanetPDF asks whether to open the printout, then shows the Mac's own Save dialog, exactly as on Windows (or saves to your printout folder without asking, if you set one in Preferences).</li>
+</ol>
+</body></html>

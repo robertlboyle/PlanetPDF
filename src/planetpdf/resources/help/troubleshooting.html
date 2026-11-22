@@ -1,0 +1,177 @@
+<html><head><title>Troubleshooting</title></head><body>
+<h1 id="top">Troubleshooting</h1>
+<p>What to do when something doesn't work as expected: PlanetPDF won't start, a file won't open or save, a printer, scanner, or Office conversion fails, and how to report a problem so it can be fixed.</p>
+
+<h2 id="wont-start">PlanetPDF won't start, or its window can't be seen</h2>
+<!-- index: doesn't open; nothing happens; window off screen; window missing; second monitor; already running; hang at start -->
+<p><b>The window is off the screen.</b> Your settings follow you between computers, so PlanetPDF may remember a window position on a monitor this computer doesn't have. PlanetPDF checks this when it starts and moves the window to the middle of the main screen when too little of it would show. If the window still seems missing, look for PlanetPDF on the taskbar, click it, and press <b>Win+Up</b> to maximize it.</p>
+<p><b>Starting it again does nothing.</b> Only one copy of PlanetPDF runs for you at a time. Starting it again (or double-clicking a PDF) brings the running copy forward and opens the file there as a new tab. If that copy has stopped responding, end <b>PlanetPDF</b> in Task Manager (<b>Ctrl+Shift+Esc</b>) and start it again; unsaved changes can be recovered (see below).</p>
+<p><b>It closed or froze while starting.</b> Start it again. When the previous start didn't finish, PlanetPDF skips your saved toolbar and panel layout once, which fixes a start that a damaged layout was stopping. If it still won't start, send the startup log (see <a href="#logs">The log files</a>).</p>
+
+<h2 id="crash">PlanetPDF closed unexpectedly: getting your work back</h2>
+<!-- index: crash; recover unsaved work; Recover Unsaved Work; auto-save; recovered.pdf; lost changes -->
+<p>While a document has unsaved changes, PlanetPDF keeps a recovery copy every few minutes (every 5 minutes unless you changed it in <a href="preferences.html#auto-save">Preferences ▸ Documents</a>). If PlanetPDF closes unexpectedly, the next start shows <b>Recover Unsaved Work</b> with each document and when it was auto-saved:</p>
+<ul>
+  <li><b>Restore</b> saves the recovered copy as "<i>name</i> (recovered).pdf" next to the original (in your Documents folder if that folder is gone) and opens it. The original file is not changed. To see what differs, open both and use <b>View ▸ Compare Files</b>.</li>
+  <li><b>Discard</b> throws the unsaved changes away (it asks first).</li>
+  <li><b>Decide Later</b> keeps the copies and asks again at the next start.</li>
+</ul>
+<p><b>File ▸ Reopen PDFs from last session</b> opens again every document that was open when PlanetPDF last closed.</p>
+<p>When a command fails without PlanetPDF closing, you see a message saying it "didn't work, and nothing was changed", with the name of the log file that holds the details.</p>
+
+<h2 id="logs">The log files</h2>
+<!-- index: log; startup.log; planetpdf.log; logs folder; error details; api-audit.log -->
+<p>PlanetPDF writes what happens into the <code>logs</code> folder of your profile folder (choose <b>Help ▸ Open Profile Folder</b>, then open <b>logs</b>):</p>
+<ul>
+  <li><b>startup.log</b>: each step of the last start with the time it took, your screens, and where the window was placed. If a start hangs, it notes every 15 seconds where it is stuck. It is replaced each time PlanetPDF starts, so copy it before starting again.</li>
+  <li><b>planetpdf.log</b>: the details of every error PlanetPDF reported to you, with the date and time.</li>
+  <li><b>api-audit.log</b>: what scripts and other programs did through PlanetPDF (see <a href="scripting.html#top">Scripts, Programs, and Plugins</a>), and a <code>plugins</code> folder with each plugin's output.</li>
+</ul>
+
+<h2 id="printer">A printer doesn't respond</h2>
+<!-- index: printer not working; Printer Unavailable; printing stuck; printer offline; printer driver crash -->
+<p>PlanetPDF checks a printer in a separate helper program before using it, because some printer drivers freeze or close a program when the printer can't be reached. If the check fails you get a message saying why, and PlanetPDF offers Microsoft Print to PDF instead. Turn the printer on, check its cable or network connection, and print again, or pick another printer. Each message is explained in <a href="printing.html#printer-messages">What the printer messages mean</a>.</p>
+<h3 id="planetpdf-printer-stuck">The PlanetPDF printer shows an error or nothing comes out</h3>
+<!-- index: PlanetPDF printer not working; PlanetPDF printer error; print queue; stuck print job; Waiting for printer connection; printer missing in Chrome -->
+<p>If one printout fails, Windows keeps it at the front of the PlanetPDF printer's queue marked <b>Error</b>, and every printout after it waits behind it. The printer then shows an error, and a web browser may hang on "Waiting for printer connection" or leave PlanetPDF out of its list. To clear it:</p>
+<ol>
+  <li>Open Windows <b>Settings ▸ Bluetooth &amp; devices ▸ Printers &amp; scanners</b>, choose <b>PlanetPDF</b>, then <b>Open print queue</b>.</li>
+  <li>Right-click the job marked Error and choose <b>Cancel</b>. (Your own jobs need no administrator; other people's do.) The document you printed isn't touched: only the failed printout goes.</li>
+  <li>Close and reopen the program you print from (a web browser remembers its printer list), then print again.</li>
+</ol>
+<p>If printouts keep failing, give IT the PlanetPDF printer's log (see <a href="#report">Reporting a problem</a>).</p>
+
+<h2 id="wont-open">A file won't open</h2>
+<!-- index: can't open file; Can't Open File; password; Password Required; certificate encrypted; Digital ID; damaged PDF; corrupt PDF; XFA -->
+<h3 id="password-file">The file asks for a password</h3>
+<!-- index: open password; Password Required; protected PDF; locked PDF -->
+<p>PlanetPDF shows <b>Password Required</b>. Type the document's open password and click <b>OK</b>; if it is wrong, you are asked again. Click <b>Cancel</b> to give up. Only the person who protected the file can tell you the password: PlanetPDF can't open it without.</p>
+<h3 id="certificate-file">The file is encrypted for certain people</h3>
+<!-- index: certificate encryption; Digital ID file; pfx; Keychain; Windows certificate store -->
+<p>A file protected with certificates opens only with the Digital ID it was encrypted for. PlanetPDF first tries the Digital IDs in your Windows certificate store (on a Mac, your Keychain); if none fits, it asks for a Digital ID file (.pfx or .p12) and its password. If none of yours fits, ask the sender to encrypt it for you.</p>
+<h3 id="damaged-file">The file is damaged or isn't a PDF</h3>
+<!-- index: Can't Open File; damaged; corrupt; incomplete download; not a PDF -->
+<p>If you see <b>Can't Open File</b>, the message says what's wrong. Common causes: the download or e-mail attachment was cut short (download it again), the file is still being copied or synced (wait and try again), or it isn't a PDF despite its name. Forms made only for Adobe's dynamic XFA format can't be shown; PlanetPDF says so.</p>
+
+<h2 id="save-fails">Save fails: the file is in use</h2>
+<!-- index: Save Failed; Access is denied; file in use; locked file; read-only; OneDrive; Dropbox; network drive -->
+<p>If you see <b>Save Failed</b> with "Access is denied" or "being used by another process", something else has the file open or locked:</p>
+<ul>
+  <li>Close the file in other programs (Adobe Acrobat, a browser, Outlook's preview pane, a second copy on another computer).</li>
+  <li>A sync program (OneDrive, Dropbox) may be uploading it: wait a moment and save again.</li>
+  <li>The file or folder may be read-only, or you may not be allowed to change files in it.</li>
+</ul>
+<p>Your changes are still in PlanetPDF. If saving keeps failing, use <b>File ▸ Save As…</b> to save a copy somewhere else, such as your Documents folder.</p>
+
+<h2 id="text-not-found">Text can't be selected, searched, or copied</h2>
+<!-- index: can't select text; search finds nothing; scanned document; OCR; Recognize Text; outlined text; text as picture -->
+<ul>
+  <li><b>Scanned pages</b> are pictures of paper, with no text in them. Open the <b>Scan &amp; OCR</b> tool and use <b>Recognize Text</b>; PlanetPDF adds invisible text you can then search, select, and copy (see <a href="scans.html#top">Scans, Text Recognition, and File Size</a>).</li>
+  <li><b>Text turned into outlines</b> (common in brochures and some design programs) is drawn as shapes. It looks like text but can't be found or selected until you use <b>Recognize Text</b>, which lists such pages with the scanned ones. To change the words themselves, ask for the original file.</li>
+  <li><b>Hidden layers</b>: text on a layer that is switched off can't be found.</li>
+</ul>
+
+<h2 id="fonts">Fonts look different</h2>
+<!-- index: wrong font; font substitution; missing font; fonts not on this computer; Helvetica; embedded fonts -->
+<p>A PDF can name a font without including it. PlanetPDF then shows it with a similar font, and when you save, it includes any such font that is installed on this computer so the file looks right everywhere. The status bar names the fonts that aren't on this computer. When you edit text in a font PlanetPDF doesn't have, or one the document includes only partly (only the letters it used), PlanetPDF uses the closest standard font and says so. To keep the exact look, install the font on the computer, or edit the text with a font you have.</p>
+
+<h2 id="read-aloud">Read Out Loud is slow or silent</h2>
+<!-- index: no sound; speech slow; voice stutters; Please wait; Kokoro; Piper; volume -->
+<ul>
+  <li><b>The first words take a while.</b> The first time, the voice has to load ("Please wait…" in the status bar). The natural voices take a few seconds.</li>
+  <li><b>The voice pauses between sentences.</b> The Kokoro voices need a fast computer. Choose <b>Automatic</b> or <b>Piper</b> in <a href="preferences.html#read-out-loud">Preferences ▸ Read Out Loud</a>; Automatic measures this computer and uses Kokoro only when it reads smoothly.</li>
+  <li><b>No sound.</b> Check the volume slider on the Read Out Loud toolbar, your computer's volume, and which speakers or headset are in use. If a voice can't be used, PlanetPDF shows a message saying why rather than staying silent; try another engine in Preferences.</li>
+  <li><b>Natural voices aren't listed.</b> They are a separate download: <b>Download Natural Voices (354 MB)…</b> in Preferences ▸ Read Out Loud.</li>
+</ul>
+
+<h2 id="office">Office conversions fail</h2>
+<!-- index: Word; Excel; PowerPoint; Office not installed; Word 97-2003 blocked; doc; File Block; Office for Mac permissions; Automation; PlanetPDF copy -->
+<p>Making PDFs from Word, Excel, and PowerPoint files, and exporting to Word 97-2003 (.doc), use Microsoft Office on this computer.</p>
+<ul>
+  <li><b>Office isn't installed:</b> these conversions aren't available. Exporting to Word (.docx), Excel, and PowerPoint doesn't need Office.</li>
+  <li><b>Word 97-2003 is blocked:</b> your company's Microsoft 365 policy can block the old .doc format, and PlanetPDF tells you so. Export as a <b>Word Document</b> (.docx) instead. Only IT can change that policy.</li>
+  <li><b>On a Mac</b>, macOS asks once whether PlanetPDF may control Word (or Excel, PowerPoint), and once whether it may access data from other apps. Click <b>OK</b> / <b>Allow</b>. If you refused, allow it in System Settings ▸ Privacy &amp; Security ▸ Automation ▸ PlanetPDF, then try again. When Word was already open, the converted copy stays open there, named "<i>name</i> (PlanetPDF copy)"; close it yourself.</li>
+</ul>
+
+<h2 id="ai-reading">The AI text reading box is grayed out, or the AI stops</h2>
+<!-- index: AI grayed out; Unlimited-OCR; NVIDIA; graphics card; out of memory -->
+<p>Point at the grayed box in the Export window (or look at Preferences ▸ Performance): it says why.</p>
+<ul>
+  <li><b>The add-on isn't installed:</b> run <b>PlanetPDF-AI-Setup</b> (keep its .bin files beside it).</li>
+  <li><b>No NVIDIA graphics card was found:</b> it needs one, with a current NVIDIA driver; Intel and AMD
+  graphics can't run it. Export without the AI instead.</li>
+  <li><b>Too little memory on the card:</b> it needs about 8 GB.</li>
+  <li><b>"The AI text reader stopped unexpectedly":</b> usually the card ran out of memory (another program
+  using it, or a very long document). Close other programs that use the graphics card, or export fewer pages
+  at a time.</li>
+</ul>
+
+<h2 id="web-capture">Making a PDF from a web page fails</h2>
+<!-- index: PDF from Web Page; Edge; Chrome; web capture; sign-in page; timeout -->
+<ul>
+  <li>It needs Microsoft Edge or Google Chrome (on a Mac, also Chromium or Brave). Install one if neither is found.</li>
+  <li>Type a web address (<code>www.example.com</code> becomes <code>https://www.example.com</code>) or a file on your computer. Other kinds of addresses are refused.</li>
+  <li>The page is loaded in a fresh browser that isn't signed in to anything, so pages behind a sign-in come out as the sign-in page. Save such pages from your own browser with the PlanetPDF printer instead (<a href="printing.html#planetpdf-printer">The PlanetPDF printer</a>).</li>
+  <li>PlanetPDF waits up to 2 minutes, counting the seconds; click <b>Cancel</b> to stop sooner. A slow site may need another try.</li>
+</ul>
+
+<h2 id="scanner">A scanner isn't found</h2>
+<!-- index: scanner; PDF from Scanner; No scanners were found; Local Network; AirScan; Add by Address; Find Again; WIA -->
+<ul>
+  <li><b>Windows</b> uses Windows' own scanning. Check that the scanner is on and shows in Windows Settings ▸ Printers &amp; scanners; install its driver if not.</li>
+  <li><b>Mac</b>: on first use, macOS asks whether PlanetPDF may find devices on your local network. Click <b>Allow</b>. If you didn't, turn PlanetPDF on in System Settings ▸ Privacy &amp; Security ▸ Local Network. USB scanners and network scanners both appear in the list.</li>
+  <li>In the scan window, click <b>Find Again</b> (network scanners sometimes answer late), or <b>Add by Address…</b> and type the scanner's network address (ask IT).</li>
+</ul>
+
+<h2 id="updates">Updates</h2>
+<!-- index: update; Check for Updates; Restart Now; When I Close PlanetPDF; Skip This Version; UAC; administrator; terminal server; --install-updates; scheduled task -->
+<p>PlanetPDF checks for updates as set in <a href="preferences.html#updates">Preferences ▸ Updates</a>, and any time you choose <b>Help ▸ Check for Updates…</b>. A new version is downloaded in the background and checked (it must carry Planet Networks' signature and match its checksum, or it isn't used). When it is installed, the installing step checks it again on a copy only administrators can change, and it never installs a version older than the one you have. Then you choose:</p>
+<ul>
+  <li><b>Restart Now</b>: PlanetPDF closes every window (asking about unsaved work), installs, and starts again.</li>
+  <li><b>When I Close PlanetPDF</b>: installs the next time you close it.</li>
+  <li><b>Skip This Version</b>: not asked about this version again.</li>
+</ul>
+<p>Installing needs administrator rights, so Windows shows one <b>User Account Control</b> prompt. Each version is installed in a folder of its own, so other people still using the old version on a shared computer aren't disturbed; old versions are removed once nobody uses them.</p>
+<p><b>Terminal servers and computers without administrator rights.</b> Users who can't answer the UAC prompt can't install updates themselves. IT can install them with no questions by running, as an administrator or as a scheduled task under SYSTEM:</p>
+<p><code>&amp; "C:\Program Files\PlanetPDF\PlanetPDF.exe" --install-updates</code></p>
+<p>On a Mac, the update replaces the app; macOS asks for an administrator password only if the Applications folder isn't writable for you.</p>
+
+<h3 id="update-not-installed">The update wasn't installed</h3>
+<!-- index: update failed; File system error; -1073740791; administrator prompt failed; update.log; install manually -->
+<p>When PlanetPDF starts after an update that didn't install, it says why:</p>
+<ul>
+  <li><b>The administrator prompt was canceled</b>: PlanetPDF offers the update again at its next check, or choose
+    <b>Help ▸ Check for Updates…</b>.</li>
+  <li><b>Windows couldn't start the update's installer as administrator</b>: on some Windows 11 computers the
+    administrator prompt itself fails (sometimes with a "File system error (-1073740791)" box). Click
+    <b>Open Download Page</b>, download <b>PlanetPDF-Setup.exe</b>, and run it: it installs the new version over the
+    old one and keeps your settings.</li>
+</ul>
+<p>Each step of an update is written to <code>update.log</code> in
+<code>%LOCALAPPDATA%\Planet Networks\PlanetPDF\updates</code>; include it when you report a problem.</p>
+<p class="note"><b>Note:</b> the update is installed by the version you're updating from. Copies of 0.1.13 and older
+can still show Windows' "File system error" box and then say the prompt was canceled; if that happens, install the
+new version with PlanetPDF-Setup.exe from the download page. PlanetPDF 0.1.14 can show that message once, from an
+earlier attempt, even though it's installed; from 0.1.15 on, PlanetPDF doesn't report a failed update once the
+version it was for (or a newer one) is installed.</p>
+
+<h2 id="self-test">The self-test</h2>
+<!-- index: self-test; --self-test; check installation; report.txt; OK; FAIL; SKIP -->
+<p>The self-test checks that an installed copy of PlanetPDF has everything it needs: every part loads, the bundled files are there, and text recognition, PDF/A conversion, spelling, and the voices really work. In PowerShell:</p>
+<p><code>&amp; "C:\Program Files\PlanetPDF\PlanetPDF.exe" --self-test "$env:USERPROFILE\Desktop\self-test.txt"</code></p>
+<p>Wait about a minute until <b>self-test.txt</b> appears on your desktop. Each line starts with <b>OK</b>, <b>SKIP</b> (an optional part that isn't installed, such as the natural voices), or <b>FAIL</b> with the reason. Any FAIL means the installation is incomplete: reinstall PlanetPDF, and send the report if it fails again.</p>
+
+<h2 id="report">Reporting a problem</h2>
+<!-- index: report a bug; support; what to send; version number; About PlanetPDF; feedback; suggestions; email; software@planet.net; Report a Problem -->
+<p>Send bug reports and suggestions by email to <a href="mailto:software@planet.net">software@planet.net</a>. <b>Help ▸ Report a Problem</b> starts that email in your own email program, with PlanetPDF's version and your system already filled in and headings for what happened, what you expected, and how to make it happen again; nothing is sent until you send it. PlanetPDF never sends anything by itself: you decide what goes in your email, and it's used only to look into what you reported. There's no promised support, but we intend to fix reported bugs quickly.</p>
+<p>To get a problem fixed quickly, include:</p>
+<ol>
+  <li>What you did, step by step, what you expected, and what happened instead.</li>
+  <li>The exact message, or a screenshot of the PlanetPDF window (not the whole screen).</li>
+  <li>The PlanetPDF version: <b>Help ▸ About PlanetPDF</b>.</li>
+  <li><b>planetpdf.log</b> and, for problems starting, <b>startup.log</b>: <b>Help ▸ Open Profile Folder</b>, then the <b>logs</b> folder.</li>
+  <li>The PDF it happened with, if it isn't confidential.</li>
+  <li>For an installation problem, the <a href="#self-test">self-test</a> report. For the PlanetPDF printer, IT can add <code>%ProgramData%\PlanetPDF\Spool\printer.log</code>.</li>
+</ol>
+<p class="note"><b>Note:</b> the log files never contain passwords.</p>
+</body></html>

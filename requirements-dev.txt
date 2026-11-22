@@ -1,0 +1,18 @@
+# Development and test dependencies (exact pins, including transitive ones).
+-r requirements.txt
+pytest==9.1.1
+colorama==0.4.6
+iniconfig==2.3.0
+packaging==26.3
+pluggy==1.6.0
+Pygments==2.21.0
+# Building the program (scripts/build.ps1; packaging, 2026-10-04)
+pyinstaller==6.22.3
+pyinstaller-hooks-contrib==2026.8
+altgraph==0.17.5
+pefile==2024.8.26
+pywin32-ctypes==0.2.3
+# License inventory for THIRD-PARTY-NOTICES.txt (scripts/update_notices.py)
+pip-licenses==5.5.5
+prettytable==3.18.0
+wcwidth==0.9.1

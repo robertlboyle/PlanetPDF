@@ -1,0 +1,35 @@
+# The PlanetPDF printer (user 2026-10-18): print from any program to a PDF that opens in
+# PlanetPDF. Windows forbids its Microsoft Print To PDF driver with a third-party port monitor
+# ("may not be used in conjunction with a non-inbox port monitor", found on the first real install),
+# so the "PlanetPDF" printer uses Windows' own Local Port monitor with a named-pipe port, and our
+# code is a small service that receives each PDF there:
+#   planetpdf-print-service.exe   the service (LocalSystem): \\.\pipe\PlanetPDF → the user's PlanetPDF
+#   planetpdf-printer-setup.exe   install / uninstall / stop / status (run by the installer, as administrator)
+# No crates: Windows is called directly (hand-written FFI, like the launcher).
+# Built by scripts\build.ps1 (cargo build --release; CARGO_TARGET_DIR outside Dropbox).
+[package]
+name = "planetpdf-printer"
+version = "0.1.0"
+edition = "2024"
+license = "LicenseRef-Planet-Networks-internal"
+publish = false
+
+[lib]
+name = "planetpdf_printer"
+
+[[bin]]
+name = "planetpdf-print-service"
+path = "src/bin/service.rs"
+
+[[bin]]
+name = "planetpdf-printer-setup"
+path = "src/bin/setup.rs"
+
+[dependencies]
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "unwind"  # (the service catches a panic in one job and carries on with the next)
+strip = true

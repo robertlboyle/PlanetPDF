@@ -1,0 +1,303 @@
+<!-- title: Eleonora -->
+<!-- nav: eleonora -->
+<!-- description: Eleonora (formerly Eudora): a fast, free desktop email program for Windows, Mac, and Linux, built for tens of millions of messages. Every account in one place, instant search, smart sorting, calendar, contacts, and To Do. -->
+<div class="crumbs"><a href="index.html">Home</a> › Eleonora</div>
+<div class="product-head">
+  {{eleonora_logo}}
+  <div>
+    <h1>Eleonora</h1>
+    <p class="lede">A fast desktop email program for very large mailboxes: every account in one place, search
+    that keeps up with decades of mail, and sorting that keeps your inbox for people. Eleonora is the new name
+    of Eudora, after Eleonora's falcon, one of the fastest birds there is.</p>
+  </div>
+</div>
+
+<!-- released -->
+<div class="cta">
+  <a class="btn" href="downloads/Eleonora-Setup.exe">{{download_icon}} Windows (Intel / AMD)</a>
+  <a class="btn" href="downloads/Eleonora-Setup-arm64.exe">{{download_icon}} Windows on ARM</a>
+  <!-- eleonora-mac --><a class="btn" href="downloads/Eleonora.dmg">{{download_icon}} Mac</a><!-- /eleonora-mac -->
+  <!-- eleonora-linux --><a class="btn" href="#linux">{{download_icon}} Linux</a><!-- /eleonora-linux -->
+  <a class="btn" href="#android">{{download_icon}} Android (beta)</a>
+  <a class="btn quiet" href="#install">Installing</a>
+  <a class="btn quiet" href="eleonora-release-notes.html">Release notes</a>
+</div>
+<p class="note">Version {{eleonora_version}} for Windows<!-- eleonora-mac -->, {{eleonora_mac_version}} for Mac (Apple Silicon and Intel)<!-- /eleonora-mac --><!-- eleonora-linux -->,
+{{eleonora_linux_version}} for Linux (PCs and ARM64)<!-- /eleonora-linux -->. <b>Which Windows?</b> Most PCs have an Intel or AMD
+processor: choose <b>Windows (Intel / AMD)</b>. Snapdragon laptops, Surface Pro X and 11, and other
+Copilot+ PCs with an ARM processor: choose <b>Windows on ARM</b>. Not sure? Settings ▸ System ▸ About ▸
+System type says "x64-based processor" (Intel / AMD) or "ARM-based processor" (ARM).
+Free, with no warranty and no support: see the <a href="freeware.html">freeware terms</a>.</p>
+
+<div class="notice">
+  <strong>Eleonora {{eleonora_version}}</strong>
+  Eudora is now Eleonora. Eleonora downloads a copy of your mail and leaves the mail on your provider's
+  servers (except POP3), and it keeps itself up to date. Its source code is open, so anyone can check that it does only
+  what it says: <a href="https://github.com/robertlboyle/eleonora">github.com/robertlboyle/eleonora</a>. Please
+  send what you find to <a href="mailto:software@planet.net">software@planet.net</a>.
+</div>
+<!-- /released -->
+
+<h2>What it's for</h2>
+<p class="intro">Most email programs slow down or give up when a mailbox holds hundreds of thousands of
+messages, or thirty years of mail. Eleonora handles tens of millions of messages and stays fast: lists open at
+once, search answers in about a second, and scrolling never waits. It looks modern, while its Classic Eudora
+look keeps the menus, commands, and shortcuts familiar to anyone who loved the classic Eudora.</p>
+
+<h2 id="new">New in Eleonora</h2>
+<div class="toolrows">
+  <div class="toolrow" style="--c:var(--sky)"><h3>A new name and a falcon</h3>
+    <p>Eudora becomes Eleonora, with a new falcon icon. Your mail, settings, and saved passwords move over
+    by themselves the first time it starts, and backups, plugins, and settings sync from Eudora still work.</p></div>
+  <div class="toolrow" style="--c:var(--sky)"><h3>A graceful new look</h3>
+    <p>The Eleonora look: the list and the message on rounded cards, a soft sidebar, quiet icon buttons,
+    roomier rows, and a soft blue tint for what's chosen, in light and dark. Classic Eudora's look is still
+    there, its icons included.</p></div>
+  <div class="toolrow" style="--c:var(--sky)"><h3>One Inbox at the top</h3>
+    <p>Every one of your own accounts' Inboxes together, at the top of the mailboxes, with what was sorted
+    out of them lately right below.</p></div>
+  <div class="toolrow" style="--c:var(--sky)"><h3>Contacts from a message</h3>
+    <p>Beside a message's sender: copy the address, write to them, or add or edit their contact. In a
+    contact, write, call, or copy with one click.</p></div>
+  <div class="toolrow" style="--c:var(--sky)"><h3>Export messages as files</h3>
+    <p>Choose messages anywhere, or a whole search, and export them as .msg or .eml files in one go, in the
+    background, named by their date and time.</p></div>
+  <div class="toolrow" style="--c:var(--sky)"><h3>Accounts your way (2.0.1)</h3>
+    <p>Remove an account from Settings, the Mailbox menu, or its right-click menu (nothing changes on the
+    server), switch an account between IMAP and POP3, and rename or delete a mailbox from the Mailbox menu,
+    no right-click needed on a Mac.</p></div>
+  <div class="toolrow" style="--c:var(--sky)"><h3>Drafts on the server (2.0.2)</h3>
+    <p>Save Draft also puts the draft in the account's Drafts folder on Microsoft 365, Outlook.com, Gmail, or
+    an IMAP server, so it's on your phone and other computers too; a draft there has Continue Writing.</p></div>
+  <div class="toolrow" style="--c:var(--sky)"><h3>Copy to a Phone (2.0.4)</h3>
+    <p>File ▸ Copy to a Phone shows a QR code; scan it with Eleonora on your phone and your whole Eleonora
+    comes over the Wi-Fi, sealed with a one-time code, with no backup file on either side. A copy that's
+    cut off goes on from where it stopped.</p></div>
+  <div class="toolrow" style="--c:var(--sky)"><h3>Over a USB cable, and calendar files (2.0.5)</h3>
+    <p>Copy to a Phone lists a phone's USB tethering first, so the copy goes over the cable instead of the
+    Wi-Fi. Calendar files (.ics, .cal) ask which of your calendars the event goes on, and File ▸ Open File
+    opens them.</p></div>
+  <div class="toolrow" style="--c:var(--sky)"><h3>Search that does what you mean (2.0.7)</h3>
+    <p>Group conditions with parentheses or Advanced Search's groups, leave groups out with NOT, search any
+    header (<code>x-my-header="Some Value"</code>), and find attachments by type: <code>filetype:pdf</code>,
+    <code>filetype:spreadsheet</code>. Search results show which mailbox each message is in.</p></div>
+  <div class="toolrow" style="--c:var(--sky)"><h3>Attachments as files, if you like them that way (2.0.7)</h3>
+    <p>An option keeps every attachment as an ordinary file in folders you design (by year, account, sender, or
+    type), as classic Eudora's Attach folder did, while every message still reads exactly as it came. Also:
+    edit a message's subject, Send Again on the toolbar, and spelling in the language you choose.</p></div>
+  <div class="toolrow" style="--c:var(--sky)"><h3>Mailing lists accept your mail</h3>
+    <p>Text goes in the simplest character set it fits, so list servers that refuse some encodings take
+    your messages.</p></div>
+</div>
+
+<h2 id="accounts">Every account, one program</h2>
+<div class="toolrows">
+  <div class="toolrow" style="--c:var(--email)"><h3>Microsoft 365 and Outlook.com</h3>
+    <p>Your mailbox, its Online Archive, and the shared mailboxes you can open, all in one place. Sign in
+    through Microsoft's own page; Eleonora never sees your password.</p></div>
+  <div class="toolrow" style="--c:var(--email)"><h3>Gmail and Google Workspace</h3>
+    <p>Mail, contacts, and calendars through Google's own sign-in. Gmail's labels show as folders, and
+    changes go both ways.</p></div>
+  <div class="toolrow" style="--c:var(--email)"><h3>IMAP and POP3</h3>
+    <p>Any other mail provider, or your company's own server, with SMTP for sending. POP3 is there for older
+    mailboxes. Contacts and calendars from CardDAV and CalDAV servers (iCloud, Fastmail, Nextcloud, cPanel)
+    too, both ways.</p></div>
+  <div class="toolrow" style="--c:var(--email)"><h3>Your old mail comes along</h3>
+    <p>Import classic Eudora mailboxes, mbox files, and saved messages. A message stored in several places,
+    such as old Eudora mail you once moved to Microsoft 365, is kept once. And you can always go back:
+    export everything, rules included, as classic Eudora's own files, or keep a classic copy up to date.</p></div>
+  <div class="toolrow" style="--c:var(--email)"><h3>Your copy, your choice</h3>
+    <p>For each account, choose whether your changes to mail, calendar, and contacts go back to the server
+    or stay only on your computer, for a local copy that's independent of the server's.</p></div>
+  <div class="toolrow" style="--c:var(--email)"><h3>One inbox, or each account</h3>
+    <p>Look at every account's mail together, or open one account's own folders. Rarely used accounts and
+    folders can be hidden.</p></div>
+  <div class="toolrow" style="--c:var(--email)"><h3>Send as any of your addresses</h3>
+    <p>Pick the From address when you write, as in the classic Eudora: any of your accounts, or a shared
+    mailbox you may send for.</p></div>
+</div>
+
+<h2 id="speed">Fast with tens of millions of messages</h2>
+<div class="toolrows">
+  <div class="toolrow" style="--c:var(--blue)"><h3>Instant search</h3>
+    <p>Search every message you've ever kept, on your own computer. Outlook-style words work too, such as
+    from:, subject:, hasattachment:yes, and received:last week. A mistyped search gets a suggestion.</p></div>
+  <div class="toolrow" style="--c:var(--blue)"><h3>Lists that open at once</h3>
+    <p>Folders open in a blink, even with hundreds of thousands of messages, and stay ready in the
+    background. New mail slides in without moving what you're reading.</p></div>
+  <div class="toolrow" style="--c:var(--blue)"><h3>Works offline</h3>
+    <p>Read, file, flag, and write mail without a connection. Changes go to the server when you're back
+    online, and downloads pick up again by themselves after a dropped connection.</p></div>
+  <div class="toolrow" style="--c:var(--blue)"><h3>Sort by any column</h3>
+    <p>Click a column heading to sort by it, and add any header you like as a column. Check boxes choose
+    messages, or every message a search found.</p></div>
+  <div class="toolrow" style="--c:var(--blue)"><h3>Advanced Search</h3>
+    <p>Classic Eudora's Find Messages window is back: build a search from rows of what to look for, all or
+    any of them, without learning any search words.</p></div>
+  <div class="toolrow" style="--c:var(--blue)"><h3>Search where you choose</h3>
+    <p>Leave any mailbox out of search with one click on its magnifying glass: all shared mailboxes, a whole
+    account, or one folder, then put back just the one you want. One more click searches everything.</p></div>
+</div>
+
+<h2 id="sorting">An inbox for people</h2>
+<div class="toolrows">
+  <div class="toolrow" style="--c:var(--organize)"><h3>Marketing, notifications, and lists sorted out</h3>
+    <p>Newsletters and sales go to Bulk ▸ Marketing, receipts and alerts from services to Notifications,
+    mailing lists to Lists, each big sender in a folder of its own. Mail from people stays in the inbox.</p></div>
+  <div class="toolrow" style="--c:var(--organize)"><h3>A spam filter that learns</h3>
+    <p>It learns from what you mark as spam or not spam, checks who really sent a message, and can use
+    Spamhaus blocklists. A Maybe Spam view shows what it wasn't sure about.</p></div>
+  <div class="toolrow" style="--c:var(--redact)"><h3>Fraud caught and made harmless</h3>
+    <p>Fake DocuSign, Microsoft, bank, and shipping notices are flagged in red. Their links stop working and
+    their pictures never load, so one click can't do harm.</p></div>
+  <div class="toolrow" style="--c:var(--redact)"><h3>Red Alerts</h3>
+    <p>Mail you must never miss stands out: shut-off and past-due notices, government and tax notices,
+    security advisories, and urgent mail from the people you write to.</p></div>
+  <div class="toolrow" style="--c:var(--organize)"><h3>Your own rules</h3>
+    <p>The classic Eudora filters, complete: move, copy, label, set priority, forward, or reply, on arriving
+    mail or on any folder. Try a rule on a folder before it moves anything.</p></div>
+  <div class="toolrow" style="--c:var(--organize)"><h3>Other Recent Mail</h3>
+    <p>Everything that was sorted out of your inbox lately, spam left out, in one view: the last 48 hours,
+    or 72 on Mondays to take in the weekend. You choose the hours.</p></div>
+  <div class="toolrow" style="--c:var(--organize)"><h3>See why</h3>
+    <p>Every sorting decision can be explained: which rules a message hit and why. Switch any rule off, or
+    give it exceptions.</p></div>
+</div>
+
+<h2 id="views">Views that find things for you</h2>
+<div class="toolrows">
+  <div class="toolrow" style="--c:var(--convert)"><h3>Receipts, invoices, and payments</h3>
+    <p>Receipts, Invoices, Renewals, Payments Received, Payments Sent, and Bank Transactions gather
+    themselves, grouped by who sent them. A payment and its receipt are linked when their amounts match.</p></div>
+  <div class="toolrow" style="--c:var(--convert)"><h3>Travel, Legal, and more</h3>
+    <p>Travel bookings, legal mail, government mail, new accounts, and sign-in codes each have a view.
+    Text inside PDF files and pictures is read, so a receipt's total is found even in an attachment.</p></div>
+  <div class="toolrow" style="--c:var(--convert)"><h3>Subscriptions in one place</h3>
+    <p>Every newsletter and mailing list you get, how often each writes, and an Unsubscribe button that
+    follows the sender's own unsubscribe link.</p></div>
+  <div class="toolrow" style="--c:var(--convert)"><h3>Statistics</h3>
+    <p>How much mail you get and send, your busiest days, and how much of it is personal, notifications,
+    marketing, or spam.</p></div>
+</div>
+
+<h2 id="calendar">Calendar, contacts, and To Do</h2>
+<div class="toolrows">
+  <div class="toolrow" style="--c:var(--sign)"><h3>Calendar</h3>
+    <p>Microsoft 365, Google, and CalDAV calendars side by side: Day, Week, Month, and Agenda. Make
+    appointments with a Teams, Google Meet, or Zoom meeting and place suggestions; answer invitations, or
+    propose another time. Delete any event, one meeting of a series, or the whole series, and search your
+    events from the same search box as your mail.</p></div>
+  <div class="toolrow" style="--c:var(--sign)"><h3>Trips and events, added for you</h3>
+    <p>Flights (both ways of a round trip), trains, and tickets to shows and conferences go on your calendar
+    from their confirmation emails, with the boarding pass or ticket attached. Hotel stays and car rentals
+    are offered.</p></div>
+  <div class="toolrow" style="--c:var(--sign)"><h3>Invitations</h3>
+    <p>Pending invitations in one place, with any conflicts shown. An invitation that's really spam is
+    removed without a reply, so the sender never learns your address works.</p></div>
+  <div class="toolrow" style="--c:var(--protect)"><h3>Address Book</h3>
+    <p>Your Microsoft 365, Google, and CardDAV contacts together. Edit, add, or delete, and the change goes
+    back to the server. Find and merge duplicates field by field (undoable), move or copy contacts between
+    accounts, and export to vCard or CSV.</p></div>
+  <div class="toolrow" style="--c:var(--protect)"><h3>To Do</h3>
+    <p>Flag any message as a To Do and open it again from the task. Tasks sync with Microsoft To Do, so
+    they're on your phone too, and the search box finds them.</p></div>
+  <div class="toolrow" style="--c:var(--protect)"><h3>Writing mail</h3>
+    <p>Signatures for each address, spell check, pasted pictures, Send Later, drafts saved as you type, and
+    voice dictation into any message. HTML or plain text with one switch, strikethrough and highlight, Undo
+    and Redo, Paste as Plain Text, and classic Eudora's "&gt;" quoting if you prefer it.</p></div>
+</div>
+
+<h2 id="yours">Made to be yours</h2>
+<div class="toolrows">
+  <div class="toolrow" style="--c:var(--sky)"><h3>Eleonora or Classic Eudora</h3>
+    <p>The Classic Eudora look looks and works like the Eudora you remember, down to its menus and
+    shortcuts. Or pick the Eleonora look, or one in the style of Outlook, Thunderbird, Gmail, or Yahoo Mail,
+    each with that program's menus and shortcuts. Dark mode included.</p></div>
+  <div class="toolrow" style="--c:var(--sky)"><h3>For everyone, blind and low vision included</h3>
+    <p>Works fully with screen readers (NVDA, JAWS, Narrator, VoiceOver) and by keyboard alone, with text
+    sizes for every window, high-contrast colors, Read Aloud, and natural voices that run on your computer.
+    Classic Eudora's new-mail sounds are there too.</p></div>
+  <div class="toolrow" style="--c:var(--sky)"><h3>Settings in one place, and a real manual</h3>
+    <p>Every setting is in one Settings window, a page at a time. A complete user manual, with search and
+    an index, is under Help (F1).</p></div>
+  <div class="toolrow" style="--c:var(--sky)"><h3>Private by design</h3>
+    <p>Your mail stays on your computer and with your mail provider. Eleonora collects nothing about you,
+    has no ads and no tracking, and pictures from the web load only for senders you choose.</p></div>
+  <div class="toolrow" style="--c:var(--sky)"><h3>Back up and move</h3>
+    <p>Back up everything (mail, accounts, rules, and settings) to one file, encrypted with a password if
+    you like, and restore it on a new computer, Windows, Mac, or Linux. A new computer's first screen offers
+    the restore, and a restore can replace the library you have open.</p></div>
+  <div class="toolrow" style="--c:var(--sky)"><h3>Clear progress</h3>
+    <p>Long jobs say exactly where they are, such as "Importing message 120,000 of 1,412,000", and every
+    background job can be paused or stopped from one status bar.</p></div>
+  <div class="toolrow" style="--c:var(--sky)"><h3>Scripts and plugins</h3>
+    <p>Every function works from a command line and a local API, and plugins can add commands. Each program
+    gets only the permissions you grant it, and everything it does is logged.</p></div>
+  <div class="toolrow" style="--c:var(--sky)"><h3>Updates itself</h3>
+    <p>Eleonora checks for new versions, downloads them, and checks each one's signature before it installs.
+    You choose how often it looks, or turn it off.</p></div>
+</div>
+
+<!-- released -->
+<h2 id="install">Downloading and installing</h2>
+<table class="facts">
+  <tr><th>Windows<br>(Intel / AMD)</th><td><a href="downloads/Eleonora-Setup.exe">Eleonora-Setup.exe</a>, version {{eleonora_version}}:
+    for Windows 10 or 11 on a PC with an Intel or AMD processor (most PCs; Settings ▸ System ▸ About ▸
+    System type says "x64-based processor"). It installs for you alone without an administrator, or for
+    everyone on the computer if you choose. Installed over Eudora, it takes Eudora's place and keeps your
+    mail and settings. Windows may warn that it doesn't know the program: choose More info ▸ Run anyway.</td></tr>
+  <tr><th>Windows on ARM</th><td><a href="downloads/Eleonora-Setup-arm64.exe">Eleonora-Setup-arm64.exe</a>, version {{eleonora_version}}:
+    for Windows 11 on a PC with an ARM processor (Snapdragon laptops, Surface Pro X and 11, other Copilot+ PCs;
+    System type says "ARM-based processor"). It runs natively there: faster, and easier on the battery,
+    than the Intel / AMD version under Windows' emulation. Installed over that version, it takes its place
+    and keeps your mail and settings.</td></tr>
+<!-- eleonora-mac -->
+  <tr><th>Mac</th><td><a href="downloads/Eleonora.dmg">Eleonora.dmg</a>, version {{eleonora_mac_version}}: one app for
+    Apple Silicon and Intel Macs, macOS 11 or newer, signed and notarized by Apple. Open it and drag Eleonora into
+    Applications; it then updates itself.</td></tr>
+<!-- /eleonora-mac --><!-- eleonora-linux -->
+  <tr id="linux"><th>Linux</th><td>Version {{eleonora_linux_version}}, for Ubuntu 24.04, Debian 13, Fedora 40, or newer.
+    For PCs (x86-64): <a href="downloads/Eleonora-x86_64.AppImage">AppImage</a>,
+    <a href="downloads/eleonora_amd64.deb">.deb</a>, <a href="downloads/eleonora.x86_64.rpm">.rpm</a>.
+    For ARM64 computers (such as a Raspberry Pi 5): <a href="downloads/Eleonora-aarch64.AppImage">AppImage</a>,
+    <a href="downloads/eleonora_arm64.deb">.deb</a>, <a href="downloads/eleonora.aarch64.rpm">.rpm</a>.
+    The AppImage runs without installing: allow it to run as a program (in its Properties, or
+    <code>chmod +x Eleonora-*.AppImage</code>) and start it. Install the .deb with
+    <code>sudo apt install ./eleonora_*.deb</code>, the .rpm with <code>sudo dnf install ./eleonora*.rpm</code>.
+    Eleonora updates itself the way you installed it: the AppImage replaces itself, and the .deb and .rpm ask
+    for an administrator's password. Installing the .deb or .rpm also adds Eleonora's package repository, so
+    your system's updates offer new versions too.</td></tr>
+<!-- /eleonora-linux -->  <tr><th>Already on Eudora?</th><td>Eudora updates itself to Eleonora. Your mail, accounts, rules,
+    settings, and saved passwords come along.</td></tr>
+  <tr id="android"><th>Android (beta)</th><td><a href="downloads/Eleonora-beta.apk">Download Eleonora for Android
+    (beta, version {{eleonora_android_version}}, 52 MB)</a>, for Android 7 or newer. It's an early test version: not everything
+    works yet, and it doesn't update itself, so download it again for a newer one (it installs over the old one
+    and keeps your mail). To install it, open the downloaded file on your phone and allow your browser to
+    install apps when Android asks. It keeps its own copy of your mail, downloaded from your accounts; you
+    choose how much (the last 30 days, a year, everything, or up to a size).</td></tr>
+  <tr><th>iPhone</th><td>The iPhone version is being built.</td></tr>
+  <tr><th>Your mail</th><td>Eleonora keeps its own copy of your mail in your user folder. Uninstalling it
+    never deletes that copy, or anything on your mail provider's servers.</td></tr>
+</table>
+<!-- /released -->
+
+<h2>At a glance</h2>
+<table class="facts">
+    <!-- released --><tr><th>Status</th><td>Official release, version {{eleonora_version}}</td></tr><!-- /released -->
+  <tr><th>Formerly</th><td>Eudora (versions 1.x), which updates itself to Eleonora</td></tr>
+  <tr><th>Runs on</th><td>Windows, Mac, and Linux; Android as a beta; iPhone to come</td></tr>
+  <tr><th>Accounts</th><td>Microsoft 365, Outlook.com, Gmail, Google Workspace, IMAP, and POP3</td></tr>
+  <tr><th>Price</th><td>Free: see the <a href="freeware.html">freeware terms</a></td></tr>
+  <tr><th>Privacy</th><td>No ads, no tracking, and nothing about you is collected or sent anywhere: see the
+    <a href="eleonora-privacy.html">privacy policy</a></td></tr>
+  <tr><th>Source code</th><td>Open source (MIT or Apache 2.0): <a href="https://github.com/robertlboyle/eleonora">github.com/robertlboyle/eleonora</a></td></tr>
+  <tr><th>Support</th><td>None: no warranty and no support</td></tr>
+  <tr><th>Feedback</th><td>Bug reports and suggestions: <a href="mailto:software@planet.net">software@planet.net</a></td></tr>
+</table>
+
+<p class="note" style="margin-top:32px">The classic Eudora was made by QUALCOMM; its source code was released
+by the Computer History Museum. Microsoft, Outlook, and Teams are trademarks of Microsoft; Google, Gmail, and
+Google Meet are trademarks of Google; Thunderbird is a trademark of the Mozilla Foundation; Yahoo is a
+trademark of Yahoo; Zoom is a trademark of Zoom Communications; Spamhaus is a trademark of The Spamhaus
+Project. Eleonora is not affiliated with, endorsed by, or sponsored by any of them.</p>
+<p class="note"><a href="eleonora-privacy.html">Eleonora privacy policy</a></p>

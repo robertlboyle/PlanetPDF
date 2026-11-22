@@ -1,0 +1,112 @@
+"""A printout from the PlanetPDF printer arrives (user 2026-10-18: "Unless there is a default
+output folder set in the settings or set via an environment variable, it should prompt for the
+output folder and name … Default to using the last output folder used"). core/printouts.py has
+the rules; here: the Save dialog, moving the file out of the inbox, opening it."""
+
+from __future__ import annotations
+
+import shutil
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+from PySide6.QtWidgets import QCheckBox, QFileDialog, QMessageBox
+
+from planetpdf.core import printouts as P
+from planetpdf.ui import paths
+
+if TYPE_CHECKING:
+    from planetpdf.ui.main_window import MainWindow
+
+
+def inbox() -> Path:
+    return paths.printouts_dir()
+
+
+def is_printout(path: Path) -> bool:
+    return P.is_printout(path, inbox())
+
+
+def ask_open(window: MainWindow, document: str) -> tuple[bool, bool]:
+    """Before the Save dialog (user 2026-10-18: "Ask before opening the print dialog and have a box
+    that asks to save that setting. It is a setting that can be changed later in the preferences"):
+    (open it?, remember the answer?). Tests replace this."""
+    box = QMessageBox(QMessageBox.Icon.Question, "Print to PlanetPDF",
+                      f"Open “{document}” in PlanetPDF after it's saved?", parent=window)
+    yes = box.addButton("Open It", QMessageBox.ButtonRole.YesRole)
+    box.addButton("Don't Open It", QMessageBox.ButtonRole.NoRole)
+    box.setDefaultButton(yes)
+    remember = QCheckBox("Remember my answer (Preferences ▸ Documents can change it)", box)
+    box.setCheckBox(remember)
+    box.exec()
+    return box.clickedButton() is yes, remember.isChecked()
+
+
+def ask_where(window: MainWindow, suggested: Path) -> Path | None:
+    """The system's own Save dialog (Windows' and the Mac's: their places, long names). None =
+    canceled. Tests replace this."""
+    name, _kind = QFileDialog.getSaveFileName(window, "Print to PlanetPDF", str(suggested), "PDF files (*.pdf)")
+    if not name:
+        return None
+    target = Path(name)
+    if target.suffix.lower() != ".pdf":
+        target = target.with_name(target.name + ".pdf")
+    return target
+
+
+def receive(window: MainWindow, path: Path) -> tuple[Path, bool] | None:
+    """Saves the printout where it belongs. Returns (where, open it?); None: canceled or failed."""
+    s = window.settings
+    path = Path(path)
+    document = path.stem
+    name = P.file_name(P.template(s.print_name_template), document)
+    folder = P.default_folder(s.print_folder)
+    open_after = s.print_open_after
+    if s.print_open_ask:  # (asked first, then where)
+        open_after, remember = ask_open(window, document)
+        if remember:
+            s.print_open_ask, s.print_open_after = False, open_after
+            window.save_settings_now()
+    if folder is not None:
+        try:
+            folder.mkdir(parents=True, exist_ok=True)
+            target = P.unique_path(folder, name)
+        except OSError as exc:
+            window.show_message("PlanetPDF Printer", f"The printout couldn't go to {folder}:\n\n{exc}\n\n"
+                                                     "Choose where to save it instead.")
+            folder = None
+    if folder is None:
+        start = Path(s.print_last_folder) if s.print_last_folder and Path(s.print_last_folder).is_dir() \
+            else paths.documents_dir()
+        target = ask_where(window, start / f"{name}.pdf")
+        if target is None:
+            _discard(path)
+            window.statusBar().showMessage(f"The printout “{document}” wasn't saved.", 6000)
+            return None
+        s.print_last_folder = str(target.parent)
+        window.save_settings_now()
+    try:
+        if target.exists():  # (the Save dialog already asked to replace it)
+            target.unlink()
+        shutil.move(str(path), str(target))
+    except OSError as exc:
+        window.show_message("PlanetPDF Printer", f"The printout couldn't be saved as {target}:\n\n{exc}")
+        return None
+    P.done_with(path, inbox())
+    if not open_after:
+        window.statusBar().showMessage(f"Printout saved: {target}", 8000)
+    return target, open_after
+
+
+def _discard(path: Path) -> None:
+    try:
+        path.unlink()
+    except OSError:
+        pass
+    P.done_with(path, inbox())
+
+
+def open_waiting(window: MainWindow) -> None:
+    """At start: printouts that arrived while PlanetPDF wasn't running."""
+    waiting = P.waiting(inbox())
+    if waiting:
+        window.open_paths(waiting)

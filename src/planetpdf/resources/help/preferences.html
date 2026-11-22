@@ -1,0 +1,145 @@
+<html><head><title>Preferences</title></head><body>
+<h1 id="top">Preferences</h1>
+<p>Preferences hold the settings that apply to all your documents: your name for comments and stamps, how PlanetPDF looks, how much memory it uses, auto-save, the PlanetPDF printer, digital signatures, Read Out Loud, scripts and plugins, and updates. This chapter goes through every page and every setting.</p>
+
+<h2 id="open-preferences">Opening Preferences</h2>
+<!-- index: settings; options; Edit Preferences; Ctrl+comma; configure -->
+<ol>
+  <li>Choose <b>Edit ▸ Preferences…</b> or press <b>Ctrl+,</b> (on a Mac, Preferences is in the <b>PlanetPDF</b> menu, <b>⌘,</b>).</li>
+  <li>Click a page in the list on the left: <b>General</b>, <b>Appearance</b>, <b>Performance</b>, <b>Documents</b>, <b>Signatures</b>, <b>Read Out Loud</b>, <b>Scripting &amp; Plugins</b>, or <b>Updates</b>.</li>
+  <li>Change what you need and click <b>Save</b>. <b>Cancel</b> leaves everything as it was.</li>
+</ol>
+<p>Changes apply to every open PlanetPDF window as soon as you click Save. While PlanetPDF runs, Preferences opens on the page you looked at last.</p>
+
+<h2 id="general">General</h2>
+<!-- index: your name; author name; company name; date format; time format; profile folder; default PDF app -->
+<h3 id="your-name">You</h3>
+<!-- index: Your name; Company name; author of comments; {user}; {company}; stamp name -->
+<table>
+  <tr><th>Setting</th><th>What it does</th><th>Default</th></tr>
+  <tr><td><b>Your name</b></td><td>Shown as the author of your comments, notes, and replies, and on stamps that show who stamped them ({user}).</td><td>Blank: your Windows sign-in name is used.</td></tr>
+  <tr><td><b>Company name</b></td><td>Shown on the Company Confidential stamp and on any stamp with {company}. Nothing is written while it's blank.</td><td>Blank</td></tr>
+  <tr><td><b>Date format</b></td><td>How dates look on stamps ({date}). The list shows today's date in each format: Oct 18, 2026 · 10/18/2026 · 18/10/2026 · 2026-10-18 · October 18, 2026 · 18 Oct 2026.</td><td>Oct 18, 2026</td></tr>
+  <tr><td><b>Time format</b></td><td>How times look on stamps ({time}): 12-hour (2:05 PM) or 24-hour (14:05).</td><td>12-hour</td></tr>
+</table>
+
+<h3 id="profile-folder">Profile folder</h3>
+<!-- index: where settings are stored; settings.json; roaming profile; PLANETPDF_PROFILE_DIR; Open Folder; backup settings -->
+<p>Shows the folder that holds your PlanetPDF settings, saved signatures and initials, stamps, trusted certificates, spelling dictionary, plugins, and logs. <b>Open Folder</b> opens it (so does <b>Help ▸ Open Profile Folder</b>). See <a href="#where-stored">Where settings are stored</a>.</p>
+
+<h3 id="default-app">PDF files</h3>
+<!-- index: default app; open PDFs with PlanetPDF; file association; Make PlanetPDF the Default App for PDF Files -->
+<p>In an installed copy of PlanetPDF, <b>Make PlanetPDF the Default App for PDF Files…</b> makes double-clicked PDFs open in PlanetPDF:</p>
+<ul>
+  <li><b>Windows</b> doesn't let a program make itself the default, so this opens Windows' own "How do you want to open .pdf files?" window. Choose <b>PlanetPDF</b> there and click <b>Always</b>. (The installer offers the same window when you install.)</li>
+  <li><b>Mac:</b> PlanetPDF becomes the default straight away. (The Mac app also asks once, the first time it starts.)</li>
+</ul>
+<p>When PlanetPDF already opens PDF files, the button reads <b>PlanetPDF Opens PDF Files</b> and is grayed.</p>
+
+<h2 id="appearance">Appearance</h2>
+<!-- index: theme; dark mode; light mode; Display Theme; Follow System Setting; text size; larger text -->
+<p><b>Theme</b>: <b>Follow System Setting</b> (the default: light or dark like Windows or macOS), <b>Light</b>, or <b>Dark</b>. This is the same as <b>View ▸ Display Theme</b>. Only PlanetPDF's windows change; the pages of your documents always show as they will print. While Windows uses a contrast theme, PlanetPDF uses its colors instead (see <a href="accessibility.html#contrast">Contrast themes</a>).</p>
+<p><b>Text size</b>: <b>Normal</b> (the default), <b>125%</b>, <b>150%</b>, <b>175%</b>, or <b>200%</b>: larger text in the menus, toolbars, panels, and dialogs (see <a href="accessibility.html#text-size">Larger text</a>).</p>
+
+<h2 id="performance">Performance</h2>
+<!-- index: memory; speed; RAM; page cache; Keep rendered pages up to; font previews; slow font list -->
+<table>
+  <tr><th>Setting</th><th>What it does</th><th>Default</th></tr>
+  <tr><td><b>Keep rendered pages up to</b></td><td>Pages PlanetPDF has already drawn are kept in memory, so going back to them is instant. A larger number helps when you work at high zoom on long documents; a smaller one uses less memory (useful on terminal servers). The pages on the screen are always kept. From 50 to 4000 MB, for each window.</td><td>200 MB</td></tr>
+  <tr><td><b>Show fonts in their own typeface in font lists</b></td><td>The font lists on the text format bar show each font's name written in that font. Untick it for plain names: the list opens faster and uses less memory. Text on the page always shows in its own font.</td><td>On</td></tr>
+  <tr><td><b>AI text reading for exports</b>: <b>Keep the AI loaded for</b></td><td>The box says whether AI text reading can run on this computer, and if not, why (it needs the optional add-on and an NVIDIA graphics card with about 8 GB of memory). After an export, the model stays on the graphics card this long, so the next export starts at once; then its memory is freed. See <a href="create-export.html#ai-reading">AI text reading</a>.</td><td>5 minutes</td></tr>
+</table>
+
+<h2 id="documents">Documents</h2>
+<!-- index: auto-save; recovery; crash; adding text; PlanetPDF printer settings; printout folder -->
+<h3 id="auto-save">Recovery</h3>
+<!-- index: Auto-save for recovery every; autosave; recover unsaved work; crash recovery -->
+<p><b>Auto-save for recovery every</b>: while a document has unsaved changes, PlanetPDF keeps a recovery copy of it on this computer this often. If PlanetPDF closes unexpectedly, it offers the copy back the next time it starts (see <a href="troubleshooting.html#crash">PlanetPDF closed unexpectedly</a>). The recovery copy never replaces your file, and it keeps the file's password protection. From 1 to 60 minutes, or <b>Off</b>. Default: <b>5 min</b>.</p>
+<p class="note"><b>Note:</b> auto-save is not the same as saving. Your file changes only when you choose <b>File ▸ Save</b>.</p>
+
+<h3 id="adding-text">Adding text</h3>
+<!-- index: Clicking the page with no tool chosen adds text there; Remember the text I add; Forget Remembered Text; auto-complete settings -->
+<ul>
+  <li><b>Clicking the page with no tool chosen adds text there</b>: a click on an empty spot of a page, with the Select arrow (also right after placing a signature or stamp), starts typing there, as <b>Add Text</b> does. See <a href="forms.html#click-to-type">Click anywhere to type</a>. Default: on.</li>
+  <li><b>Remember the text I add and suggest it as I type</b>: see <a href="forms.html#remembered-text">Remembered text</a>. Off: nothing new is remembered and nothing is suggested (what's already remembered stays until you forget it). Default: on.</li>
+  <li><b>Forget Remembered Text (<i>count</i>)</b> empties the list at once.</li>
+</ul>
+
+<h3 id="printer-settings">PlanetPDF printer</h3>
+<!-- index: printout folder; Ask where to save each printout; Save printouts in this folder without asking; File name; After saving -->
+<p>How printouts from the <a href="printing.html#planetpdf-printer">PlanetPDF printer</a> are saved:</p>
+<table>
+  <tr><th>Setting</th><th>What it does</th><th>Default</th></tr>
+  <tr><td><b>Ask where to save each printout</b></td><td>The save window appears for each printout, starting in the folder you used last. (When IT has set a printout folder for the computer, this choice reads <b>Use this computer's printout folder (set by IT)</b> instead.)</td><td>Chosen</td></tr>
+  <tr><td><b>Save printouts in this folder without asking</b></td><td>Every printout is saved in the folder you type or pick with <b>Browse…</b>, without a save window. Existing files are never replaced: "(2)", "(3)"… is added.</td><td></td></tr>
+  <tr><td><b>File name</b></td><td>How printouts are named. Use {document}, {date}, {time}, {user}, and {computer}; anything else is kept as you type it.</td><td>{document}</td></tr>
+  <tr><td><b>After saving</b></td><td><b>Ask each time</b> whether to open the printout in PlanetPDF, always <b>Open the PDF</b>, or <b>Don't open it</b>. "Remember my answer" in the question sets this too.</td><td>Ask each time</td></tr>
+</table>
+
+<h2 id="signatures">Signatures</h2>
+<!-- index: digital signatures; timestamp server; trusted certificates; Import Certificate; certificate authority; CA; signer not trusted; Also trust the certificates Windows trusts; revocation; revoked certificate; check revocation -->
+<table>
+  <tr><th>Setting</th><th>What it does</th><th>Default</th></tr>
+  <tr><td><b>Timestamp server</b></td><td>The address of a timestamp service (for example <code>http://timestamp.digicert.com</code>). When set, each digital signature you make gets a trusted time from it, which proves when it was signed. Your company's IT may give you one to use.</td><td>Blank: no timestamp</td></tr>
+  <tr><td><b>Trusted certificates</b></td><td>Certificate authorities whose signatures PlanetPDF treats as trusted, such as your company's own. Click <b>Import Certificate…</b> and choose a .cer, .crt, .pem, or .der file. Signatures from people whose certificates no trusted authority vouches for show as "signer not trusted" (still intact).</td><td>None</td></tr>
+  <tr><td><b>Check online whether signers' certificates were revoked</b></td><td>When a signed document opens, PlanetPDF asks the certificate authority named in each signer's certificate whether the certificate was revoked (for example, after it was stolen or the person left the company); a revoked certificate makes the signature <b>INVALID</b>. This goes online and tells that authority which certificate you're checking. When it's off, each signature says that revocation wasn't checked.</td><td>Off</td></tr>
+  <tr><td><b>Also trust the certificates Windows trusts</b> (on a Mac: <b>macOS trusts</b>)</td><td>Also trusts the root certificates in Windows' certificate store (on a Mac, the ones macOS trusts plus your Keychain's), which usually includes your company's.</td><td>On</td></tr>
+</table>
+<p>See <a href="signatures.html#top">Signatures</a> for signing and checking signatures.</p>
+
+<h2 id="read-out-loud">Read Out Loud</h2>
+<!-- index: voice; speech; text to speech; Kokoro; Piper; Windows voices; macOS voices; speed; Try Voice; Download Natural Voices -->
+<table>
+  <tr><th>Setting</th><th>What it does</th><th>Default</th></tr>
+  <tr><td><b>Voice engine</b></td><td>
+    <b>Automatic</b>: the most natural voices (Kokoro) when they are installed and this computer is fast enough to read with them smoothly, otherwise Piper (or the macOS voices on a Mac).<br>
+    <b>Kokoro</b>: the most natural voices; needs a fast computer.<br>
+    <b>Piper</b>: very good voices, fast on any computer.<br>
+    <b>Windows voices</b> / <b>macOS voices</b>: the voices built into the system. On a Mac, Premium voices downloaded in System Settings ▸ Accessibility sound much better.<br>
+    Only the engines installed on this computer are listed.</td><td>Automatic</td></tr>
+  <tr><td><b>Kokoro voice</b>, <b>Piper voice</b>, <b>Windows voice</b>, <b>macOS voice</b></td><td>The voice to use with that engine. Only the lines for the chosen engine show.</td><td>The first voice</td></tr>
+  <tr><td><b>Speed</b></td><td>From -10 (slowest) through 0 (normal) to 10 (fastest).</td><td>0</td></tr>
+</table>
+<p><b>Try Voice</b> reads a sample sentence with what you chose, before you save. When the natural voices aren't on this computer, <b>Download Natural Voices (354 MB)…</b> downloads them once (reopen Preferences afterwards to choose Kokoro). New settings are used the next time reading starts. The volume is on the Read Out Loud toolbar, not here.</p>
+
+<h2 id="scripting">Scripting &amp; Plugins</h2>
+<!-- index: API; local API; command line; programs; plugins; Block; Stop Signing; Remove; Activity Log; turn on plugin -->
+<p>This page controls which other programs and plugins may use PlanetPDF. See <a href="scripting.html#top">Scripts, Programs, and Plugins</a> for what they are.</p>
+<h3 id="api-setting">Command line and local API</h3>
+<!-- index: Let other programs and plugins use PlanetPDF -->
+<p><b>Let other programs and plugins use PlanetPDF (its local API)</b>: on by default. Only programs on this computer, running as you, can connect, and signing always asks you first. A change takes effect the next time PlanetPDF starts. The command line (<code>planetpdf help</code>) works either way.</p>
+<h3 id="programs-list">Programs that have used PlanetPDF</h3>
+<!-- index: Program; Last used; Signing; blocked; allowed; asks first; audit log -->
+<p>Each program (and plugin) that has connected is listed with when it was last used and its signing state: <b>asks first</b>, <b>allowed</b> (you chose "Always Allow This Program"), or <b>blocked</b>. Select one and click:</p>
+<ul>
+  <li><b>Block</b> / <b>Unblock</b>: refuse everything it asks for, or allow it again.</li>
+  <li><b>Stop Signing</b>: it will be asked again the next time it wants to sign.</li>
+  <li><b>Remove</b>: forget it. Its key stops working; it can introduce itself again.</li>
+  <li><b>Activity Log…</b>: what each program did, when, with which files, and how it ended (passwords are never recorded).</li>
+</ul>
+<h3 id="plugins-list">Plugins</h3>
+<!-- index: turn on plugin; Turn On Plugin?; Asks to; changed plugin; plugins folder -->
+<p>Every plugin found is listed with what it asks to do. Tick one to turn it on: PlanetPDF shows what it asks for and what it adds to the menus, and turns it on only when you click <b>Yes</b>. Untick it to turn it off. A plugin whose files have changed since you turned it on is off again ("changed since you turned it on: turn it on again to use it"). The page shows the folder to put plugins in.</p>
+
+<h2 id="updates">Updates</h2>
+<!-- index: check for updates; update every days; Check Now; automatic updates -->
+<table>
+  <tr><th>Setting</th><th>What it does</th><th>Default</th></tr>
+  <tr><td><b>Check for updates on startup</b></td><td>A quiet check in the background soon after PlanetPDF starts.</td><td>On</td></tr>
+  <tr><td><b>Check for updates every</b></td><td>While PlanetPDF keeps running, checks again once this many days have passed. <b>Never</b> (0) turns it off.</td><td>14 days</td></tr>
+</table>
+<p><b>Check Now</b> checks straight away, like <b>Help ▸ Check for Updates…</b>. See <a href="troubleshooting.html#updates">Updates</a> for how an update installs.</p>
+
+<h2 id="where-stored">Where settings are stored</h2>
+<!-- index: profile folder; settings.json; AppData; Roaming; PLANETPDF_PROFILE_DIR; move settings to another computer; terminal server profile -->
+<p>Everything that belongs to you is kept in one <b>profile folder</b>:</p>
+<ul>
+  <li><b>Windows:</b> <code>%APPDATA%\Planet Networks\PlanetPDF</code> (the <i>Roaming</i> part of your Windows profile, so it follows you from one terminal server or computer to another).</li>
+  <li><b>Mac:</b> <code>~/Library/Application Support/Planet Networks/PlanetPDF</code></li>
+  <li><b>Linux:</b> <code>~/.local/share/Planet Networks/PlanetPDF</code></li>
+</ul>
+<p>It holds <code>settings.json</code> (these preferences), your saved signatures and initials, stamps and seals, trusted certificates, security policies, your spelling dictionary, the text you've added (<code>text-history.json</code>, for suggestions), plugins, the list of programs allowed to use PlanetPDF, and the <code>logs</code> folder.</p>
+<p>Some things are kept only on this computer, in the local (not roaming) app data folder (Windows: <code>%LOCALAPPDATA%\Planet Networks\PlanetPDF</code>): auto-save recovery copies, downloaded updates, downloaded voices, and printouts waiting to be saved.</p>
+<p>IT can put the profile folder somewhere else by setting the environment variable <code>PLANETPDF_PROFILE_DIR</code> to a folder.</p>
+<p class="note"><b>Tip:</b> to start over with default settings, close PlanetPDF and rename <code>settings.json</code> in the profile folder. Your signatures and stamps stay.</p>
+</body></html>

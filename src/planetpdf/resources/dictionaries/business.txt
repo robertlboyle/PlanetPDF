@@ -1,0 +1,47 @@
+# name: Business & Finance
+# about: Accounting, finance, insurance, HR and everyday business words.
+# PlanetPDF word list. Lowercase words are accepted in any capitalization; mixed-case words
+# (SaaS, eCommerce) only as written.
+
+# --- accounting and finance ---
+amortization amortize amortized amortizing amortizable depreciation depreciable depreciate depreciated
+accrual accruals accrue accrued accruing deferral deferrals receivable receivables payable payables liquidity
+solvency insolvency insolvent leverage leveraged deleverage deleveraging dividend dividends shareholder
+shareholders stockholder stockholders stakeholder stakeholders equity equities valuation valuations
+underwrite underwriter underwriters underwriting underwritten reinsurance reinsurer actuary actuaries
+actuarial annuity annuities annuitant collateralized collateralize securitization securitized derivative
+derivatives hedging arbitrage forex fintech cryptocurrency cryptocurrencies blockchain bitcoin ethereum
+stablecoin acquirer acquirers acquiree divestiture divestitures divest divested spinoff spinoffs synergy
+synergies monetize monetized monetization ledger ledgers subledger reconcile reconciled reconciliation
+reconciliations bookkeeping bookkeeper auditor auditors auditing fiscal biannual biennial quarterly accountancy
+noncash nonrecurring noncurrent nonoperating nonprofit nonprofits capex opex cogs ebitda ebit ebitdar wacc
+cagr arpu mrr arr ltv cac ytd mtd qtd yoy qoq roi roe roa eps fte ftes pto okr okrs kpi kpis sku skus
+writedown writeoff writeoffs chargeback chargebacks refinance refinanced refinancing prepay prepaid
+prepayment prepayments overpayment underpayment remittance remittances remit remitted invoicing invoiced
+billable nonbillable payroll payrolls disbursement disbursements disburse disbursed reimburse reimbursed
+reimbursement reimbursements reimbursable expensed expensing capitalize capitalized capitalization
+subsidiaries subsidiary conglomerate holdco opco escrow fiduciary custodian custodial brokerage brokerages
+broker dealer clearinghouse microcap smallcap midcap bluechip blue-chip bullish bearish volatility
+illiquid illiquidity overdraft overdrafts overdrawn checkbook passbook cashflow cashflows breakeven
+markup markups markdown markdowns overhead overheads budgeting reforecast reforecasting forecasted
+benchmark benchmarking benchmarked
+
+# --- insurance and benefits ---
+copay copays copayment copayments coinsurance deductible deductibles premium premiums policyholder
+policyholders insurer insurers insured underinsured uninsured beneficiary annuitize vesting vested
+rollover rollovers Roth Medicare Medicaid Medigap
+
+# --- management and operations ---
+scalable scalability workflow workflows deliverable deliverables actionable strategize strategizing
+incentivize incentivized incentivizing prioritize prioritized prioritizing prioritization deprioritize
+deprioritized operationalize operationalized ideation offsite offsites onsite timeline timelines roadmap
+roadmaps milestone milestones kickoff kickoffs signoff rollout rollouts handoff handoffs procurement
+subcontractor subcontractors subcontract subcontracted outsourcing outsource outsourced insourcing nearshore
+offshoring freelancer freelancers contractor contractors onboarding onboard onboarded offboarding upsell
+upselling upsold upsells churn churned retention attrition headcount headcounts workforce reskill upskill
+upskilling coworker coworkers cofounder cofounders startup startups unicorn bootstrapped crowdfunding
+crowdfunded franchising franchisor franchisee ecommerce eCommerce omnichannel multichannel dropship
+dropshipping dropshipper fulfillment logistics warehousing inventory inventories barcode barcodes
+wholesaler wholesalers retailer retailers distributor distributors reseller resellers resell
+SaaS PaaS IaaS DaaS CapEx OpEx FinTech InsurTech PropTech EdTech
+edtech insurtech proptech

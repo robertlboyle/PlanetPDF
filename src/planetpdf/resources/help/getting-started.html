@@ -1,0 +1,466 @@
+<html><head><title>Getting Started</title></head><body>
+<h1 id="top">Getting Started</h1>
+<p>This chapter covers installing PlanetPDF, opening files, finding your way around the window,
+saving your work, undoing changes, getting your work back after a crash, updates, and where
+PlanetPDF keeps your settings. If you have used Adobe Acrobat before, much of it will look
+familiar: PlanetPDF follows Acrobat's menus, tool names, and keyboard shortcuts.</p>
+
+<h2 id="installing">Installing PlanetPDF</h2>
+<!-- index: install; setup; installer; download; PlanetPDF-Setup.exe; system requirements -->
+<p>PlanetPDF runs on Windows and on Apple Silicon Macs. Each computer installs it once, and
+every person who signs in to that computer can use it.</p>
+
+<h3 id="install-windows">Installing on Windows</h3>
+<!-- index: Windows installer; Setup; components; administrator; SmartScreen; unknown publisher -->
+<p>The Windows installer is <b>PlanetPDF-Setup.exe</b>. It installs PlanetPDF for everyone who
+uses the computer, so it needs an administrator's OK.</p>
+<ol>
+  <li>Double-click <b>PlanetPDF-Setup.exe</b>. If Windows asks whether to let the app make
+  changes, click <b>Yes</b> (or ask your administrator to sign in).</li>
+  <li>If Windows SmartScreen says it protected your PC from an unrecognized app, click
+  <b>More info</b>, then <b>Run anyway</b>. The installer isn't signed with a code-signing
+  certificate, so Windows shows it as coming from an unknown publisher.</li>
+  <li>Choose where to install it (the usual place is <code>C:\Program Files\PlanetPDF</code>)
+  and click <b>Next</b>.</li>
+  <li>Choose the components (see below) and click <b>Next</b>.</li>
+  <li>Choose the extra tasks (see below), check the summary, and click <b>Install</b>. While the
+  files are copied, the installer shows tips about what PlanetPDF can do, a new one every few
+  seconds; click <b>Next tip</b> to see the next one at once.</li>
+</ol>
+<p>PlanetPDF appears in the Start menu and, unless you untick it, on the desktop.</p>
+
+<h3 id="install-components">Components: reading voices and the PlanetPDF printer</h3>
+<!-- index: components; natural voices; Kokoro; Piper; voices component; PlanetPDF printer component; compact installation; full installation -->
+<p>The installer offers three kinds of installation: <b>Full installation (with natural
+reading voices)</b>, <b>Without the natural reading voices (smaller)</b>, and <b>Custom</b>,
+where you tick each part yourself.</p>
+<table>
+  <tr><th>Component</th><th>What it is</th></tr>
+  <tr><td><b>PlanetPDF</b></td><td>The program itself, with text recognition (OCR) and
+  Ghostscript for saving PDF/A, PDF/X, and PDF/E files. Always installed.</td></tr>
+  <tr><td><b>Natural reading voices</b></td><td>The voices View ▸ Read Out Loud uses (about
+  460 MB). Without them, PlanetPDF reads with the Windows voices, and you can download the
+  natural voices later from <b>Preferences ▸ Read Out Loud</b>. See
+  <a href="viewing.html#read-out-loud">Read Out Loud</a>.</td></tr>
+  <tr><td><b>The PlanetPDF printer</b></td><td>A printer named PlanetPDF that every program on
+  the computer can print to; what you print becomes a PDF that opens in PlanetPDF. See
+  <a href="printing.html">Printing and the PlanetPDF Printer</a>.</td></tr>
+</table>
+
+<h3 id="install-tasks">Extra tasks: default PDF app, desktop shortcut, PATH</h3>
+<!-- index: default PDF app; default app; open PDFs with PlanetPDF; file association; desktop icon; PATH; command line -->
+<ul>
+  <li><b>Make PlanetPDF the default app for opening PDF files</b> (ticked). Windows doesn't let
+  an installer choose your default apps for you, so at the end of Setup Windows asks
+  "How do you want to open .pdf files?". Choose <b>PlanetPDF</b> there (and <b>Always</b>, if
+  Windows offers it) to make PDF files open in PlanetPDF when you double-click them. If
+  PlanetPDF already opens your PDF files, Setup just says so. You can do this later from
+  <b>Edit ▸ Preferences ▸ General</b>, <b>Make PlanetPDF the Default App for PDF Files</b>.</li>
+  <li><b>Create a desktop shortcut</b> (ticked).</li>
+  <li><b>Let command prompts and scripts run planetpdf</b> (ticked). Adds PlanetPDF's folder to
+  the system PATH, so you can type <code>planetpdf</code> in a command prompt. Uninstalling
+  takes it out again. See <a href="scripting.html">Scripts, Programs, and Plugins</a>.</li>
+</ul>
+<p>All three are ticked every time Setup runs, also when you install a newer version over an older one.</p>
+<p class="note"><b>For IT:</b> Setup runs silently with <code>/VERYSILENT /SUPPRESSMSGBOXES</code>;
+add <code>/COMPONENTS="main"</code> to leave out the voices. A silent install doesn't open the
+Default apps page. Uninstalling (Windows Settings ▸ Apps) removes every installed version and the
+voices; your own settings and signatures stay in your profile folder.</p>
+
+<h3 id="install-mac">Installing on a Mac</h3>
+<!-- index: Mac; macOS; dmg; Applications folder; Apple Silicon; notarized -->
+<p>The Mac version comes as a disk image, <b>PlanetPDF.dmg</b>. It runs on Macs with Apple
+Silicon (M1 and later) and macOS 15 (Sequoia) or later. It's signed and notarized by Apple, so it opens
+without warnings.</p>
+<ol>
+  <li>Double-click <b>PlanetPDF.dmg</b>.</li>
+  <li>In the window that opens, drag <b>PlanetPDF</b> onto the <b>Applications</b> folder.</li>
+  <li>Eject the disk image, then open PlanetPDF from Applications or Launchpad.</li>
+  <li>The first time it starts, PlanetPDF asks whether it should open your PDF files. Click
+  yes to make it your default PDF app (you can also do this later in
+  <b>PlanetPDF ▸ Preferences ▸ General</b>).</li>
+</ol>
+<p>The Mac app doesn't include the natural reading voices: Read Out Loud uses the macOS voices
+until you download them (PlanetPDF offers this the first time you use Read Out Loud). Instead of
+a PlanetPDF printer, the Mac has <b>Open in PlanetPDF</b> in the <b>PDF</b> menu of every print
+dialog. On a Mac, shortcuts shown with <b>Ctrl</b> in this manual use <b>⌘</b> (Command)
+instead.</p>
+
+<h3 id="install-linux">Installing on Linux</h3>
+<!-- index: Linux; AppImage; deb; rpm; Ubuntu; Debian; Fedora; ARM64; Raspberry Pi -->
+<p>The Linux version runs on Ubuntu 24.04, Debian 13, Fedora 40, or newer, on PCs (x86-64) and on
+ARM64 computers (such as a Raspberry Pi 5). It comes three ways; pick the one that fits your system
+(<b>aarch64</b> / <b>arm64</b> in the file name is for ARM64, <b>x86_64</b> / <b>amd64</b> for PCs):</p>
+<ul>
+  <li><b>AppImage</b> (any distribution, nothing to install): make the file executable (in the file
+  manager's Properties, or <code>chmod +x PlanetPDF-*.AppImage</code>), then double-click it.</li>
+  <li><b>.deb</b> (Ubuntu, Debian, Linux Mint): open it with your software installer, or run
+  <code>sudo apt install ./planetpdf_*.deb</code>.</li>
+  <li><b>.rpm</b> (Fedora, openSUSE): open it with your software installer, or run
+  <code>sudo dnf install ./planetpdf-*.rpm</code>.</li>
+</ul>
+<p>The .deb and .rpm add PlanetPDF to your applications menu, to "Open With" for PDF files, and the
+<code>planetpdf</code> command. PlanetPDF updates itself the way it was installed: when a new version
+is ready it asks, and installs it when you close PlanetPDF. The AppImage replaces its own file; the
+.deb and .rpm ask for an administrator's password, since the system's package tool installs them.
+Installing the .deb or .rpm also adds PlanetPDF's package repository, so your system's own updates
+(Software Updater, <code>apt upgrade</code>, <code>dnf upgrade</code>) offer new versions too; to stop
+that, delete <code>/etc/apt/sources.list.d/planetpdf.sources</code> or
+<code>/etc/yum.repos.d/planetpdf.repo</code>. Read Out Loud downloads the natural voices the first
+time you use it.</p>
+
+<h2 id="starting">Starting PlanetPDF and opening files</h2>
+<!-- index: start; launch; open a PDF; open file -->
+<p>Start PlanetPDF from the Start menu (Windows), Applications (Mac), or your applications menu
+(Linux). With no document open,
+the window shows the menus and tools; open a file to begin.</p>
+
+<h3 id="open-file">File ▸ Open</h3>
+<!-- index: open; Ctrl+O; open dialog; several files -->
+<ol>
+  <li>Choose <b>File ▸ Open</b> (or press <b>Ctrl+O</b>, or click the folder button at the left
+  of the main toolbar).</li>
+  <li>Pick one or more PDF files and click <b>Open</b>. Each opens in its own tab.</li>
+</ol>
+<p>A file protected with a password asks for it first. A file encrypted for certain people
+(certificate security) opens with your Digital ID: PlanetPDF tries the certificates in your
+Windows certificate store or Mac Keychain first, then asks for a Digital ID file. See
+<a href="protect-redact.html">Protecting and Redacting</a>.</p>
+
+<h3 id="open-drag-drop">Dragging files into PlanetPDF</h3>
+<!-- index: drag and drop; drop files; Explorer; Finder -->
+<p>Drag one or more PDF files from File Explorer (or the Finder) onto PlanetPDF's window. Each
+opens as a new tab. Dropping a file on the <b>Pages</b> panel instead inserts its pages into
+the open document, at the place you drop it (see <a href="pages.html">Organizing Pages</a>).</p>
+
+<h3 id="open-double-click">Double-clicking a PDF</h3>
+<!-- index: double-click; Open with; default app -->
+<p>When PlanetPDF is your default PDF app, double-clicking a PDF in File Explorer opens it in
+PlanetPDF. Otherwise right-click the file and choose <b>Open with ▸ PlanetPDF</b>.</p>
+
+<h3 id="one-copy">One running copy</h3>
+<!-- index: single instance; already running; one window; second copy; file already open; open twice -->
+<p>PlanetPDF runs once per person. If it's already running when you open another file (by
+double-clicking it, for example), the file opens as a new tab in the PlanetPDF window you used
+last, and that window comes to the front. That's true even while PlanetPDF is still starting:
+files you open in those first seconds wait and open as tabs as soon as its window is ready.
+If the file is already open, PlanetPDF just shows it.
+On a terminal server, everyone signed in has their own copy.</p>
+<p>A file is never open twice, so you can't close one copy without saving while the changes are in
+another. If a second PlanetPDF is running anyway (one started with <code>--new-instance</code>, or one
+that stopped answering), opening a file it already has shows the file in that PlanetPDF instead. If
+that PlanetPDF can't be reached, a message says <b>File Already Open</b>: switch to its window to work
+on the file.</p>
+
+<h3 id="recent-files">Recent files</h3>
+<!-- index: recent files; recently opened; history of files; View All Recent Files -->
+<p>The <b>File</b> menu lists the last five files you opened, numbered, just above
+<b>View All Recent Files…</b>. Click one to open it. <b>View All Recent Files…</b> lists every
+file you've opened recently: choose one and click <b>Open</b> (or double-click it).</p>
+
+<h3 id="reopen-session">Reopen PDFs from Last Session</h3>
+<!-- index: reopen; last session; restore tabs; previous session -->
+<p><b>File ▸ Reopen PDFs from last session</b> opens again every PDF that was open when you last
+closed PlanetPDF, in every window. It's grayed out when none of those files can be found.</p>
+
+<h2 id="window-tour">A tour of the window</h2>
+<!-- index: window; layout; user interface; screen layout -->
+<p>From top to bottom, PlanetPDF's window has the menu bar, the main toolbar, the bar of the
+tool that's open, the document tabs, and the pages. The tool strip runs down the right edge, and
+the Pages and Bookmarks panel flies out from the left (or right) edge.</p>
+
+<h3 id="menu-bar">The menu bar</h3>
+<!-- index: menus; File menu; Edit menu; View menu; Tools menu; Window menu; Help menu -->
+<p>The menus are those of classic Adobe Acrobat: <b>File</b>, <b>Edit</b>, <b>View</b>,
+<b>Tools</b>, <b>Window</b>, and <b>Help</b>. Every command and its shortcut is listed in the
+<a href="menus.html">Menu Reference</a>. <b>Help ▸ Keyboard Shortcuts</b> lists every shortcut.
+To hide the menu bar for more room, choose <b>View ▸ Show/Hide ▸ Menu Bar</b> (<b>F9</b>); press
+<b>F9</b> again to bring it back.</p>
+
+<h3 id="main-toolbar">The main toolbar</h3>
+<!-- index: toolbar; main toolbar; quick tools; F8 -->
+<p>The main toolbar holds the commands you use most, from left to right:</p>
+<ul>
+  <li><b>Open</b>, <b>Save</b>, <b>Print</b>, and <b>Find</b>.</li>
+  <li><b>Previous Page</b> and <b>Next Page</b>, the page number box, and the page count
+  ("3 / 10").</li>
+  <li>The <b>Select</b> arrow and the <b>Hand</b> (see <a href="#select-hand">Select and Hand</a>).</li>
+  <li><b>Zoom Out</b>, <b>Zoom In</b>, the zoom box, and the <b>Page Display and Zoom</b> menu
+  (fit, actual size, and the page layouts).</li>
+  <li>Quick tools: add a sticky note, highlight text, and rotate the view counterclockwise or
+  clockwise (this only turns how pages are shown; the file isn't changed).</li>
+  <li>While Read Out Loud is activated: the reading buttons, the voice menu, and the volume
+  slider (see <a href="viewing.html#read-out-loud">Read Out Loud</a>).</li>
+</ul>
+<p><b>View ▸ Show/Hide ▸ Toolbar Items ▸ Main Toolbar</b> (<b>F8</b>) hides and shows it.
+<b>View ▸ Show/Hide ▸ Button Labels</b> chooses <b>No Labels</b> (icons only),
+<b>Default Labels</b>, or <b>All Labels</b> (a name beside every icon).</p>
+
+<h3 id="tool-bar">The open tool's bar</h3>
+<!-- index: tool bar; second toolbar; tool commands; Close tool; secondary toolbar -->
+<p>When you open a tool (Comment, Organize Pages, Redact, and so on), its bar appears on its own
+row under the main toolbar. The tool's name is on the left, with a colored edge in the tool's
+color; its commands are in the middle; and <b>Close</b> (✕) on the right closes the tool. You can
+also close it with <b>Tools ▸ Close Tool</b>. Tools that work with text also show a text format
+bar (font, size, bold, italic, underline, strike-out, color) on a row of its own while it
+applies.</p>
+
+<h3 id="tool-strip">The tool strip</h3>
+<!-- index: tool strip; tools pane; right-hand tools; Shift+F4; tools list -->
+<p>The column of colored icons down the right edge is the tool strip. Click an icon to open
+that tool (the same as choosing it from the <b>Tools</b> menu); hover over one to see its name.
+The tools are Create PDF, Edit PDF, Export PDF, Organize Pages, Compress PDF, Bookmarks, Comment,
+Stamp, Fill &amp; Sign, Prepare Form, Protect, Redact, Scan &amp; OCR, Optimize Scans, Compare
+Files, and PDF Standards. The open tool shows white on a dark tile.</p>
+<p><b>View ▸ Show/Hide ▸ Tools Pane</b> (<b>Shift+F4</b>) hides and shows the strip.</p>
+
+<h3 id="reorder-tools">Putting the tools in your own order</h3>
+<!-- index: reorder tools; move tool icons; customize tool strip; Reset Tool Order -->
+<ol>
+  <li>Press on a tool's icon in the strip and drag it up or down. The icon dims, and a blue bar
+  shows where it will go.</li>
+  <li>Let go where you want it. PlanetPDF remembers the order.</li>
+</ol>
+<p>Press <b>Esc</b> while dragging to cancel. To go back to the original order, right-click the
+strip and choose <b>Reset Tool Order</b>.</p>
+
+<h3 id="side-panel">The Pages and Bookmarks panel</h3>
+<!-- index: navigation pane; side panel; thumbnails panel; bookmarks panel; F4; left or right -->
+<p>The Pages panel (page thumbnails) and the Bookmarks panel share one panel at the side of the
+pages. Two buttons open it: <b>Pages</b> and <b>Bookmarks</b>. Click a button to fly the panel
+out; click the same button again, or the <b>»</b> button in the panel, to collapse it.
+<b>F4</b> (<b>View ▸ Show/Hide ▸ Navigation Panes ▸ Show/Hide Navigation Pane</b>) does the same.
+Drag the panel's edge to make it wider or narrower; the thumbnails grow and shrink with it. The
+bottom of the panel says which page you're on ("Page 3 of 10").</p>
+<p>The panel is on the left by default, with its two buttons on a slim bar along the left edge.
+To move it to the right (its buttons then sit at the top of the tool strip), choose
+<b>View ▸ Show/Hide ▸ Navigation Panes ▸ Pages Panel on the Right</b>; <b>Pages Panel on the
+Left</b> moves it back. With no document open, the panel is closed and its buttons are grayed;
+it comes back when you open a file. A file that has bookmarks opens with the Bookmarks panel
+showing. See <a href="viewing.html#pages-panel">The Pages panel</a> and
+<a href="viewing.html#bookmarks-panel">The Bookmarks panel</a>.</p>
+<p>Other panels (Attachments, Comments, Signatures, Fill Form, Redaction, Undo History) are
+listed under <b>View ▸ Show/Hide ▸ Navigation Panes</b>. Most tools open their own panel when
+you open the tool; only one tool panel shows at a time.</p>
+
+<h3 id="tabs">Tabs: several documents in one window</h3>
+<!-- index: tabs; document tabs; switch documents; Ctrl+Tab; several files; Close Other Tabs -->
+<p>Every document you open gets a tab above the pages. Click a tab to switch to it, or press
+<b>Ctrl+Tab</b> (next document) and <b>Ctrl+Shift+Tab</b> (previous document); <b>Ctrl+F6</b> and
+<b>Ctrl+Shift+F6</b> do the same. Drag a tab sideways to change the order. Each tab keeps its own
+zoom, scroll position, and undo history.</p>
+<p>Click a tab's ✕ or press <b>Ctrl+W</b> (<b>File ▸ Close File</b>) to close the current
+document; PlanetPDF asks first if it has unsaved changes. Right-click a tab for
+<b>Move to New Window</b>, <b>Close</b>, and <b>Close Other Tabs</b>. To hide the tab bar, turn
+off <b>View ▸ Show/Hide ▸ Document Tabs</b> and switch documents with the Window menu.</p>
+
+<h3 id="pop-out">Popping a document out into its own window</h3>
+<!-- index: pop out; new window; separate window; side by side; Move to New Window; drag tab out -->
+<p>To see two documents side by side (and drag pages between them), give one a window of its
+own. Any of these works:</p>
+<ul>
+  <li>Drag its tab out of the tab bar and let go outside the window. Let go over another
+  PlanetPDF window instead to move it there.</li>
+  <li>Right-click its tab and choose <b>Move to New Window</b>.</li>
+  <li>Choose <b>Window ▸ Move to New Window</b>.</li>
+  <li>In the <b>Window</b> menu, click the pop-out icon at the right end of the document's name.</li>
+</ul>
+<p>The document keeps its unsaved changes and its undo history. All the windows belong to the
+same running PlanetPDF and share your settings.</p>
+
+<h3 id="window-menu">The Window menu</h3>
+<!-- index: Window menu; Cascade; Tile; arrange windows; Close All; list of open documents -->
+<ul>
+  <li><b>Cascade</b> and <b>Tile ▸ Horizontally / Vertically</b> arrange PlanetPDF's windows.</li>
+  <li><b>Move to New Window</b> gives the current document a window of its own.</li>
+  <li><b>Next Document</b> and <b>Previous Document</b> switch tabs.</li>
+  <li><b>Close All</b> closes every document (asking about unsaved changes).</li>
+  <li>Below those, every open document is listed, grouped by window, with a check mark by the
+  current one. Click a name to show it; click the icon at the right end (or right-click the
+  name) to move it to a new window.</li>
+</ul>
+
+<h2 id="select-hand">Select and Hand</h2>
+<!-- index: Select tool; Hand tool; arrow; pan; move around the page; select text -->
+<p>Two buttons on the main toolbar decide what a plain click on the page does when no other tool
+is on:</p>
+<ul>
+  <li><b>Select</b> (the arrow): click comments, signatures, stamps, and other items to select
+  them; drag over text to select it for copying. Links and form fields work as usual.</li>
+  <li><b>Hand</b>: drag the page to move around it. Form fields can still be filled in with the
+  Hand, as in Acrobat.</li>
+</ul>
+<p>Choosing the Select arrow also switches off whatever tool was on.</p>
+
+<h2 id="tools-on">Tools that stay on, and tools that don't</h2>
+<!-- index: tool stays selected; keep tool selected; sticky tools; one and done; Esc; highlighted tool -->
+<p>Most tools stay on after you use them, so you can add several highlights, boxes, or fields in a
+row. They stay on until you click the Select arrow, choose another tool, or close the tool's bar.
+<b>Esc</b> only drops what you're in the middle of drawing; the tool stays on. These tools stay
+on:</p>
+<ul>
+  <li>Every Comment tool (notes, highlights, shapes, text boxes, and so on).</li>
+  <li>Edit PDF's Add Text, Eraser, and Link.</li>
+  <li>Fill &amp; Sign's Add Text and its ✗ ✓ ○ — • symbols.</li>
+  <li>Prepare Form's field tools.</li>
+  <li>The redaction box (Mark Area for Redaction) and Select Text.</li>
+</ul>
+<p>Some tools make sense only once, so they turn themselves off after one use and go back to the
+Select arrow (<b>Esc</b> cancels them before you use them):</p>
+<ul>
+  <li>Stamps, seals, signatures, and initials.</li>
+  <li>Attach File.</li>
+  <li>Edit PDF's Add Image (the new picture is selected afterwards).</li>
+  <li>Cropping a page by drawing a box, Take a Snapshot, and Marquee Zoom.</li>
+</ul>
+<p>Dynamic Zoom and the Loupe Tool stay on until you press <b>Esc</b>.</p>
+<p>While a tool is on, pressing on an item that's already selected (or on its handles) moves or
+resizes it instead of using the tool.</p>
+
+<h3 id="tool-highlight">Seeing which tool is on</h3>
+<!-- index: highlighted button; checked button; active tool -->
+<p>The button of the tool that's on is shown reversed: a white icon on a dark tile, with bold
+text if it has a label (in the dark theme, on a bright blue tile). The tool's icon on the tool
+strip is highlighted the same way, and the <b>Tools</b> menu puts a check mark by the open tool.
+When the tool turns off, its button goes back to normal.</p>
+
+<h2 id="saving">Saving your work</h2>
+<!-- index: save; Ctrl+S; save changes; unsaved changes -->
+<p>Changes stay in PlanetPDF until you save them. The tab and the window title show which
+documents have unsaved changes.</p>
+<ul>
+  <li><b>File ▸ Save</b> (<b>Ctrl+S</b>) writes the changes into the file.</li>
+  <li><b>File ▸ Save As…</b> (<b>Ctrl+Shift+S</b>) saves under a new name or in another folder;
+  the tab then shows the new file.</li>
+  <li><b>File ▸ Revert</b> throws away every change since the last save and opens the file
+  again (it asks first).</li>
+</ul>
+<p>Closing a document, a window, or PlanetPDF asks about each document with unsaved changes:
+<b>Save</b>, <b>Discard</b>, or <b>Cancel</b>.</p>
+<p>When you save, PlanetPDF also embeds any fonts the PDF only names but which are installed on
+this computer, so the file looks the same everywhere; the status bar names fonts it couldn't find.
+If the document has redaction marks that haven't been applied, the status bar reminds you that
+the content under them is still there.</p>
+<p>Saving a long document (30 pages or more, or a file of 15 MB or more) shows a window with each
+step: "Step 1 of 3: embedding font 2 of 5", "Step 2 of 3: writing 120 pages…", "Step 3 of 3: opening
+the saved file…". A save can't be stopped once it has begun, so the window has no Cancel button.</p>
+
+<h3 id="saving-signed">Saving a signed document</h3>
+<!-- index: signed document; digital signature; Signatures Will Be Invalidated -->
+<p>A digitally signed document is saved by adding your changes to the end of the file, so the
+existing signatures stay intact. Some changes (moving or deleting pages, for example) would break
+the signatures; then PlanetPDF warns <b>Signatures Will Be Invalidated</b> and saves only if you
+click <b>Save</b>. See <a href="signatures.html">Signatures</a>.</p>
+
+<h3 id="saving-protected">Saving a password-protected document</h3>
+<!-- index: password; encrypted file; protected file; save keeps password -->
+<p>Saving a password-protected or certificate-encrypted document keeps its protection: the saved
+file needs the same password (or Digital ID) to open. New files made from it (extracted pages, a
+smaller copy, a redacted copy, and so on) ask whether to protect them too. See
+<a href="protect-redact.html">Protecting and Redacting</a>.</p>
+
+<h2 id="undo">Undo, Redo, and Undo History</h2>
+<!-- index: undo; redo; Ctrl+Z; Ctrl+Shift+Z; history; go back; mistakes -->
+<p>Every change you make to a document can be undone.</p>
+<ul>
+  <li><b>Edit ▸ Undo</b> (<b>Ctrl+Z</b>) takes back the last change; the menu says which one
+  ("Undo Move Text").</li>
+  <li><b>Edit ▸ Redo</b> (<b>Ctrl+Shift+Z</b>) puts it back.</li>
+  <li><b>Edit ▸ Undo History</b> opens a panel listing every change since the file was opened
+  (up to 100 steps). Click any row to go back to that point; click a later row to go forward
+  again. The top row, "(as opened or last saved)", is the file as it was.</li>
+</ul>
+<p>Each document has its own undo history, which follows it to another tab or window. Undoing
+back to the last save makes the document "unchanged" again. A few things can't be undone and say
+so before you do them: applying redactions over the original file and digitally signing.
+Several nudges of the same item with the arrow keys count as one step.</p>
+
+<h2 id="recovery">Auto-save and recovery after a crash</h2>
+<!-- index: auto-save; autosave; crash; recover; Recover Unsaved Work; lost work; recovered copy -->
+<p>While a document has unsaved changes, PlanetPDF quietly keeps a recovery copy on this
+computer every 5 minutes. The copy is removed when you save, close the document, or undo back to
+the last save. If the file is password-protected, so is the recovery copy.</p>
+<p>If PlanetPDF closes unexpectedly (a crash or a power cut), the next time it starts it shows
+<b>Recover Unsaved Work</b> with the documents it has copies of:</p>
+<ul>
+  <li><b>Restore</b> saves the copy as "<i>name</i> (recovered).pdf" next to the original and
+  opens it. The original file isn't changed; use <b>View ▸ Compare Files</b> to see what
+  differs.</li>
+  <li><b>Discard</b> throws the copy away (it asks first).</li>
+  <li><b>Decide Later</b> keeps the copies and asks again next time.</li>
+</ul>
+<p>To change how often copies are made, or to turn it off, use <b>Edit ▸ Preferences ▸
+Documents</b>, <b>Auto-save for recovery every</b> (0 = Off). See
+<a href="preferences.html">Preferences</a>.</p>
+
+<h2 id="updates">Updates</h2>
+<!-- index: update; new version; Check for Updates; automatic updates; upgrade -->
+<p>PlanetPDF can check for a newer version and install it for you. Every update is checked
+(digitally signed and verified) before it's installed.</p>
+<ol>
+  <li>Choose <b>Help ▸ Check for Updates…</b>. PlanetPDF asks the update server for the latest
+  version and says if you already have it.</li>
+  <li>If there's a newer version, it downloads in the background (counted in MB), then
+  PlanetPDF asks what to do: <b>Restart Now</b> (closes PlanetPDF, asking about unsaved work,
+  installs, and starts again), <b>When I Close PlanetPDF</b>, or <b>Skip This Version</b>.</li>
+  <li>On Windows, installing needs one administrator OK (the Windows prompt). On a Mac, you're
+  asked for an administrator's password only when the app's folder needs it.</li>
+</ol>
+<p>Older versions are left in place until nobody is using them, so updating doesn't disturb
+other people signed in to the same terminal server.</p>
+
+<h3 id="update-preferences">Preferences ▸ Updates</h3>
+<!-- index: update settings; check on startup; check every days; never check -->
+<p><b>Edit ▸ Preferences ▸ Updates</b> decides when PlanetPDF looks for updates by itself:</p>
+<ul>
+  <li><b>Check for updates on startup</b>: a quiet check in the background soon after PlanetPDF
+  starts (on by default).</li>
+  <li><b>Check for updates every</b> N <b>days</b> while PlanetPDF is running (14 by default;
+  0 = Never).</li>
+  <li><b>Check Now</b> checks straight away.</li>
+</ul>
+<p class="note"><b>For IT:</b> where people can't approve the administrator prompt (a terminal
+server, for example), run <code>PlanetPDF.exe --install-updates</code> as a scheduled task with
+administrator rights: it checks, downloads, and installs without asking.</p>
+
+<h2 id="profile-folder">Where your settings live</h2>
+<!-- index: profile folder; settings folder; settings.json; roaming profile; signatures folder; stamps folder; Open Profile Folder -->
+<p>Everything that's yours in PlanetPDF is kept in one folder, your profile folder: your
+settings, saved signatures and initials, custom stamps, trusted certificates, your spelling
+dictionary, security policies, and logs. On Windows it's in your roaming profile
+(<code>%APPDATA%\Planet Networks\PlanetPDF</code>), so it follows you from computer to computer
+on a network that roams profiles; on a Mac it's in
+<code>~/Library/Application Support/Planet Networks/PlanetPDF</code>.</p>
+<p>To open it, choose <b>Help ▸ Open Profile Folder</b>. <b>Edit ▸ Preferences ▸ General</b>
+shows where it is, with an <b>Open Folder</b> button. An administrator can move it by setting the
+<code>PLANETPDF_PROFILE_DIR</code> environment variable.</p>
+<p>A few things that are large or belong to one computer are kept in the computer's local
+application data instead: auto-save recovery copies, downloaded updates, and downloaded reading
+voices.</p>
+
+<h2 id="display-theme">Dark mode and the display theme</h2>
+<!-- index: dark mode; light mode; theme; colors; Display Theme; night mode -->
+<p>Choose <b>View ▸ Display Theme</b>:</p>
+<ul>
+  <li><b>Follow System Setting</b>: light or dark, as Windows (or macOS) is set.</li>
+  <li><b>Light</b>.</li>
+  <li><b>Dark</b>.</li>
+</ul>
+<p>The same choice is in <b>Edit ▸ Preferences ▸ Appearance</b>. The theme changes PlanetPDF's
+menus, bars, and panels; the pages of your documents always show as they'll print.</p>
+
+<h2 id="getting-help">Getting help</h2>
+<!-- index: help; manual; keyboard shortcuts; F1; About -->
+<ul>
+  <li><b>Help ▸ PlanetPDF Help</b> (<b>F1</b>) opens this manual, with Contents, an Index, and Search. The
+  same manual is <b>PlanetPDF Manual.pdf</b> in the install folder and on the Start menu.</li>
+  <li><b>Help ▸ Keyboard Shortcuts</b> lists every shortcut, by menu (also in the manual:
+  <a href="shortcuts.html">Keyboard Shortcuts</a>).</li>
+  <li>Hover over any button to see what it does; many show their shortcut.</li>
+  <li><b>Edit ▸ Search More Tools…</b> finds any command by name (see
+  <a href="viewing.html#search-tools">Search More Tools</a>).</li>
+  <li><b>Help ▸ About PlanetPDF</b> shows the version, <a href="whats-new.html">what's new</a> in
+  each version, and the licenses of the parts PlanetPDF is built from.</li>
+  <li>When something goes wrong, see <a href="troubleshooting.html">Troubleshooting</a>.</li>
+</ul>
+</body></html>

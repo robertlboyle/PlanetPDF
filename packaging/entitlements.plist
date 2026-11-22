@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Hardened runtime exceptions for the Mac app (scripts/build_mac.sh, 2026-10-10): the embedded
+     Python and onnxruntime (Read Out Loud) make executable memory at run time (ctypes callbacks,
+     JIT); Python loads its extension modules, which aren't Apple's. -->
+<plist version="1.0">
+<dict>
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+    <!-- Office for Mac is driven with AppleScript (Word 97-2003, Office files to PDF): the hardened
+         runtime blocks Apple events to other apps without this (2026-10-14) -->
+    <key>com.apple.security.automation.apple-events</key>
+    <true/>
+</dict>
+</plist>

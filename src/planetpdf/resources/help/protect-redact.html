@@ -1,0 +1,207 @@
+<html><head><title>Protecting and Redacting</title></head><body>
+<h1 id="top">Protecting and Redacting</h1>
+<p>This chapter covers keeping a document private: protecting it with a password or for chosen people's certificates, removing hidden information, and redacting, which permanently removes text and pictures (account numbers, Social Security numbers, names) so they can't be recovered.</p>
+
+<h2 id="protect-tool">The Protect tool</h2>
+<!-- index: security; encryption; encrypt; lock PDF; protect PDF -->
+<p>Choose <b>Tools ▸ Protect</b> (or click <b>Protect</b> on the tool strip). Its bar has:</p>
+<ul>
+  <li><b>Protect Using Password</b>: require a password to open the document, and/or limit what people can do with it.</li>
+  <li><b>Remove Hidden Information</b>: remove metadata, attachments, scripts, hidden layers, and more (see <a href="#sanitize">Sanitize Document</a>).</li>
+  <li><b>Advanced Options</b>: certificate encryption, security properties, security envelopes, and security policies.</li>
+</ul>
+<p>The same commands are on the menus: <b>File ▸ Protect Using Password</b>, and <b>Edit ▸ Protection ▸ Encrypt with Password…</b>, <b>Encrypt with Certificate…</b>, and <b>Remove Security</b>.</p>
+<p class="note"><b>Note:</b> Protection is applied when you <b>save</b>. Until then it is an ordinary step you can undo, and the status bar reminds you that it will be applied when you save.</p>
+
+<h2 id="password">Protecting with a password</h2>
+<!-- index: password protect; open password; document open password; permissions password; owner password; restrict printing; restrict copying; AES-256 -->
+<ol>
+  <li>Click <b>Protect Using Password</b> (or choose <b>File ▸ Protect Using Password</b>).</li>
+  <li>To require a password to open the document, type it in <b>Password</b> and again in <b>Confirm</b> under <b>Password to open the document</b>.</li>
+  <li>To limit what people can do, type a <b>Permissions password</b> (twice) and untick what isn't allowed under <b>Allow</b>.</li>
+  <li>Click <b>OK</b>, then save the document (<b>Ctrl+S</b>).</li>
+</ol>
+<p>You can set an open password, a permissions password, or both. The file is encrypted with AES-256. Keep the passwords safe: they can't be recovered.</p>
+
+<h3 id="permissions">What each permission means</h3>
+<!-- index: permissions; allow printing; allow copying; allow changes; allow comments; allow form filling -->
+<table>
+  <tr><th>Permission</th><th>When it is unticked</th></tr>
+  <tr><td><b>Printing</b></td><td>The document may not be printed.</td></tr>
+  <tr><td><b>Copying text and images</b></td><td>Text and pictures may not be copied out of it.</td></tr>
+  <tr><td><b>Changing the document</b></td><td>Pages and content may not be changed.</td></tr>
+  <tr><td><b>Adding comments</b></td><td>Comments and markup may not be added.</td></tr>
+  <tr><td><b>Filling in forms</b></td><td>Form fields may not be filled in.</td></tr>
+</table>
+<p>If you untick anything, you must set a permissions password, so the restrictions can't simply be switched off. Whoever knows the permissions password can change them. Permissions are honored by PDF programs that respect them; they are a request, not a lock, so use an open password (or certificate security) for anything truly confidential.</p>
+
+<h3 id="open-protected">Opening a password-protected document</h3>
+<!-- index: open password; enter password; locked PDF -->
+<p>When you open a document that needs a password, PlanetPDF asks for it. Saving the document afterwards keeps its protection.</p>
+
+<h3 id="remove-security">Removing protection</h3>
+<!-- index: remove password; unprotect; decrypt; No Security; Remove Security; Remove Password Protection -->
+<p>Open the document (with its password), then choose <b>Edit ▸ Protection ▸ Remove Security</b>, or in the Protect tool <b>Advanced Options ▸ Remove Security</b> or <b>Advanced Options ▸ Document Security ▸ No Security</b>. Save the document: the protection is removed when you save.</p>
+
+<h2 id="advanced-options">Advanced Options</h2>
+<!-- index: advanced security; Document Security; security method -->
+<p>The Protect tool's <b>Advanced Options</b> menu holds:</p>
+<ul>
+  <li><b>Encrypt with Certificate…</b> and <b>Encrypt with Password…</b></li>
+  <li><b>Document Security</b> ▸ <b>No Security</b>, <b>Password Security…</b>, <b>Certificate Security…</b>: the check mark shows how the document is protected now; choosing another changes it.</li>
+  <li><b>Security Properties…</b></li>
+  <li><b>Create Security Envelope…</b></li>
+  <li><b>Manage Security Policies…</b></li>
+  <li><b>Remove Security</b></li>
+</ul>
+
+<h3 id="certificate-security">Certificate security: encrypting for chosen people</h3>
+<!-- index: encrypt with certificate; certificate security; public key encryption; recipients; Add from Windows; Add from Keychain; Digital ID encryption -->
+<p>Instead of a password that has to be passed around, you can encrypt a document so that only certain people can open it, each with their own Digital ID. Nobody shares a password.</p>
+<ol>
+  <li>Choose <b>Edit ▸ Protection ▸ Encrypt with Certificate…</b> (or <b>Advanced Options ▸ Encrypt with Certificate…</b>).</li>
+  <li>Build the list under <b>Who can open it</b>:
+    <ul>
+      <li><b>Add Certificate File…</b>: someone's public certificate (.cer, .crt, .pem, or .der), which they can send you.</li>
+      <li><b>Add Me (Digital ID)…</b>: your own .pfx / .p12 file; its password unlocks it once to read the certificate.</li>
+      <li><b>Add from Windows…</b> (on a Mac, <b>Add from Keychain…</b>): pick certificates from the Windows certificate store or the Mac Keychain.</li>
+      <li><b>Remove</b>: take the selected person off the list.</li>
+    </ul>
+  </li>
+  <li>Under <b>Allow them</b>, untick anything they shouldn't do (the same permissions as for <a href="#permissions">passwords</a>).</li>
+  <li>Click <b>Encrypt</b>, then save the document.</li>
+</ol>
+<p class="note"><b>Important:</b> Keep yourself on the list, or you won't be able to open the file either.</p>
+<p>The file is encrypted with AES-256. PlanetPDF keeps the people's public certificates inside the (encrypted) file, so when you change and save it later, it is encrypted for the same people again. For a certificate-encrypted file made by another program, PlanetPDF only knows you, the person who opened it, and warns you about that.</p>
+
+<h3 id="open-certificate-encrypted">Opening a certificate-encrypted document</h3>
+<!-- index: open certificate encrypted; Certificate-Encrypted File; Digital ID to open -->
+<p>When you open a document encrypted for certain people, PlanetPDF first tries the Digital IDs in your Windows certificate store (or Mac Keychain). If none of them fits, the <b>Certificate-Encrypted File</b> window asks for your <b>Digital ID</b> file (.pfx / .p12) and its <b>Password</b>; click <b>Open</b>.</p>
+
+<h3 id="security-properties">Security Properties</h3>
+<!-- index: security settings; how is this protected; encryption details -->
+<p><b>Advanced Options ▸ Security Properties…</b> shows how the open document is protected: the security method, whether a password is needed to open it (or who can open it, for certificate security), the encryption, and whether each permission is allowed. If you have set protection that isn't saved yet, it says so. <b>Change Settings…</b> opens the matching password or certificate window.</p>
+
+<h3 id="security-envelope">Security envelopes</h3>
+<!-- index: Create Security Envelope; send files securely; protected attachments; envelope -->
+<p>A security envelope packs any files (PDFs, spreadsheets, anything) into one protected PDF, so you can send them safely. The PDF has a cover page listing the files, which travel inside it as attachments.</p>
+<ol>
+  <li>Choose <b>Advanced Options ▸ Create Security Envelope…</b>.</li>
+  <li>Click <b>Add Files…</b> (or <b>Add This Document</b>) for each file; <b>Remove</b> takes one out.</li>
+  <li>Optionally type a <b>Note on the cover page</b>.</li>
+  <li>Choose <b>Protect with a password</b> or <b>Encrypt for certain people (their certificates)</b>, and click <b>Next…</b>.</li>
+  <li>Set the password or the people, as described above, and choose where to save the envelope.</li>
+</ol>
+<p>The person you send it to opens it in PlanetPDF (or another PDF program) and saves the attachments from the Attachments panel.</p>
+
+<h3 id="security-policies">Security policies</h3>
+<!-- index: Manage Security Policies; saved security settings; reuse protection; policy -->
+<p>A security policy saves protection settings to use again, so the same rules go on every document of a kind. Choose <b>Advanced Options ▸ Manage Security Policies…</b>:</p>
+<ul>
+  <li><b>New Password Policy…</b> / <b>New Certificate Policy…</b>: set the protection, then give the policy a name.</li>
+  <li><b>From This Document…</b>: make a policy from the open document's protection.</li>
+  <li><b>Apply to Document</b>: put the selected policy on the open document (applied when you save).</li>
+  <li><b>Delete</b>: remove the selected policy.</li>
+</ul>
+<p><b>Passwords are never stored in a policy.</b> A password policy keeps which things are allowed; when you apply it, you type the passwords. A certificate policy keeps the people's public certificates. Policies are saved in your profile folder.</p>
+
+<h2 id="new-files-protection">New files made from a protected document</h2>
+<!-- index: keep protection; protect the copy too; protected copy; extract pages protection -->
+<p>When you make a new PDF from a protected document (a redacted copy, extracted or split pages, a smaller copy, an image-only PDF), PlanetPDF asks, for example, "Protect the redacted copy too?":</p>
+<ul>
+  <li><b>Yes</b>: the new file gets the same protection. Passwords you set in this session are reused. Otherwise the password window opens filled in with what is known (the open password and the permissions); the original's permissions password can't be read from the file, so type one. A certificate-encrypted document asks whether to encrypt for the same people.</li>
+  <li><b>No</b>: the new file is not protected.</li>
+  <li><b>Cancel</b>: nothing is made.</li>
+</ul>
+
+<h2 id="redact">Redacting</h2>
+<!-- index: redaction; black out; remove sensitive information; Redact Text & Images; censor -->
+<p>Covering text with a black box isn't enough: the text is still in the file and can be copied out. Redacting in PlanetPDF permanently removes everything under the marks you make: text, parts of pictures, drawings, and any comments, links, and form fields they overlap. It works in two stages: first you <b>mark</b> what should go, then you <b>apply</b> the marks, which writes a new, redacted file and checks it.</p>
+<p>Open the Redact tool with <b>Tools ▸ Redact</b>, the <b>Redact</b> button on the tool strip, or <b>Edit ▸ Redact Text &amp; Images</b>. The <b>Redaction</b> panel opens beside the page.</p>
+
+<h3 id="mark-area">Marking areas by hand</h3>
+<!-- index: mark area; draw redaction box; Mark Area for Redaction -->
+<ol>
+  <li>Click <b>Redact Text &amp; Images</b> on the Redact bar (or <b>Mark Area</b> in the panel).</li>
+  <li>Drag a box over anything you want removed: text, part of a picture, a signature, a whole block.</li>
+  <li>Keep dragging boxes; the tool stays on until you choose the arrow or another tool. <b>Esc</b> drops a box you are still drawing.</li>
+</ol>
+<p>Marks show as red outlines. They aren't applied yet: you can still remove or undo them.</p>
+
+<h3 id="find-redact">Finding text to redact</h3>
+<!-- index: Find Text & Redact; search and redact; find and mark; regular expression; regex; pattern; SSN; Social Security number; phone number; email address; account number -->
+<p>Choose <b>Redact Text &amp; Images ▾ ▸ Find Text &amp; Redact…</b> (the arrow beside the button); the cursor goes to the panel's <b>Find and mark</b> box.</p>
+<ol>
+  <li>Type the words to find and choose <b>Exact text</b> or <b>Regular expression</b>. Tick <b>Match case</b> or <b>Whole words</b> if needed. Click <b>Find</b> (or press <b>Enter</b>).</li>
+  <li>Or, under <b>Common patterns (US formats)</b>, tick one or more of <b>SSN</b> (123-45-6789), <b>Phone number</b> ((555) 867-5309), <b>Email address</b>, and <b>Account number (8-17 digits)</b>, and click <b>Find Patterns</b>.</li>
+  <li>The results list each match with its page and the words around it. Double-click one to go to its page. Matches already marked are grayed and unticked.</li>
+  <li>Untick any you want to keep, then click <b>Mark Checked Results</b>.</li>
+</ol>
+<p>On a document of 20 pages or more, a window counts the pages as they're searched ("Pattern 2 of 3: searching page 14 of 80"), with <b>Cancel</b>.</p>
+<p><b>Exact text</b> finds a phrase even when it wraps onto the next line. A <b>regular expression</b> is a search pattern for things that vary, for example <code>Invoice \d+</code> finds "Invoice" followed by any number.</p>
+
+<h3 id="redact-pages">Redacting whole pages</h3>
+<!-- index: Redact Pages; remove whole page content; blank pages -->
+<p>Choose <b>Redact Text &amp; Images ▾ ▸ Redact Pages…</b>, type the pages (for example <code>1, 3-5</code>), and click <b>OK</b>. Each page gets one mark covering all of it.</p>
+
+<h3 id="review-marks">Reviewing marks</h3>
+<!-- index: review marks; remove mark; list of redactions -->
+<p>The panel's <b>Review marks</b> list shows every mark: its page, its type (Area, SSN, the search, Page…) and the text it will remove. Click a mark to see it on the page. <b>Remove</b> takes away the selected marks (or press <b>Delete</b>), <b>Remove All</b> takes away all of them. Marks are saved with the document as standard redaction marks, so you can save, close, and finish later, and other PDF programs see them too.</p>
+
+<h3 id="redaction-properties">Redaction properties</h3>
+<!-- index: redaction color; fill color; overlay text; REDACTED; shapes that touch the box; Properties -->
+<p><b>Redact Text &amp; Images ▾ ▸ Properties…</b> shows the panel's <b>Options</b>:</p>
+<ul>
+  <li><b>Fill color</b>: the color of the boxes left where things were removed (black by default).</li>
+  <li><b>Overlay text</b>: tick it to print words such as "REDACTED" in each box.</li>
+  <li><b>Also remove shapes that touch the box</b>: by default only lines and shapes lying entirely inside a box are removed. A shape only partly covered keeps its full outline in the file, so its hidden part could be recovered. Tick this to remove such shapes completely; they then disappear outside the box as well.</li>
+</ul>
+
+<h3 id="apply-redactions">Applying redactions</h3>
+<!-- index: apply redactions; redacted copy; _redacted; overwrite original; finish redaction -->
+<ol>
+  <li>Click <b>Apply</b> on the Redact bar (or <b>Apply Redactions…</b> in the panel). It is grayed until there are marks.</li>
+  <li>The <b>Apply Redactions</b> window says how many marks on how many pages will be removed, and lists hidden information to remove as well, all ticked (see <a href="#sanitize">Sanitize Document</a>). Untick anything you want to keep. If the document is digitally signed, it warns that the redacted copy won't keep the signatures.</li>
+  <li>Click <b>Choose File and Apply…</b> and choose where to save. PlanetPDF suggests the document's name with <code>_redacted</code> added.</li>
+  <li>If the document is protected, PlanetPDF asks whether to protect the redacted copy too (see <a href="#new-files-protection">New files made from a protected document</a>).</li>
+  <li>The progress window counts the pages as they are redacted, then the copy is checked and the <b>Redaction Verification</b> report appears.</li>
+</ol>
+<p class="note"><b>A copy that fails its checks is not saved.</b> If any check fails, nothing is written and nothing is replaced: the report says "The redacted file was not saved" and offers <b>Discard</b>. Fix what it lists and apply again. When the copy was going to a new file, <b>Save Anyway…</b> saves it after a second question (for example, to look at it); a failed copy is never saved over the original.</p>
+<p>Your open document doesn't change: it keeps its marks, so you can fix something and apply again. The report's <b>Open Redacted File</b> button opens the result.</p>
+<p class="note"><b>Overwriting the original:</b> if you choose the original file's own name, PlanetPDF asks a second time ("Overwrite the Original?"), because the unredacted original is then gone for good and the undo history is cleared. Saving a separate copy is safer.</p>
+
+<h3 id="verification-report">The verification report</h3>
+<!-- index: redaction verification; PASS; WARNING; FAIL; check redaction; leftover text; Copy Report -->
+<p>After applying, PlanetPDF reads the new file back in several independent ways (two different PDF readers, the raw file data, the text under each box, the picture areas under each box) to make sure nothing you marked can still be found. The headline sums it up, and each check is listed with its result:</p>
+<table>
+  <tr><th>Result</th><th>What it means</th></tr>
+  <tr><td><b>PASS</b></td><td>That check found nothing left: for example "removed" for each piece of marked text, "no text under N redaction(s)" for each page, image areas blank, a single revision of the file.</td></tr>
+  <tr><td><b>WARNING</b></td><td>Not a leak, but worth a look. The most common: the same words "still appear where they weren't marked", elsewhere in the document. Mark those too if they should go, and apply again. Shapes that only cross a box, such as table lines, are a warning too: they keep their whole outline in the file.</td></tr>
+  <tr><td><b>FAIL</b></td><td>Something marked can still be read or extracted from the file, for example "text remains under the box", with the page, the box, and the text found; a curved shape partly under a box (text drawn as outlines, a drawn signature); or a check that couldn't run (a picture under a box that couldn't be read, or the second PDF reader couldn't read the file). The headline says "Do not share this file", and the file isn't saved.</td></tr>
+</table>
+<p><b>Copy Report</b> copies the whole report as text, for your records. Very short marked text (under four characters) is checked by area only, since searching for it would find it everywhere.</p>
+
+<h3 id="redaction-limits">What redaction can't find</h3>
+<!-- index: scanned pages redaction; OCR redaction; outlined text; hidden layers; limits -->
+<ul>
+  <li><b>Scanned pages</b> are pictures, so Find can't see their words. The panel lists pages that look scanned and offers <b>Recognize Text (OCR)…</b>; after that, Find works on them. Or mark areas by hand: area marks remove the picture under them.</li>
+  <li><b>Text drawn as outlines</b> (shapes, not letters) can't be searched until its text is recognized (<a href="scans.html#recognize-text">Recognize Text</a>); or mark it by hand.</li>
+  <li><b>Hidden layers</b>: text in layers that are turned off can't be searched. The panel warns you; keep <b>Hidden layers</b> ticked when applying to remove them.</li>
+</ul>
+
+<h2 id="sanitize">Sanitize Document (Remove Hidden Information)</h2>
+<!-- index: sanitize; remove hidden information; metadata; remove metadata; scrub; clean PDF -->
+<p>A PDF often carries more than you see: the author's name, earlier titles, attached files, scripts. <b>Sanitize Document</b> removes that from the open document. Choose <b>Remove Hidden Information</b> on the Protect bar or <b>Sanitize Document</b> on the Redact bar, untick anything to keep, and click <b>Sanitize</b>. The status bar says what was found and removed. It is one step you can undo; save the document to keep the change. (When you apply redactions, the same choices are applied to the redacted copy instead.)</p>
+<table>
+  <tr><th>Option</th><th>What it removes</th></tr>
+  <tr><td><b>Document information</b></td><td>Title, author, subject, keywords, creator, and dates.</td></tr>
+  <tr><td><b>XMP metadata</b></td><td>The XML metadata packet (often a copy of the above, plus history).</td></tr>
+  <tr><td><b>Bookmarks</b></td><td>The outline shown in the Bookmarks panel.</td></tr>
+  <tr><td><b>Attachments</b></td><td>Embedded files and file-attachment comments.</td></tr>
+  <tr><td><b>JavaScript</b></td><td>Document, page, and form-field scripts, including field formatting.</td></tr>
+  <tr><td><b>Hidden layers</b></td><td>Content in layers that are turned off. It can't be searched, so it's easy to miss.</td></tr>
+  <tr><td><b>Comments and markup</b></td><td>Notes, highlights, drawings, and stamps that haven't been flattened.</td></tr>
+  <tr><td><b>Form field values</b></td><td>Every field's value and default value, including XFA form data.</td></tr>
+  <tr><td><b>Tags and alternate text</b></td><td>The accessibility tags, with the alternate text of pictures and replacement text, which can describe what was redacted. Screen readers then read the pages without tags.</td></tr>
+</table>
+</body></html>

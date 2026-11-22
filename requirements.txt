@@ -1,0 +1,89 @@
+# Runtime dependencies (exact pins, including transitive ones). Install with scripts/setup.ps1.
+PyMuPDF==1.28.2
+PySide6-Essentials==6.11.2
+shiboken6==6.11.2
+# Redaction verification (independent second parser)
+pypdf==6.19.0
+# TIFF export
+pillow==13.0.0
+# Word export (MIT since 0.5.x) and its dependencies
+pdf2docx==0.5.13
+python-docx==1.2.0
+lxml==6.1.3
+fonttools==4.66.1
+numpy==2.5.3
+opencv-python-headless==5.0.0.93
+fire==0.7.1
+termcolor==3.3.0
+typing_extensions==4.16.0
+# Digital signatures (PAdES) and their dependencies
+pyHanko==0.37.0
+pyhanko-certvalidator==0.32.1
+asn1crypto==1.5.1
+cryptography==50.0.1
+cffi==2.1.1
+pycparser==3.0
+oscrypto==1.3.0
+tzlocal==5.4.4
+tzdata==2026.4
+uritools==6.1.3
+certifi==2026.7.22
+idna==3.20
+aiohttp==3.14.3
+aiohappyeyeballs==2.7.1
+aiosignal==1.4.0
+attrs==26.1.0
+frozenlist==1.8.0
+multidict==6.9.1
+propcache==0.5.4
+yarl==1.25.1
+# Export to Excel / PowerPoint (approved 2026-10-02) and their dependencies
+openpyxl==3.1.5
+et_xmlfile==2.0.0
+python-pptx==1.0.2
+XlsxWriter==3.2.9
+# Check Spelling (English dictionary built in) and signing with smart cards / USB tokens
+# (PKCS#11) (approved 2026-10-02)
+pyspellchecker==0.9.0
+python-pkcs11==0.10.0
+# Read Out Loud with natural voices (approved 2026-10-02): Kokoro (Apache-2.0) and Piper
+# (GPL-3.0, internal use), both on onnxruntime; sounddevice plays the audio. The voice
+# files themselves are in models/ (downloaded, not pip packages).
+kokoro-onnx==0.4.7
+piper-tts==1.8.0
+onnxruntime==1.30.0
+sounddevice==0.5.6
+phonemizer-fork==3.3.1
+espeakng-loader==0.2.4
+colorlog==6.12.0
+flatbuffers==25.12.19
+protobuf==7.36.2
+packaging==26.3
+dlinfo==2.0.0
+joblib==1.6.0
+segments==2.4.0
+csvw==4.1.0
+rfc3986==1.5.0
+uritemplate==4.2.0
+babel==2.18.0
+isodate==0.7.2
+jsonschema==4.26.0
+jsonschema-specifications==2025.9.1
+referencing==0.37.0
+rpds-py==2026.6.3
+language-tags==1.3.1
+python-dateutil==2.9.0.post0
+six==1.17.0
+rdflib==7.6.0
+pyparsing==3.3.3
+regex==2026.9.29
+cloudpickle==3.1.2
+pathvalidate==3.3.1
+# Barcode form fields (approved 2026-10-23): QR codes (BSD) and PDF417 (MIT; uses pillow)
+segno==1.6.6
+pdf417gen==0.8.1
+# Windows only (used only on Windows): Microsoft Office conversions (Word 97-2003,
+# Office files to PDF), the scanner and Read Out Loud
+comtypes==1.4.17; sys_platform == "win32"
+# OCR uses Tesseract language data (tessdata), not a Python package: install
+# Tesseract OCR on the machine (winget install UB-Mannheim.TesseractOCR).

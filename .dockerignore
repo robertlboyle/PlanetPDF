@@ -1,0 +1,4 @@
+# The Linux build image (packaging/linux/Dockerfile) needs only the package lists.
+*
+!requirements.txt
+!requirements-dev.txt

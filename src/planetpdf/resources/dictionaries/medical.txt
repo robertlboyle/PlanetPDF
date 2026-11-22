@@ -1,0 +1,159 @@
+# name: Medical
+# about: Drug names (generic and brand), conditions, anatomy, procedures, tests and specialties.
+# PlanetPDF word list. Words are separated by spaces or lines. Lowercase words are accepted
+# in any capitalization; capitalized names are matched as written (see core/spelling.py).
+
+# --- generic drug names ---
+acetaminophen ibuprofen naproxen aspirin metformin lisinopril enalapril ramipril benazepril captopril quinapril
+amlodipine atorvastatin simvastatin rosuvastatin pravastatin lovastatin ezetimibe fenofibrate gemfibrozil
+losartan valsartan olmesartan irbesartan telmisartan candesartan sacubitril hydrochlorothiazide chlorthalidone
+furosemide bumetanide torsemide spironolactone eplerenone metoprolol atenolol carvedilol propranolol bisoprolol
+nebivolol labetalol diltiazem verapamil nifedipine hydralazine clonidine digoxin amiodarone sotalol dofetilide
+flecainide warfarin apixaban rivaroxaban dabigatran edoxaban clopidogrel prasugrel ticagrelor heparin enoxaparin
+fondaparinux alteplase tenecteplase levothyroxine liothyronine methimazole propylthiouracil prednisone
+prednisolone methylprednisolone dexamethasone hydrocortisone triamcinolone budesonide fluticasone mometasone
+beclomethasone albuterol levalbuterol salmeterol formoterol tiotropium ipratropium umeclidinium montelukast
+cetirizine levocetirizine loratadine desloratadine fexofenadine diphenhydramine hydroxyzine promethazine
+meclizine ondansetron metoclopramide prochlorperazine omeprazole esomeprazole lansoprazole pantoprazole
+rabeprazole famotidine ranitidine sucralfate misoprostol loperamide bisacodyl docusate polyethylene senna
+amoxicillin ampicillin penicillin dicloxacillin nafcillin cephalexin cefazolin ceftriaxone cefuroxime cefdinir
+cefepime ceftazidime cefoxitin azithromycin clarithromycin erythromycin doxycycline minocycline tetracycline
+ciprofloxacin levofloxacin moxifloxacin sulfamethoxazole trimethoprim nitrofurantoin metronidazole clindamycin
+vancomycin linezolid daptomycin gentamicin tobramycin amikacin meropenem imipenem ertapenem piperacillin
+tazobactam aztreonam rifampin isoniazid fluconazole itraconazole voriconazole posaconazole nystatin terbinafine
+clotrimazole miconazole ketoconazole acyclovir valacyclovir famciclovir ganciclovir oseltamivir zanamivir
+baloxavir remdesivir nirmatrelvir ritonavir molnupiravir tenofovir emtricitabine efavirenz dolutegravir
+bictegravir raltegravir lamivudine zidovudine abacavir sofosbuvir ledipasvir ivermectin albendazole
+sertraline fluoxetine paroxetine citalopram escitalopram fluvoxamine venlafaxine desvenlafaxine duloxetine
+bupropion mirtazapine trazodone vortioxetine vilazodone amitriptyline nortriptyline imipramine doxepin buspirone
+alprazolam lorazepam clonazepam diazepam temazepam chlordiazepoxide zolpidem eszopiclone zaleplon suvorexant
+melatonin quetiapine olanzapine risperidone paliperidone aripiprazole brexpiprazole cariprazine ziprasidone
+haloperidol clozapine lurasidone chlorpromazine lithium lamotrigine levetiracetam valproate divalproex
+carbamazepine oxcarbazepine topiramate zonisamide gabapentin pregabalin phenytoin fosphenytoin lacosamide
+phenobarbital methylphenidate dexmethylphenidate amphetamine dextroamphetamine lisdexamfetamine atomoxetine
+guanfacine modafinil armodafinil donepezil memantine rivastigmine galantamine levodopa carbidopa pramipexole
+ropinirole rasagiline selegiline amantadine benztropine sumatriptan rizatriptan zolmitriptan eletriptan
+ubrogepant rimegepant erenumab oxycodone hydrocodone morphine hydromorphone oxymorphone fentanyl tramadol
+tapentadol buprenorphine methadone naloxone naltrexone codeine meperidine meloxicam celecoxib diclofenac
+indomethacin ketorolac etodolac nabumetone cyclobenzaprine methocarbamol tizanidine baclofen carisoprodol
+allopurinol febuxostat colchicine probenecid methotrexate hydroxychloroquine sulfasalazine leflunomide
+azathioprine mycophenolate tacrolimus cyclosporine sirolimus adalimumab etanercept infliximab certolizumab
+golimumab ustekinumab secukinumab dupilumab omalizumab tocilizumab abatacept tofacitinib upadacitinib
+baricitinib rituximab trastuzumab bevacizumab cetuximab pembrolizumab nivolumab atezolizumab durvalumab
+ipilimumab insulin glargine lispro aspart detemir degludec glipizide glyburide glimepiride pioglitazone
+sitagliptin saxagliptin linagliptin alogliptin empagliflozin dapagliflozin canagliflozin ertugliflozin
+semaglutide liraglutide dulaglutide tirzepatide exenatide alendronate risedronate ibandronate zoledronic
+denosumab teriparatide raloxifene tamoxifen letrozole anastrozole exemestane fulvestrant finasteride
+dutasteride tamsulosin alfuzosin silodosin doxazosin terazosin oxybutynin tolterodine solifenacin mirabegron
+sildenafil tadalafil vardenafil estradiol progesterone medroxyprogesterone norethindrone levonorgestrel
+ethinyl drospirenone testosterone cyclophosphamide cisplatin carboplatin oxaliplatin paclitaxel docetaxel
+doxorubicin fluorouracil capecitabine gemcitabine imatinib ibrutinib lenalidomide bortezomib epinephrine
+norepinephrine dopamine dobutamine vasopressin phenylephrine isoproterenol milrinone atropine adenosine
+lidocaine bupivacaine ropivacaine mepivacaine propofol ketamine midazolam etomidate dexmedetomidine
+succinylcholine rocuronium vecuronium cisatracurium sugammadex glycopyrrolate neostigmine mannitol
+acetylcysteine cyanocobalamin ergocalciferol cholecalciferol thiamine folate ferrous
+
+# --- brand names ---
+Tylenol Advil Motrin Aleve Excedrin Lipitor Zocor Crestor Pravachol Zetia Norvasc Lasix Coumadin Eliquis
+Xarelto Pradaxa Plavix Brilinta Synthroid Levoxyl Zoloft Prozac Paxil Lexapro Celexa Effexor Pristiq Cymbalta
+Wellbutrin Remeron Trintellix Xanax Ativan Klonopin Valium Restoril Ambien Lunesta Belsomra Seroquel Zyprexa
+Risperdal Abilify Rexulti Vraylar Latuda Geodon Haldol Clozaril Lamictal Keppra Depakote Tegretol Trileptal
+Topamax Neurontin Lyrica Dilantin Vimpat Adderall Ritalin Concerta Focalin Vyvanse Strattera Intuniv Provigil
+Aricept Namenda Exelon Sinemet Mirapex Requip Azilect Imitrex Maxalt Nurtec Ubrelvy Aimovig Percocet Vicodin
+Norco OxyContin Dilaudid Ultram Suboxone Subutex Narcan Vivitrol Mobic Celebrex Voltaren Toradol Flexeril
+Robaxin Zanaflex Soma Zyloprim Uloric Colcrys Plaquenil Arava Imuran CellCept Prograf Humira Enbrel Remicade
+Cimzia Simponi Stelara Cosentyx Dupixent Xolair Actemra Orencia Xeljanz Rinvoq Olumiant Rituxan Herceptin
+Avastin Erbitux Keytruda Opdivo Tecentriq Imfinzi Yervoy Lantus Basaglar Toujeo Humalog Novolog Levemir
+Tresiba Glucophage Glucotrol Amaryl Actos Januvia Tradjenta Jardiance Farxiga Invokana Ozempic Wegovy Rybelsus
+Victoza Saxenda Trulicity Mounjaro Zepbound Byetta Fosamax Actonel Boniva Reclast Prolia Forteo Evista Femara
+Arimidex Proscar Avodart Flomax Uroxatral Rapaflo Cardura Ditropan Detrol Vesicare Myrbetriq Viagra Cialis
+Levitra Premarin Provera Depo Mirena Nexplanon Augmentin Amoxil Keflex Rocephin Zithromax Biaxin Vibramycin
+Cipro Levaquin Avelox Bactrim Macrobid Flagyl Cleocin Zyvox Diflucan Lamisil Valtrex Zovirax Tamiflu Xofluza
+Paxlovid Veklury Prilosec Nexium Prevacid Protonix Pepcid Zantac Carafate Reglan Zofran Phenergan Compazine
+Imodium Dulcolax Colace MiraLAX Senokot Benadryl Claritin Clarinex Zyrtec Xyzal Allegra Atarax Flonase Nasonex
+Rhinocort Singulair Ventolin ProAir Proventil Xopenex Advair Symbicort Breo Trelegy Spiriva Atrovent Incruse
+EpiPen Botox Zestril Prinivil Vasotec Altace Lotensin Cozaar Diovan Benicar Avapro Micardis Atacand Entresto
+Toprol Lopressor Tenormin Coreg Inderal Bystolic Cardizem Calan Procardia Aldactone Catapres Lanoxin Cordarone
+Lovenox Arixtra Activase
+
+# --- conditions ---
+tachycardia bradycardia arrhythmia arrhythmias fibrillation atrial ventricular myocardial infarction infarct
+ischemia ischemic angina cardiomyopathy endocarditis pericarditis myocarditis hypertension hypertensive
+hypotension hyperlipidemia hypercholesterolemia dyslipidemia atherosclerosis arteriosclerosis aneurysm
+aneurysms thrombosis thrombus embolism embolus emboli stenosis regurgitation prolapse tachypnea bradypnea
+dyspnea orthopnea apnea hypoxia hypoxemia hypercapnia pneumothorax hemothorax pleural effusion atelectasis
+bronchitis bronchiolitis bronchiectasis pneumonitis emphysema asthma asthmatic sarcoidosis tuberculosis
+influenza pertussis diabetes diabetic prediabetes hyperglycemia hypoglycemia ketoacidosis hypothyroidism
+hyperthyroidism thyroiditis goiter hyponatremia hypernatremia hypokalemia hyperkalemia hypocalcemia
+hypercalcemia hypomagnesemia hypophosphatemia acidosis alkalosis anemia anemic leukemia lymphoma myeloma
+melanoma carcinoma sarcoma adenoma adenocarcinoma glioma glioblastoma meningioma neuroblastoma mesothelioma
+metastasis metastases metastatic neoplasm neoplasia malignancy malignant benign dysplasia hyperplasia
+neutropenia thrombocytopenia leukocytosis leukopenia pancytopenia polycythemia hemophilia thalassemia
+hepatitis cirrhosis steatosis pancreatitis cholecystitis cholelithiasis choledocholithiasis appendicitis
+diverticulitis diverticulosis colitis gastritis gastroenteritis esophagitis dysphagia odynophagia
+gastroparesis hemorrhoids cellulitis abscess abscesses sepsis septic bacteremia osteomyelitis osteoporosis
+osteopenia osteoarthritis arthritis rheumatoid lupus fibromyalgia gout tendinitis tendonitis tendinopathy
+bursitis fasciitis epicondylitis scoliosis kyphosis lordosis spondylosis spondylolisthesis radiculopathy
+neuropathy myelopathy sciatica migraine migraines epilepsy seizure seizures syncope presyncope vertigo
+dementia encephalopathy meningitis encephalitis hydrocephalus hemorrhage hematoma subdural epidural
+subarachnoid aphasia ataxia dysarthria dystonia hemiplegia hemiparesis paraplegia quadriplegia tetraplegia
+neuralgia schizophrenia schizoaffective bipolar psychosis psychotic depressive dysthymia insomnia narcolepsy
+autism dyslexia anorexia bulimia nephropathy nephritis nephrolithiasis pyelonephritis glomerulonephritis
+cystitis urethritis prostatitis hematuria proteinuria dysuria oliguria polyuria nocturia incontinence
+endometriosis endometritis fibroids preeclampsia eclampsia gestational postpartum antepartum intrapartum
+prenatal perinatal neonatal postnatal cesarean dermatitis eczema psoriasis rosacea urticaria pruritus alopecia
+vitiligo impetigo glaucoma cataract cataracts retinopathy macular keratitis uveitis conjunctivitis blepharitis
+otitis sinusitis pharyngitis tonsillitis laryngitis rhinitis epistaxis tinnitus edema erythema lymphedema
+lymphadenopathy splenomegaly hepatomegaly jaundice ascites malaise febrile afebrile emesis hematemesis
+melena diarrhea constipation cachexia sarcopenia obesity dehydration hyperemesis anaphylaxis angioedema
+Alzheimer Parkinson Crohn Hodgkin Huntington Tourette Asperger Cushing Addison Graves Hashimoto Raynaud
+Kaposi Epstein Barr Lyme Wernicke Korsakoff Guillain Sjogren Marfan Ehlers Danlos Meniere Bell Paget Kawasaki
+
+# --- anatomy ---
+abdomen abdominal thorax thoracic lumbar sacral cervical coccyx sacrum vertebra vertebrae vertebral clavicle
+scapula sternum humerus radius ulna carpal carpals metacarpal metacarpals phalanx phalanges femur patella tibia
+fibula tarsal tarsals metatarsal metatarsals calcaneus talus pelvis pelvic acetabulum ilium ischium pubis
+cranium cranial mandible maxilla zygomatic occipital parietal sphenoid ethmoid aorta aortic carotid jugular
+femoral popliteal brachial subclavian iliac pulmonary coronary mitral tricuspid ventricle ventricles atrium
+atria myocardium endocardium pericardium esophagus esophageal duodenum duodenal jejunum ileum cecum colon
+colonic sigmoid rectum rectal anus anal pancreas pancreatic gallbladder biliary hepatic renal ureter ureters
+urethra bladder prostate ovary ovaries ovarian uterus uterine cervix fallopian thyroid parathyroid adrenal
+pituitary hypothalamus cerebellum cerebrum cerebral hippocampus thalamus brainstem medulla meninges dura
+trachea tracheal bronchus bronchi bronchiole bronchioles alveoli alveolar diaphragm larynx pharynx tonsils
+sinuses retina retinal cornea corneal sclera conjunctiva tympanic cochlea cochlear vestibular lymph lymphatic
+spleen splenic tendon ligament cartilage meniscus rotator deltoid biceps triceps quadriceps hamstring
+hamstrings gastrocnemius soleus gluteal gluteus pectoral pectoralis trapezius latissimus Achilles Eustachian
+
+# --- procedures, tests, care ---
+echocardiogram echocardiography electrocardiogram electroencephalogram electromyography colonoscopy
+sigmoidoscopy endoscopy endoscopic bronchoscopy laparoscopy laparoscopic arthroscopy arthroscopic cystoscopy
+angiography angiogram angioplasty catheterization catheter catheters stent stents pacemaker defibrillator
+cardioversion ablation dialysis hemodialysis intubation intubated extubation tracheostomy thoracentesis
+paracentesis mammogram mammography ultrasound sonogram sonography radiograph radiography fluoroscopy
+tomography appendectomy cholecystectomy hysterectomy mastectomy lumpectomy tonsillectomy adenoidectomy
+colectomy nephrectomy prostatectomy thyroidectomy craniotomy laminectomy discectomy arthroplasty osteotomy
+amputation debridement anastomosis resection excision incision suture sutures sutured cauterization
+transfusion phlebotomy venipuncture intravenous intramuscular subcutaneous intradermal sublingual transdermal
+topical inhaler inhalers nebulizer nebulized prophylaxis prophylactic prognosis diagnosis diagnoses diagnostic
+etiology idiopathic iatrogenic nosocomial comorbidity comorbidities contraindication contraindicated
+pharmacokinetics pharmacodynamics pharmacology pharmacist titration titrate titrated bolus infusion infusions
+analgesic analgesics analgesia anesthesia anesthetic antibiotic antibiotics antiviral antivirals antifungal
+antihistamine antihistamines anticoagulant anticoagulants anticoagulation antiplatelet antiemetic antipyretic
+antipsychotic antipsychotics antidepressant antidepressants anticonvulsant anticonvulsants antihypertensive
+bronchodilator bronchodilators corticosteroid corticosteroids diuretic diuretics immunosuppressant
+immunosuppressive immunotherapy chemotherapy radiotherapy vaccine vaccines vaccination immunization booster
+triage outpatient inpatient ambulatory telehealth telemedicine vitals auscultation palpation bilateral
+unilateral contralateral ipsilateral anterior posterior superior inferior medial proximal distal dorsal ventral
+plantar palmar supine prone systolic diastolic sphygmomanometer stethoscope otoscope ophthalmoscope oximeter
+oximetry spirometry glucometer hemoglobin hematocrit platelet platelets leukocyte leukocytes lymphocyte
+lymphocytes neutrophil neutrophils eosinophil eosinophils basophil basophils monocyte monocytes erythrocyte
+erythrocytes creatinine bilirubin albumin troponin lipase amylase electrolytes triglycerides urinalysis
+pathogen pathogens microbiome antibody antibodies antigen antigens immunoglobulin biopsy biopsies cytology
+histology pathology oncology oncologist hematology hematologist cardiology cardiologist nephrology nephrologist
+neurology neurologist gastroenterology gastroenterologist pulmonology pulmonologist endocrinology
+endocrinologist rheumatology rheumatologist dermatology dermatologist ophthalmology ophthalmologist
+otolaryngology otolaryngologist urology urologist gynecology gynecologist obstetrics obstetrician pediatrics
+pediatrician geriatrics geriatrician psychiatry psychiatrist radiology radiologist anesthesiology
+anesthesiologist orthopedics orthopedic orthopedist podiatry podiatrist chiropractic chiropractor audiology
+audiologist hospitalist intensivist internist neonatologist perinatologist phlebotomist sonographer
+Apgar Heimlich Foley Gram Papanicolaou Pap Hippocratic Medicare Medicaid

@@ -1,0 +1,33 @@
+# The launcher: PlanetPDF.exe at the top of the install folder. It starts
+# versions\<current>\PlanetPDF.exe with the same arguments, nothing else. Native (Rust, no
+# runtime) since 2026-10-07: the Python launcher it replaces was a second Python start on every
+# launch (user: "let's try a small native launcher instead").
+# Built by scripts\build.ps1 (cargo build --release; CARGO_TARGET_DIR outside Dropbox).
+[package]
+name = "planetpdf-launcher"
+version = "0.1.0"
+edition = "2024"
+license = "LicenseRef-Planet-Networks-internal"
+publish = false
+build = "build.rs"
+
+[[bin]]
+name = "planetpdf-launcher"
+path = "src/main.rs"
+
+# PlanetPDF.com: the command-line launcher (2026-10-18), copied in under that name by build.ps1
+[[bin]]
+name = "planetpdf-console"
+path = "src/bin/console.rs"
+
+[dependencies]
+
+[build-dependencies]
+embed-resource = "3.0.12"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

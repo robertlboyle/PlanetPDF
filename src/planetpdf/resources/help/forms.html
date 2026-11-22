@@ -1,0 +1,286 @@
+<html><head><title>Forms: Filling In and Making</title></head><body>
+<h1 id="top">Forms: Filling In and Making</h1>
+<p>This chapter covers filling in PDF forms with Fill &amp; Sign, typing on forms that have no fields, and making your own fillable forms with Prepare Form.</p>
+
+<h2 id="fill-sign">Fill &amp; Sign</h2>
+<!-- index: fill in a form; fill and sign; fillable form; complete a form; form filling -->
+<p>Most of the time you don't need to open anything: when a PDF has form fields, click a field and type. Fill &amp; Sign adds the tools for typing anywhere on a page, adding check marks, and signing.</p>
+<ol>
+  <li>Choose <b>Tools ▸ Fill &amp; Sign</b>, or click <b>Fill &amp; Sign</b> on the tool strip down the right side.</li>
+  <li>The Fill &amp; Sign bar opens under the main toolbar. When the document has form fields, the Fill Form panel opens on the right.</li>
+</ol>
+<p>The bar holds, left to right: <b>Add Text</b>; the symbols ✗ ✓ ○ — • (cross, check mark, circle, line, dot); the text color; <b>Sign Yourself</b> ▾; and <b>More</b> ▾.</p>
+<p class="note"><b>Tip:</b> Form fields can be filled whenever the Comment, Edit PDF, or Prepare Form tool isn't open, with the Select arrow or the Hand tool.</p>
+
+<h2 id="filling-fields">Filling in form fields</h2>
+<!-- index: form fields; text field; type in a field; tab order; required fields -->
+<p>Click a field to fill it in. Point at a field to see a tip on how to fill it.</p>
+<ul>
+  <li><b>Text fields:</b> type. Press <b>Enter</b> to finish a one-line field; in a field with several lines, <b>Enter</b> starts a new line.</li>
+  <li><b>Tab</b> saves what you typed and goes to the next field; <b>Shift+Tab</b> to the previous one. Fields are visited in the form's own tab order.</li>
+  <li><b>Esc</b> leaves the field without saving what you just typed.</li>
+  <li>Clicking anywhere else saves the field.</li>
+</ul>
+<p>The text you type looks as it will in the PDF: the same size as the field's own text. Read-only fields can't be changed (the status bar says so). Each change is an undo step: <b>Edit ▸ Undo</b> (<b>Ctrl+Z</b>).</p>
+
+<h3 id="dropdowns">Dropdowns</h3>
+<!-- index: dropdown; combo box; choose from a list; pick list -->
+<p>Click a dropdown to open its choices under it, then click one. It's saved at once. <b>(none)</b> at the top empties it. An empty dropdown shows <b>Choose…</b> and a ▾ in PlanetPDF (these aren't printed).</p>
+<p>With the keyboard: <b>Tab</b> to the dropdown, then <b>Space</b>, <b>Enter</b>, or <b>↓</b> to open it.</p>
+<p>Some dropdowns let you type a value that isn't in the list. Type in them as in a text field; click the ▾ at the right end, or press <b>F4</b> or <b>Alt+↓</b>, for the list.</p>
+
+<h3 id="list-boxes">List boxes</h3>
+<!-- index: list box; multiple choice list; select several -->
+<p>When all of a list box's choices fit in it, click a choice on the page to pick it. In a list that allows several choices, each click ticks or unticks a choice. When the choices don't all fit, clicking opens a scrolling list over the field.</p>
+
+<h3 id="dates">Date fields</h3>
+<!-- index: date; calendar; date format; date picker -->
+<p>Type the date in the format the field shows (for example mm/dd/yyyy), or click the ▾ beside it and pick a day on the calendar. PlanetPDF checks what you type: if it isn't a date, it says so and shows an example of the right format.</p>
+
+<h3 id="checkboxes-radio">Checkboxes and radio buttons</h3>
+<!-- index: checkbox; check box; tick; radio button; option button; choice -->
+<p>Click a checkbox to tick or untick it. Click a radio button to choose it; the others in its group are switched off. With the keyboard, <b>Tab</b> to it and press <b>Space</b>.</p>
+
+<h3 id="buttons-images">Buttons and image fields</h3>
+<!-- index: button; push button; image field; picture field; add a photo -->
+<p>A button does what its form maker set: clear the form, print, or open a web page (PlanetPDF asks before opening a web page). An image field asks you to choose a picture, which then fills the field. PlanetPDF never runs scripts made for other programs; a button that needs one says so in the status bar.</p>
+
+<h3 id="signature-fields-filling">Signature fields</h3>
+<!-- index: sign here field; signature box -->
+<p>An unsigned signature field shows a box with a line and "Sign here". To sign in it, see <a href="signatures.html">Signatures</a>.</p>
+
+<h2 id="fill-form-panel">The Fill Form panel</h2>
+<!-- index: forms panel; field list; required fields; highlight fields; clear form -->
+<p>The Fill Form panel lists every field in tab order with its type and value. Show it with <b>View ▸ Show/Hide ▸ Navigation Panes ▸ Fill Form Panel</b> if it isn't open.</p>
+<ul>
+  <li>Click a field in the list to go to it and fill it in.</li>
+  <li>With the keyboard: choose a field with the arrow keys and press <b>Enter</b>; fill it in the box under the list (<b>Enter</b> saves and goes on to the next field). This also works with a screen reader: see <a href="accessibility.html#filling-forms-keyboard">Filling in forms with the keyboard</a>.</li>
+  <li>Required fields have an asterisk (*); the panel counts the ones still empty.</li>
+  <li>Grayed fields are read-only or can't be filled here.</li>
+  <li><b>Highlight fields</b> tints every field so you can see where they are (the same as <b>More ▸ Highlight Fields</b> on the Fill &amp; Sign bar).</li>
+  <li><b>Clear Form</b> empties every field (one undo step); <b>Flatten Form…</b>: see <a href="#flatten-form">Flattening a form</a>.</li>
+</ul>
+
+<h2 id="add-text">Typing anywhere: Add Text</h2>
+<!-- index: add text; type on a form; flat form; form without fields; typewriter -->
+<p>For forms that are only printed lines (no fields), type wherever you need to.</p>
+<ol>
+  <li>Click <b>Add Text</b> on the Fill &amp; Sign bar. The pointer becomes a text cursor.</li>
+  <li>Click where the text should go and type. <b>Shift+Enter</b> starts a new line. Press <b>Enter</b> or click elsewhere to finish.</li>
+  <li>The tool stays on: click the next spot and type again. Click the Select arrow when you're done.</li>
+</ol>
+<h3 id="click-to-type">Click anywhere to type</h3>
+<!-- index: click to add text; click anywhere; type after signing; default tool -->
+<p>You don't have to choose Add Text first. With no tool chosen (the Select arrow), a click on an empty spot of a page adds text there, just as Add Text does. This also works right after you place a signature, initials, or a stamp: click where the next text goes and type.</p>
+<ul>
+  <li>A click on a form field, a link, a comment, or something you added does what it always does (fill in the field, follow the link, select the item).</li>
+  <li>Dragging over the page's text still selects it. A click that only clears a text selection, selected redaction marks, or a field you were filling in doesn't add text; click again to type.</li>
+  <li>The Edit PDF and Prepare Form tools keep their own clicks.</li>
+  <li>To switch this off, clear <b>Clicking the page with no tool chosen adds text there</b> in <a href="preferences.html#adding-text">Preferences ▸ Documents</a>.</li>
+</ul>
+<h3 id="remembered-text">Remembered text (auto-complete)</h3>
+<!-- index: auto-complete; autocomplete; suggestions; remembered text; type ahead; forget text -->
+<p>PlanetPDF remembers the text you add (up to 500 entries, newest first) and offers it back as you type. When what you've typed is the start of something you added before, the rest of it appears selected after the cursor:</p>
+<ul>
+  <li>Keep typing to ignore it.</li>
+  <li><b>Tab</b>, <b>→</b>, or <b>End</b> takes it, and you can go on typing. <b>Enter</b> takes it and finishes.</li>
+  <li><b>↓</b> and <b>↑</b> show the other remembered text that starts the same way.</li>
+  <li><b>Backspace</b> or <b>Esc</b> takes the suggestion away.</li>
+  <li><b>Shift+Delete</b> forgets that one for good.</li>
+</ul>
+<p>The list is kept only in your <a href="preferences.html#where-stored">profile folder</a> (<code>text-history.json</code>), so it follows you between computers with your profile and is never sent anywhere. Switch it off or forget everything in <a href="preferences.html#adding-text">Preferences ▸ Documents</a>.</p>
+<p>While Add Text is on, a text format bar appears under the Fill &amp; Sign bar: font, size, <b>B</b> <b>I</b> <b>U</b> <b>S</b>, and color. It changes the text you're typing (or just the selected words), the selected text, or the next text you add.</p>
+<p>When you finish typing, the text isn't left selected, so nothing hides where it sits; choosing
+another tool also clears any selection. Added text stays adjustable until you flatten the page: click it
+to select it, then</p>
+<ul>
+  <li>Drag it to move it (also to another page). Arrow keys nudge it 1 point, <b>Shift</b>+arrow 10 points.</li>
+  <li>Drag a corner to make the text bigger or smaller, or use <b>A−</b> / <b>A+</b> on the small bar over it (<b>Ctrl+[</b> / <b>Ctrl+]</b>, or <b>More ▸ Smaller Text</b> / <b>Larger Text</b>).</li>
+  <li>Double-click it to retype it. Empty it to delete it, or press <b>Delete</b>.</li>
+</ul>
+
+<h3 id="symbols">Symbols: ✗ ✓ ○ — •</h3>
+<!-- index: check mark; cross; X mark; circle; oval; ellipse; dot; line; tick a box; symbol size; solid circle; line width -->
+<p>Click a symbol on the bar, then click where it goes. The symbol stays on for the next click. Select a placed symbol and drag a corner, or use <b>−</b> / <b>+</b> on the bar over it, to resize it. Symbols use the same color as added text.</p>
+<p><b>The next one is the same size.</b> Once you resize a symbol, every new one of that kind is placed at that size, until you resize one again. Most check boxes on a form are the same size, so you size the first one and the rest match. Each kind remembers its own size, also the next time you start PlanetPDF.</p>
+<p><b>The circle</b> is drawn like a box: press where one corner goes and drag to the opposite corner. Drag any shape for an oval; hold <b>Shift</b> while dragging for a perfect circle. A plain click places a circle the size of the last one. Afterwards, drag a corner to resize it, or <b>Shift</b> and a corner to change its shape. The ▾ beside the circle button chooses <b>Outline</b> or <b>Solid Fill</b>, and the outline's <b>Line Width</b> (0.5 to 6 pt; the line keeps its width at any size). With a circle selected, the ▾ changes that circle; otherwise it sets the next circles.</p>
+
+<h3 id="text-color">Text color</h3>
+<!-- index: text color; ink color; blue text -->
+<p>Click the color button on the Fill &amp; Sign bar (also <b>Text Color…</b>). With text or a symbol selected, it recolors that; otherwise it sets the color of the next text you add. The color you choose becomes the default for next time.</p>
+
+<h3 id="sign-yourself">Sign Yourself</h3>
+<!-- index: place signature; initials; sign a form -->
+<p><b>Sign Yourself</b> ▾ lists your saved signatures and initials with a picture of each, plus <b>New Signature…</b> and <b>New Initials…</b>. Pick one and click on the page. The <b>More</b> menu also has <b>Digitally Sign Document…</b>, <b>Check Signatures</b>, and <b>Manage Signatures and Initials…</b>. All of this is described in <a href="signatures.html">Signatures</a>.</p>
+
+<h3 id="flatten-page">Flattening added text and signatures</h3>
+<!-- index: flatten page; flatten all pages; make permanent -->
+<p><b>More ▸ Flatten Page</b> and <b>More ▸ Flatten All Pages</b> make added text, symbols, signatures, and stamps part of the page: they can't be moved or changed afterwards. Do this when you're finished, before sending the form. It's undoable until you save.</p>
+
+<h2 id="saving-forms">Saving a filled-in form</h2>
+<!-- index: save form; form data; save filled form -->
+<p>Choose <b>File ▸ Save</b> (<b>Ctrl+S</b>) or <b>File ▸ Save As</b> (<b>Ctrl+Shift+S</b>). The values are saved in the form's fields, so other PDF programs show them and can still change them. If the document is digitally signed, PlanetPDF saves your changes after the signed part and warns you first.</p>
+
+<h3 id="xfa-forms">XFA forms</h3>
+<!-- index: XFA; LiveCycle; dynamic form; hybrid form; submit electronically; Adobe form -->
+<p>Some forms made with Adobe's tools are XFA forms. There are two kinds:</p>
+<ul>
+  <li><b>Dynamic XFA forms</b> can't be shown or filled in by PlanetPDF. When you open one, PlanetPDF says so; what you see is only the placeholder page stored in the file. Open it in Adobe Acrobat or Reader instead.</li>
+  <li><b>Hybrid forms</b> have ordinary fields plus an XFA copy. PlanetPDF fills them like any form (the Fill Form panel notes the XFA copy). The first time you save one, PlanetPDF asks <b>Will this form be submitted electronically?</b>
+    <ul>
+      <li><b>Yes</b>: the XFA part is kept and your entries are copied into it too. If some fields can't be matched, the status bar names them.</li>
+      <li><b>No</b>: the XFA part is removed (best for printing, e-mailing, or archiving).</li>
+      <li><b>Cancel</b>: nothing is saved.</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="flatten-form">Flattening a form</h2>
+<!-- index: flatten form; remove fields; lock form; make form read-only -->
+<p>Flattening turns every form field into ordinary page content: the values stay visible but can no longer be edited, and the fields are removed.</p>
+<ol>
+  <li>Choose <b>More ▸ Flatten Form…</b> on the Fill &amp; Sign bar, or click <b>Flatten Form…</b> in the Fill Form panel.</li>
+  <li>Click <b>Yes</b>. If the document is digitally signed, PlanetPDF warns that flattening makes the signatures invalid.</li>
+  <li>Save to keep it. Until then, <b>Edit ▸ Undo</b> brings the fields back.</li>
+</ol>
+
+<h2 id="prepare-form">Prepare Form: making a fillable form</h2>
+<!-- index: create form; make form fillable; form designer; prepare form; add fields -->
+<p>Prepare Form turns a PDF into a form other people can fill in.</p>
+<p>Choose <b>Tools ▸ Prepare Form</b>, click <b>Prepare Form</b> on the tool strip, or choose <b>File ▸ Create ▸ Create Form…</b>.</p>
+
+<h3 id="prepare-start">The start page</h3>
+<!-- index: form start page; auto detect; detect fields; requires signatures -->
+<p>When no document is open, or the document has no fields yet, Prepare Form starts with a page of choices:</p>
+<ul>
+  <li><b>Open File</b> (only when a file is open): use the document that's open now.</li>
+  <li><b>Single File</b>: choose a PDF.</li>
+  <li><b>Scanner</b>: scan a paper form.</li>
+  <li><b>Create New</b>: start with an empty page and add the fields yourself.</li>
+</ul>
+<p>Tick <b>This document requires signatures</b> to also make signature fields where the form has lines to sign on. Then click the button under the choice (<b>Start</b> or <b>Choose File</b>).</p>
+<p>The line <b>Form field auto detection is ON. Change</b> says whether PlanetPDF looks for blanks to fill in when you start. Click <b>Change</b> to switch it on or off. Detection is one undo step.</p>
+
+<h3 id="auto-detection">What auto detection finds</h3>
+<!-- index: detect fields; automatic fields; find blanks; form recognition -->
+<p>PlanetPDF makes a field only where there's a good reason to think a blank is meant to be filled in:</p>
+<ul>
+  <li>a run of underscores ("Name: ________");</li>
+  <li>a drawn line, or an empty box with a visible border and no fill, with a label just left of it, or a label above ending in ":" or "?";</li>
+  <li>a label ending in ":" or "?" followed by at least 1.5 inches of empty space on its line;</li>
+  <li>one of the usual form labels written without a colon (Name, Date of Birth, Address, City, State, ZIP, Phone, Email, Signature, Title, Company, and the like) standing alone on its line with at least 1.5 inches of empty space after it;</li>
+  <li>a placeholder printed where the answer goes: a date ("MM/DD/YYYY", "__/__/____", which makes a date field), a phone number ("(___) ___-____", "(xxx) xxx-xxxx"), a Social Security number ("XXX-XX-XXXX"), or an amount ("$______"). A placeholder in brackets is a hint for the blank beside it ("Date of Birth (MM/DD/YYYY): ______"), so the blank becomes the field;</li>
+  <li>the empty cells of a table meant to be filled in: one with a row of headings and a completely empty row, or at least a quarter of its cells empty. Each field is named by its column and its row: the words in the row's first cell ("Qty Widget"), else the row's number ("Qty 3"). A table full of data, such as a price list, is left alone;</li>
+  <li>a small square, a ☐, or "(   )" with words beside it: a checkbox;</li>
+  <li>on scanned pages, lines and boxes in the picture, with recognized words as the labels.</li>
+</ul>
+<p>Lines with words on them (typed answers, underlined links) aren't blanks, so a letter or a resume gets no fields. Each field is named after the words to its left ("Total Number of Units:" becomes "Total Number of Units"); several answer lines under one question are numbered ("Unit Types 1", "Unit Types 2"). A label with "date" makes a date field; one with "signature" makes a signature field when the document requires signatures. Tall boxes become text fields with several lines. Existing fields are left alone.</p>
+<p>Check what was found, rename or move fields as needed, and try the form with <a href="#preview">Preview</a>.</p>
+<p>The <b>Detect Fields</b> button on the Prepare Form bar runs detection again on every page at any time (it doesn't make signature fields).</p>
+
+<h2 id="field-tools">The Prepare Form bar</h2>
+<!-- index: field tools; form toolbar; add field -->
+<p>The bar shows icons; point at one for its name. Left to right: <b>Select</b>, <b>Edit text &amp; images</b>, <b>Add Text</b> (T), then the field tools <b>Text Field</b>, <b>Checkbox</b>, <b>Radio Buttons</b>, <b>List Box</b>, <b>Dropdown</b>, <b>Button</b>, <b>Image Field</b>, <b>Barcode</b>, <b>Date</b>, <b>Signature Field</b>, then <b>Detect Fields</b>, <b>Help</b> (?), and <b>Preview</b> beside <b>Close</b>.</p>
+<p>To add a field:</p>
+<ol>
+  <li>Click a field tool.</li>
+  <li>Drag a box on the page, or click for the standard size.</li>
+</ol>
+<p>The field tool stays on, so you can add several fields in a row. Click <b>Select</b> (or another tool) when you're done; <b>Esc</b> only drops the box you were drawing. Each new field gets a unique name (Text1, Text2…), which you can change in its properties.</p>
+<table>
+  <tr><th>Field</th><th>What it's for</th></tr>
+  <tr><td><b>Text Field</b></td><td>Typed answers, on one line or several.</td></tr>
+  <tr><td><b>Checkbox</b></td><td>Yes/no; can show its own text beside the box.</td></tr>
+  <tr><td><b>Radio Buttons</b></td><td>One choice out of several. Starts with two buttons, and the properties open so you can type their text.</td></tr>
+  <tr><td><b>List Box</b></td><td>A list of choices shown in the field; one or several can be picked. The properties open for the choices.</td></tr>
+  <tr><td><b>Dropdown</b></td><td>A list of choices that opens when clicked. The properties open for the choices.</td></tr>
+  <tr><td><b>Button</b></td><td>Clears the form, prints, or opens a web page. The properties open for its caption and action.</td></tr>
+  <tr><td><b>Image Field</b></td><td>The person filling in the form clicks it to choose a picture (a photo, a logo).</td></tr>
+  <tr><td><b>Barcode</b></td><td>A QR code or PDF417 barcode of the form's answers, drawn by PlanetPDF as the form is filled in. The properties open so you can choose its kind and what it holds. See <a href="#barcodes">Barcode fields</a>.</td></tr>
+  <tr><td><b>Date</b></td><td>A date, typed or picked from a calendar (mm/dd/yyyy unless you choose another format).</td></tr>
+  <tr><td><b>Signature Field</b></td><td>A place for a digital signature.</td></tr>
+</table>
+<p>Buttons use standard PDF actions, so they work the same in other PDF programs.</p>
+
+<h3 id="barcodes">Barcode fields</h3>
+<!-- index: barcode; QR code; PDF417; 2D barcode; scan form data; barcode field -->
+<p>A barcode field turns the form's answers into a barcode that can be scanned when the printed form comes back, so nobody has to type them in again. Its properties have:</p>
+<ul>
+  <li><b>Barcode:</b> <b>QR code</b> (square, read by most phones) or <b>PDF417</b> (wide and flat, holds more; common on IDs and shipping labels).</li>
+  <li><b>Holds:</b> <b>Every field in the form</b>, or <b>These fields</b>, ticked in the list.</li>
+  <li><b>Field names first:</b> a line of field names, then a line of their answers, separated by tabs (Acrobat's tab-delimited format). Without it, only the answers.</li>
+</ul>
+<p>PlanetPDF draws the barcode again whenever an answer changes. Other PDF programs show the barcode as it was last drawn, but don't redraw it. If the answers are too long for the barcode, it says "Too much data" in the box: choose fewer fields, or PDF417.</p>
+
+<h2 id="arrange-fields">Selecting, moving, and resizing fields</h2>
+<!-- index: move field; resize field; select fields; delete field; nudge field -->
+<p>Fields look as they will in the finished PDF. Point at one to see a dashed outline; click it to select it, and it's tinted with its name above it.</p>
+<ul>
+  <li><b>Move:</b> drag it, or use the arrow keys (<b>Shift</b>+arrow for bigger steps). A single field can be dropped on another page.</li>
+  <li><b>Resize:</b> drag a corner.</li>
+  <li><b>Several at once:</b> drag a box around them on an empty part of the page, or <b>Shift</b>+click to add a field and <b>Ctrl+Shift</b>+click to take one out. Dragging any of them moves them all; <b>Delete</b> deletes them all.</li>
+  <li><b>Delete:</b> press <b>Delete</b>, or right-click and choose <b>Delete Field</b>.</li>
+  <li><b>Properties:</b> double-click the field, or right-click and choose <b>Properties…</b>.</li>
+</ul>
+<p>A radio button group moves and resizes as one object. Resizing it changes its width; the text wraps again and the height follows the text. Every change is one undo step.</p>
+
+<h3 id="prepare-form-panel">The Prepare Form panel</h3>
+<!-- index: align fields; center fields; match size; distribute; spacing; field list -->
+<p>The panel on the right lines fields up. Select the fields first; the field you selected first is the one the others follow.</p>
+<ul>
+  <li><b>ALIGN</b> (two or more fields): Align Left, Align Center, Align Right, Align Top, Align Middle, Align Bottom.</li>
+  <li><b>CENTER</b> (one or more): Center Across the Page, Center Down the Page, Center on the Page.</li>
+  <li><b>MATCH SIZE</b> (two or more): Match Width, Match Height, Match Width and Height.</li>
+  <li><b>DISTRIBUTE</b> (three or more): Distribute Across, Distribute Down. The outer fields stay; the ones between are spaced evenly.</li>
+  <li><b>FIELDS</b>: every field, page by page. Click one to select it and go to it; double-click it for its properties.</li>
+</ul>
+<p>Each button is one undo step, and the fields stay selected.</p>
+
+<h2 id="field-properties">Field properties</h2>
+<!-- index: field name; tooltip; required; read-only; choices; date format; maximum length; font size; multiple lines -->
+<p>Double-click a field to change its properties. Every field has:</p>
+<ul>
+  <li><b>Name</b>: how the form data names it. Names are unique in a form.</li>
+  <li><b>Tooltip</b>: the tip shown when someone points at it.</li>
+  <li><b>Required</b> and <b>Read-only</b>.</li>
+</ul>
+<p>And, depending on the kind of field:</p>
+<table>
+  <tr><th>Field</th><th>Settings</th></tr>
+  <tr><td>Text field</td><td><b>Font size</b> (Auto fits the text to the field), <b>Multiple lines</b>, <b>Maximum length</b> (No limit, or a number of characters).</td></tr>
+  <tr><td>Date field</td><td><b>Font size</b>, <b>Maximum length</b>, <b>Date format</b> (mm/dd/yyyy, m/d/yyyy, mm/dd/yy, dd/mm/yyyy, yyyy-mm-dd, mmm d, yyyy, d mmmm yyyy, or type your own).</td></tr>
+  <tr><td>Dropdown</td><td><b>Choices</b> (one per line), <b>Font size</b>, <b>Allow typing a value that isn't in the list</b>.</td></tr>
+  <tr><td>List box</td><td><b>Choices</b> (one per line), <b>Font size</b>, <b>Allow choosing several</b>.</td></tr>
+  <tr><td>Checkbox</td><td><b>Text</b> shown beside the box, <b>Text size</b>.</td></tr>
+  <tr><td>Radio buttons</td><td><b>Buttons</b> (see below), <b>Text size</b>.</td></tr>
+  <tr><td>Button</td><td><b>Caption</b>; <b>When clicked</b>: Nothing, Clear the form, Print, or Open a web page (type the <b>Web address</b>).</td></tr>
+</table>
+<p>Click <b>OK</b>. The change is one undo step.</p>
+
+<h3 id="radio-text">Radio button text</h3>
+<!-- index: radio button label; radio options; radio values; add radio button -->
+<p>In a radio group's properties, each button has its own row:</p>
+<ul>
+  <li>The <b>text</b> shown next to the button. Type or paste it; <b>Enter</b> starts a new line, and pasted paragraphs keep their line breaks.</li>
+  <li>The <b>Value</b>: what the form data says when this button is chosen. It's made from the text until you type your own; values are unique.</li>
+  <li><b>Remove</b> takes the button away (a group keeps at least two).</li>
+</ul>
+<p><b>Add Button</b> adds one below the last; drag it into place afterwards. <b>Text size</b> sets the size of all the texts (Normal is 10 pt). The circles are sized to the text, and every button is exactly as tall as its text needs.</p>
+
+<h3 id="checkbox-text">Checkbox text</h3>
+<!-- index: checkbox label; checkbox caption -->
+<p>A checkbox made in PlanetPDF can show text beside the box: type it in <b>Text</b> in its properties, and set its <b>Text size</b>. The field is resized to fit the text. Clicking the text ticks the box in PlanetPDF.</p>
+<p class="note"><b>Note:</b> The text of radio buttons and checkboxes is stored as page text beside the field, the standard way, so Acrobat and other programs show it. Forms made by an earlier PlanetPDF are updated to this when you open them (one undo step called "Update Form Buttons"); save to keep it.</p>
+
+<h2 id="preview">Preview</h2>
+<!-- index: test form; try form; preview form -->
+<p>Click <b>Preview</b> (beside <b>Close</b>) to fill in the form as people will, without leaving Prepare Form. The button's label changes to <b>Edit</b>; click it, the Select arrow, or a field tool to go back to editing fields. What you type in Preview is saved like any form entry, so use <b>Clear Form</b> (Fill &amp; Sign ▸ More) afterwards if you don't want to keep it.</p>
+
+<h2 id="edit-text-images">Edit text &amp; images</h2>
+<!-- index: edit page in form; change form text; add text to form -->
+<p>Click <b>Edit text &amp; images</b> to change the page itself (fix a label, move a picture) without leaving Prepare Form. It works like Edit PDF, with its panel on the right; see <a href="editing.html">Editing Text and Pictures</a>. The <b>T</b> button (<b>Add Text</b>) adds new text to the page. Click a field tool or the Select arrow to go back to the fields.</p>
+
+<h2 id="saving-new-forms">Saving your form</h2>
+<!-- index: save form; publish form -->
+<p>Choose <b>File ▸ Save</b> or <b>File ▸ Save As</b>. The fields are standard PDF form fields, so the form can be filled in with PlanetPDF, Adobe Acrobat or Reader, a web browser, and most other PDF programs.</p>
+</body></html>

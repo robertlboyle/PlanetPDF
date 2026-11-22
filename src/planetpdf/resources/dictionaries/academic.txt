@@ -1,0 +1,73 @@
+# name: Academic & Science
+# about: Research methods, statistics, mathematics, the sciences, humanities and university life.
+# PlanetPDF word list. Lowercase words are accepted in any capitalization.
+
+# --- research and statistics ---
+epistemology epistemological ontology ontological methodology methodological methodologies pedagogy
+pedagogical andragogy heuristic heuristics hermeneutics hermeneutic phenomenology phenomenological dialectic
+dialectical paradigm paradigms paradigmatic positivism positivist postpositivist postmodern postmodernism
+poststructuralism poststructuralist structuralism structuralist empiricism empiricist empirical rationalism
+hypothesis hypotheses hypothesize hypothesized hypothetical operationalize operationalization quantitative
+qualitative longitudinal cohort cohorts randomized randomization placebo
+metaanalyses covariate covariates covariance variance correlation correlational correlations coefficient
+coefficients multivariate univariate bivariate heteroscedasticity homoscedasticity multicollinearity
+autocorrelation stochastic deterministic bayesian frequentist posteriori apriori parametric nonparametric
+anova ancova manova logit probit regressor regressors heteroskedasticity endogeneity exogenous endogenous
+instrumental bootstrapping bootstrap resampling imputation imputed interquartile percentile percentiles
+quartile quartiles quintile quintiles decile deciles skewness kurtosis standardized normalization outlier
+outliers confound confounder confounders confounding moderator mediators operationalized replicability
+reproducibility generalizability triangulation codebook ethnography ethnographic autoethnography
+Gaussian Bernoulli Poisson Markov Bayes Bayesian Monte Carlo Likert Pearson Spearman Cronbach Cohen Kaplan
+Meier Wilcoxon Kruskal Wallis Fisher Student Tukey Bonferroni
+
+# --- mathematics ---
+theorem theorems lemma lemmas corollary corollaries axiom axioms axiomatic postulate postulates conjecture
+conjectures eigenvalue eigenvalues eigenvector eigenvectors eigenspace matrices scalar scalars tensor tensors
+asymptotic asymptotically logarithm logarithms logarithmic polynomial polynomials quadratic quartic quintic
+algorithm algorithms algorithmic computational combinatorics combinatorial topology topological isomorphism
+isomorphic homomorphism homomorphic manifold manifolds bijection bijective injective surjective
+differentiable integrable orthogonal orthonormal hyperbolic parabolic elliptic sinusoidal trigonometric
+Fourier Laplace Lagrangian Lagrange Hamiltonian Euclidean Riemann Riemannian Newtonian Cartesian Hilbert
+Banach Euler Gauss Taylor Maclaurin Fibonacci Pythagorean Boolean
+
+# --- natural sciences ---
+quantum relativistic thermodynamics thermodynamic entropy enthalpy kinetics catalysis catalyst catalysts
+catalytic stoichiometry stoichiometric molarity molality isotope isotopes isotopic photon photons boson
+bosons fermion fermions quark quarks hadron hadrons lepton leptons neutrino neutrinos electromagnetism
+spectroscopy spectrometry spectrometer chromatography electrophoresis titration centrifuge centrifuged
+pipette pipettes micropipette beaker beakers biochemistry biochemical biophysics biophysical bioinformatics
+genomics genomic proteomics proteomic transcriptomics metabolomics epigenetics epigenetic phenotype
+phenotypes phenotypic genotype genotypes genotypic allele alleles homozygous heterozygous chromosome
+chromosomes chromosomal mitochondria mitochondrial ribosome ribosomes ribosomal eukaryote eukaryotes
+eukaryotic prokaryote prokaryotes prokaryotic organelle organelles cytoplasm cytoplasmic nucleotide
+nucleotides polymerase transcriptional mitosis meiosis apoptosis homeostasis photosynthesis photosynthetic
+ecosystem ecosystems biodiversity taxonomy taxonomic phylogeny phylogenetic phylum phyla genus genera
+morphology morphological physiology physiological microbiology microbiological virology immunology
+neuroscience neuroscientist neuroscientists astrophysics astrophysicist cosmology geochemistry geophysics
+paleontology paleontologist hydrology climatology meteorology oceanography seismology volcanology
+CRISPR Darwinian Mendelian Heisenberg Schrodinger Planck Boltzmann Avogadro Kelvin Celsius Fahrenheit
+
+# --- social sciences and humanities ---
+anthropology anthropological archaeology archaeological sociology sociological criminology criminological
+psychological linguistics linguistic semantics semantic semiotics semiotic syntax syntactic phonology
+phonological phonetics phonetic morphosyntax pragmatics sociolinguistics psycholinguistics etymology
+etymological lexicon lexical discourse rhetoric rhetorical historiography historiographical geopolitics
+geopolitical geospatial cartography cartographic demographics demographic econometrics econometric
+macroeconomics macroeconomic microeconomics microeconomic Keynesian neoliberal neoliberalism Marxist Marxism
+hegemony hegemonic colonialism postcolonial postcolonialism imperialism globalization intersectionality
+intersectional feminism feminist Freudian Jungian Kantian Hegelian Socratic Platonic Aristotelian
+Cartesian Machiavellian Orwellian Victorian Elizabethan Renaissance
+
+# --- writing and university life ---
+bibliography bibliographies bibliographic citation citations annotated annotation annotations footnote
+footnotes endnote endnotes appendix appendices abstract abstracts preprint preprints reviewer reviewers
+manuscript manuscripts dissertation dissertations thesis theses capstone practicum practica syllabus syllabi
+curriculum curricula rubric rubrics semester semesters trimester accreditation accredited matriculate
+matriculated matriculation baccalaureate postbaccalaureate undergraduate undergraduates postgraduate
+postdoctoral postdoc postdocs doctoral doctorate doctorates alumni alumnus alumna alumnae emeritus emerita
+provost dean deans chancellor registrar bursar faculty adjunct adjuncts tenure tenured sabbatical sabbaticals
+symposium symposia colloquium colloquia seminar seminars plenary keynote proceedings monograph monographs
+anthology anthologies compendium compendia corpus corpora datum ibid idem op cit cf et al
+APA MLA Turabian DOI ISBN ISSN ORCID JSTOR PubMed Scopus arXiv bioRxiv medRxiv EndNote Zotero Mendeley
+LaTeX BibTeX Overleaf SPSS Stata NVivo
+latex

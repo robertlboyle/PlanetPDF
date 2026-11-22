@@ -1,0 +1,170 @@
+<html><head><title>Scripts, Programs, and Plugins</title></head><body>
+<h1 id="top">Scripts, Programs, and Plugins</h1>
+<p>Everything PlanetPDF does in its window can also be done without it: from a command prompt or script, by another program, or by a plugin that adds its own items to PlanetPDF's menus. This chapter explains what each is for and how to use it. It works the same on Windows, the Mac, and Linux.</p>
+
+<h2 id="overview">Which one do I need?</h2>
+<!-- index: automation; batch; scripting; API; plugin; command prompt; PowerShell -->
+<ul>
+  <li><b>The command line</b> is for people and IT who want to repeat a task on many files, or run it on a schedule: compress every scan in a folder overnight, add Bates numbers to a set of exhibits, fill a form from data. You type <code>planetpdf</code> and a command in a command prompt, PowerShell, or a script.</li>
+  <li><b>The local API</b> is for programmers: another program on your computer asks a running PlanetPDF to do the work.</li>
+  <li><b>Plugins</b> are small programs someone wrote that add items to PlanetPDF's menus, such as "File Invoice" on the Tools menu.</li>
+</ul>
+<p><b>Signing always asks you.</b> Scripts, programs, and plugins may use every function, but whenever one wants to digitally sign a document with your Digital ID, PlanetPDF shows a window asking you first. A script can't answer it for you.</p>
+
+<h2 id="command-line">The command line</h2>
+<!-- index: planetpdf command; command prompt; PowerShell; Terminal; PlanetPDF.com; PATH; batch file -->
+<h3 id="cli-where">Where to run it</h3>
+<!-- index: PATH; add to PATH; install folder; Mac command line; Linux -->
+<ul>
+  <li><b>Windows:</b> the installer adds PlanetPDF to the PATH (the task "Let command prompts and scripts run planetpdf", ticked by default), so <code>planetpdf</code> works in any new command prompt or PowerShell window. Without it, use the full path: <code>&amp; "C:\Program Files\PlanetPDF\PlanetPDF.com" help</code>.</li>
+  <li><b>Mac:</b> <code>/Applications/PlanetPDF.app/Contents/MacOS/PlanetPDF help</code> in Terminal.</li>
+</ul>
+<p>Running <code>planetpdf</code> with a file name instead of a command simply opens the file in the PlanetPDF window, as before.</p>
+
+<h3 id="cli-help">Getting help</h3>
+<!-- index: planetpdf help; command options; planetpdf commands --json; --version -->
+<table>
+  <tr><th>Type</th><th>To see</th></tr>
+  <tr><td><code>planetpdf help</code></td><td>Every command, by group, with a line on what it does.</td></tr>
+  <tr><td><code>planetpdf help export</code></td><td>One command's options (here <code>export</code>).</td></tr>
+  <tr><td><code>planetpdf commands --json</code></td><td>Every command and option, for programs.</td></tr>
+  <tr><td><code>planetpdf --version</code></td><td>The version of PlanetPDF.</td></tr>
+</table>
+
+<h3 id="cli-examples">Examples</h3>
+<!-- index: examples; export to Word; redact; compress; fill form; sign from command line -->
+<p><code>planetpdf info report.pdf</code><br>
+Shows the pages, size, details, protection, signatures, and form fields.</p>
+<p><code>planetpdf export report.pdf --format docx --out report.docx</code><br>
+Saves a Word copy.</p>
+<p><code>planetpdf compress scan.pdf --quality small --out scan_small.pdf</code><br>
+Makes a smaller copy.</p>
+<p><code>planetpdf redact report.pdf --preset ssn --find "John Q. Public" --overlay-text REDACTED --out report_redacted.pdf</code><br>
+Removes every Social Security number and the name for good, then checks the result.</p>
+<p><code>planetpdf fill form.pdf --set "Name=Jane Doe" --set Agree=on --flatten --out filled.pdf</code><br>
+Fills in a form and makes the answers part of the page.</p>
+<p><code>planetpdf sign contract.pdf --id &lt;ID from signing-ids&gt; --out contract_signed.pdf</code><br>
+Signs with a Digital ID from your certificate store; PlanetPDF asks you first.</p>
+<p>In PowerShell, to compress every PDF in a folder:</p>
+<p><code>Get-ChildItem *.pdf | ForEach-Object { planetpdf compress $_.FullName --out ($_.BaseName + "_small.pdf") }</code></p>
+
+<h3 id="cli-rules">How commands behave</h3>
+<!-- index: --out; --overwrite; --json; --quiet; progress; pages; exit codes; errorlevel; LASTEXITCODE -->
+<ul>
+  <li><b>Files:</b> a command never writes over an existing file unless you add <code>--overwrite</code>. It writes over its own input file only when <code>--out</code> names that file.</li>
+  <li><b>Pages</b> are typed as in the program: <code>--pages "1-3, 7, 10-"</code> (10 to the end).</li>
+  <li><b>Output:</b> a readable summary, or the result as JSON with <code>--json</code> (for scripts). Progress ("Reading page 3 of 10") is shown separately (on stderr), so it never mixes with the result; <code>--quiet</code> hides it.</li>
+  <li><b>Exit codes</b> tell a script how it went (<code>%ERRORLEVEL%</code> in a batch file, <code>$LASTEXITCODE</code> in PowerShell):</li>
+</ul>
+<table>
+  <tr><th>Code</th><th>Meaning</th></tr>
+  <tr><td>0</td><td>Done.</td></tr>
+  <tr><td>1</td><td>It failed; the message says why.</td></tr>
+  <tr><td>2</td><td>The command was used wrongly (unknown command, missing or bad option).</td></tr>
+  <tr><td>3</td><td>Signing wasn't approved.</td></tr>
+  <tr><td>4</td><td>Done, but a check failed (redaction verification, compliance check).</td></tr>
+  <tr><td>130</td><td>Stopped with Ctrl+C.</td></tr>
+</table>
+
+<h3 id="cli-passwords">Passwords</h3>
+<!-- index: --password; password prompt; env:; environment variable; secure password -->
+<p>For a protected file, or a Digital ID file's password:</p>
+<ul>
+  <li><code>--password -</code> asks you to type it (it isn't shown as you type).</li>
+  <li><code>--password env:NAME</code> reads it from the environment variable <code>NAME</code>.</li>
+</ul>
+<p class="note"><b>Caution:</b> a password typed straight on the command line (<code>--password secret</code>) can be seen by other programs on the computer. Use one of the two ways above.</p>
+
+<h3 id="cli-signing">Signing from the command line</h3>
+<!-- index: Allow Digital Signing?; signing-ids; pfx; certify -->
+<p><code>planetpdf signing-ids</code> lists the Digital IDs in Windows' certificate store (or the Mac Keychain) that can sign. Pass one with <code>--id</code>, or a Digital ID file with <code>--pfx</code>. Every time, PlanetPDF shows <b>Allow Digital Signing?</b> describing what will be signed; click <b>Allow</b> or <b>Don't Allow</b>. If it isn't allowed, the command ends with exit code 3.</p>
+
+<h3 id="cli-commands">Every command</h3>
+<!-- index: list of commands; info; text; search; export; ocr; compress; combine; split; extract; rotate; redact; sanitize; protect; fill; sign; bates; watermark; header-footer -->
+<p>Type <code>planetpdf help</code> and the command's name for its options.</p>
+<table>
+  <tr><th>Group</th><th>Command</th><th>What it does</th></tr>
+  <tr><td>Read</td><td><code>info</code></td><td>Details of a PDF: pages, size, metadata, protection, signatures, form fields</td></tr>
+  <tr><td>Read</td><td><code>text</code></td><td>The text of a PDF's pages, in reading order</td></tr>
+  <tr><td>Read</td><td><code>search</code></td><td>Find words, phrases, or patterns (SSNs, phone numbers…) in a PDF</td></tr>
+  <tr><td>Read</td><td><code>bookmarks</code></td><td>A PDF's bookmarks</td></tr>
+  <tr><td>Read</td><td><code>compare</code></td><td>Compare the text of two PDFs</td></tr>
+  <tr><td>Read</td><td><code>set-metadata</code></td><td>Change a PDF's title, author, subject, or keywords</td></tr>
+  <tr><td>Forms</td><td><code>fields</code></td><td>A form's fields: names, kinds, values, and choices</td></tr>
+  <tr><td>Forms</td><td><code>fill</code></td><td>Fill in a form's fields</td></tr>
+  <tr><td>Forms</td><td><code>flatten-forms</code></td><td>Make a form's fields part of the page</td></tr>
+  <tr><td>Sign</td><td><code>signatures</code></td><td>Check a PDF's digital signatures</td></tr>
+  <tr><td>Sign</td><td><code>signing-ids</code></td><td>The Digital IDs in Windows' certificate store or the Mac Keychain that can sign</td></tr>
+  <tr><td>Sign</td><td><code>sign</code></td><td>Digitally sign a PDF (always asks you first)</td></tr>
+  <tr><td>Standards</td><td><code>check-compliance</code></td><td>Check a PDF against PDF/A, PDF/X, or PDF/E</td></tr>
+  <tr><td>Standards</td><td><code>save-as-standard</code></td><td>Save as PDF/A, PDF/X, or PDF/E (through Ghostscript)</td></tr>
+  <tr><td>Optimize</td><td><code>space-usage</code></td><td>What takes the room in a PDF (pictures, fonts, content…)</td></tr>
+  <tr><td>Optimize</td><td><code>compress</code></td><td>Make a PDF smaller (pictures resampled, scans in black and white or gray, fonts cut down)</td></tr>
+  <tr><td>Export</td><td><code>export</code></td><td>Save a PDF's pages as Word, Excel, PowerPoint, pictures, text, HTML… (add <code>--ai</code> to read the pages with <a href="create-export.html#ai-reading">AI text reading</a>, where it can run)</td></tr>
+  <tr><td>Scan</td><td><code>ocr</code></td><td>Recognize text on scanned pages, so they can be searched and copied</td></tr>
+  <tr><td>Scan</td><td><code>optimize-scans</code></td><td>Straighten, clean, and shrink scanned pages</td></tr>
+  <tr><td>Scan</td><td><code>remove-blank-pages</code></td><td>Remove blank pages (scans' empty backs)</td></tr>
+  <tr><td>Create</td><td><code>combine</code></td><td>Combine PDFs and pictures into one PDF, in the order given</td></tr>
+  <tr><td>Create</td><td><code>create</code></td><td>Make a PDF from each file (pictures, text, Office files, XPS, EPUB…)</td></tr>
+  <tr><td>Create</td><td><code>web-page</code></td><td>Make a PDF of a web page (through Microsoft Edge or Chrome)</td></tr>
+  <tr><td>Pages</td><td><code>split</code></td><td>Split a PDF into several files</td></tr>
+  <tr><td>Pages</td><td><code>extract</code></td><td>Make a new PDF of some pages</td></tr>
+  <tr><td>Pages</td><td><code>delete-pages</code></td><td>Delete pages</td></tr>
+  <tr><td>Pages</td><td><code>rotate</code></td><td>Turn pages</td></tr>
+  <tr><td>Pages</td><td><code>reorder</code></td><td>Put the pages in a new order</td></tr>
+  <tr><td>Pages</td><td><code>insert</code></td><td>Insert another PDF's pages</td></tr>
+  <tr><td>Pages</td><td><code>crop</code></td><td>Crop pages (margins in points: 72 = 1 inch)</td></tr>
+  <tr><td>Pages</td><td><code>header-footer</code></td><td>Add headers and footers ({page}, {pages}, {date}, {file})</td></tr>
+  <tr><td>Pages</td><td><code>bates</code></td><td>Add Bates numbers</td></tr>
+  <tr><td>Pages</td><td><code>watermark</code></td><td>Add a text or picture watermark</td></tr>
+  <tr><td>Pages</td><td><code>remove-marks</code></td><td>Remove headers and footers, Bates numbers, watermarks, or backgrounds PlanetPDF added</td></tr>
+  <tr><td>Redact</td><td><code>redact</code></td><td>Remove text for good (words, phrases, patterns), then check the result</td></tr>
+  <tr><td>Redact</td><td><code>sanitize</code></td><td>Remove hidden information: metadata, comments, attachments, scripts, hidden layers…</td></tr>
+  <tr><td>Protect</td><td><code>protect</code></td><td>Password-protect a PDF (AES-256)</td></tr>
+  <tr><td>Protect</td><td><code>unprotect</code></td><td>Remove a PDF's password protection</td></tr>
+</table>
+<p>Two more commands are for programs: <code>planetpdf commands</code> lists the commands, and <code>planetpdf serve</code> runs the local API without a PlanetPDF window until you press <b>Ctrl+C</b>.</p>
+
+<h2 id="local-api">The local API (for programmers)</h2>
+<!-- index: API; JSON-RPC; named pipe; socket; api.json; planetpdf_client.py; SDK; token; integration -->
+<p>Other programs on your computer can ask PlanetPDF to do work through its local API: JSON-RPC 2.0, one JSON message per line, over a named pipe (Windows) or a socket file (Mac, Linux). Only programs running as you on this computer can connect; it is never open to the network. Every command of the command line is an API method of the same name, with the same options, and long jobs send progress as they go.</p>
+<ul>
+  <li>A running PlanetPDF writes the connection's address to <code>api.json</code> in its local app data folder (Windows: <code>%LOCALAPPDATA%\Planet Networks\PlanetPDF</code>). Without a PlanetPDF window, <code>planetpdf serve</code> provides the API.</li>
+  <li>The first time a program connects, PlanetPDF asks you whether to <b>Allow</b> it, showing the program file it really is (from the computer, not the name the program gives itself). Click <b>Allow</b> only if you started or installed that program yourself. It then gets a key (token) that works only for that program file; if another program uses the key, you're asked again. It appears in <a href="preferences.html#programs-list">Preferences ▸ Scripting &amp; Plugins</a>, where you can block it.</li>
+  <li>The first time a program wants to sign, you choose <b>Allow Once</b>, <b>Always Allow This Program</b> (until you click <b>Stop Signing</b> in Preferences), or <b>Don't Allow</b>.</li>
+  <li>Each program may make 10 requests a second and run 2 jobs at once.</li>
+</ul>
+<p>Programmers will find a ready-made Python client (<code>planetpdf_client.py</code>, standard library only) and an example plugin in the <code>sdk</code> folder of PlanetPDF's resources, and the full description (methods, messages, error codes) in the developer guide, <code>docs/SCRIPTING.md</code>.</p>
+<p>You can turn the API off for yourself: untick <b>Let other programs and plugins use PlanetPDF</b> in Preferences ▸ Scripting &amp; Plugins (it takes effect the next time PlanetPDF starts).</p>
+
+<h2 id="plugins">Plugins</h2>
+<!-- index: plugin; add-in; extension; plugin.json; menu items; PLANETPDF_PLUGINS; permissions -->
+<p>A plugin is a small program that adds commands to PlanetPDF's menus. When you choose one of its items, PlanetPDF starts the plugin as a separate program, which then uses PlanetPDF through the local API, for example to stamp and file the open invoice.</p>
+
+<h3 id="install-plugin">Adding a plugin</h3>
+<!-- index: install plugin; plugins folder; where to put plugins -->
+<ol>
+  <li>Choose <b>Help ▸ Open Profile Folder</b> and open the <b>plugins</b> folder (make it if it isn't there). On Windows this is <code>%APPDATA%\Planet Networks\PlanetPDF\plugins</code>.</li>
+  <li>Copy the plugin's folder into it. (IT can also make plugins available to everyone from folders listed in the environment variable <code>PLANETPDF_PLUGINS</code>.)</li>
+  <li>Turn it on, as below.</li>
+</ol>
+
+<h3 id="turn-on-plugin">Turning a plugin on</h3>
+<!-- index: Turn On Plugin?; enable plugin; trust plugin; what a plugin asks for -->
+<p>Nothing a plugin contains runs until you turn it on.</p>
+<ol>
+  <li>Choose <b>Edit ▸ Preferences…</b> and click <b>Scripting &amp; Plugins</b>.</li>
+  <li>Under <b>Plugins</b>, find it. The <b>Asks to</b> column says what it wants to do through PlanetPDF:
+    <ul>
+      <li><b>read</b> documents: details, text, form fields, searches, and checks;</li>
+      <li><b>write</b>: make new documents and change documents;</li>
+      <li><b>sign</b> documents with your Digital IDs (you are still asked before it signs).</li>
+    </ul></li>
+  <li>Tick it. <b>Turn On Plugin?</b> shows its publisher, what it asks for, and the menu items it adds. Click <b>Yes</b> only if you trust where it came from.</li>
+  <li>Its items appear at the end of the menus it names (File, Edit, View, Tools, Window, or Help) in every window.</li>
+</ol>
+<p>To turn it off, untick it.</p>
+<p><b>Changed plugins turn off.</b> PlanetPDF remembers exactly what the plugin's files were when you turned it on. If any of them change (an update, or tampering), it is off again until you turn it on again, so you see what it asks for each time it changes.</p>
+<p>What a plugin prints goes to <code>logs\plugins</code> in the profile folder, and what it did through PlanetPDF is in the <b>Activity Log…</b>.</p>
+<p class="note"><b>Important:</b> a plugin is a program running as you, like any program you start. Its permissions limit what it can do <i>through PlanetPDF</i> (asking for anything else is refused), not what it could do on its own. Turn on only plugins from people you trust.</p>
+</body></html>

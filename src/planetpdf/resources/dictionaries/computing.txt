@@ -1,0 +1,106 @@
+# name: Computing & Programming
+# about: Programming languages, software and hardware products, file formats and IT terms, with their proper capitals.
+# PlanetPDF word list. Lowercase words are accepted in any capitalization; names with capitals
+# inside (JavaScript, macOS) only as written, so "Javascript" is marked with "JavaScript" suggested.
+
+# --- programming languages ---
+Python JavaScript TypeScript CoffeeScript ActionScript Java Kotlin Swift Golang Rust Ruby Perl PHP Scala
+Haskell Erlang Elixir Clojure ClojureScript Lisp Scheme Racket Fortran COBOL Pascal Delphi Lua Julia Dart Groovy
+PowerShell Bash Zsh VBScript VBA Objective Prolog Zig Nim OCaml Solidity WebAssembly Ada Smalltalk Crystal
+Elm PureScript ReScript Raku Tcl AppleScript AutoHotkey MATLAB Simulink Verilog VHDL SystemVerilog Ladder
+Mojo Gleam Carbon Vala Hack Apex ABAP RPG Scratch Logo BASIC QBasic
+
+# --- frameworks, libraries and tools ---
+React Angular AngularJS Vue Nuxt Svelte SvelteKit jQuery Bootstrap Tailwind Next Remix Gatsby
+Ember Backbone Redux MobX RxJS Express NestJS Fastify Deno Bun Django Flask FastAPI Pyramid Tornado Starlette
+Pydantic SQLAlchemy Celery NumPy SciPy pandas Polars Matplotlib Seaborn Plotly Bokeh Jupyter JupyterLab IPython
+TensorFlow PyTorch Keras JAX scikit sklearn XGBoost LightGBM OpenCV spaCy NLTK LangChain PySide PyQt
+Qt QML Tkinter wxPython Kivy Electron Tauri Flutter Xamarin MAUI Blazor ASP Rails Laravel Symfony CodeIgniter
+WordPress Drupal Joomla Magento WooCommerce Shopify Squarespace Wix Webflow Ghost Hugo Jekyll Eleventy
+webpack Vite Rollup esbuild Parcel Babel ESLint Prettier TSLint Jest Mocha Chai Jasmine Karma Cypress Playwright
+Puppeteer Selenium pytest unittest JUnit TestNG NUnit xUnit Gradle Maven Ant CMake Bazel Make Ninja MSBuild
+NuGet npm npx pnpm Yarn pip pipx PyPI conda Anaconda Miniconda virtualenv venv Poetry Pipenv Homebrew Chocolatey
+winget Scoop apt yum dnf pacman Flatpak Snap AppImage PyInstaller Nuitka cx_Freeze PyMuPDF MuPDF pypdf pyHanko
+pdf2docx Pillow fontTools Ghostscript Tesseract ImageMagick FFmpeg LibreOffice OpenOffice Pandoc Markdown
+reStructuredText AsciiDoc Sphinx Doxygen Javadoc Swagger OpenAPI Postman Insomnia GraphQL gRPC Protobuf Thrift
+Avro Parquet Kafka RabbitMQ ZeroMQ ActiveMQ NATS Redis Memcached Elasticsearch OpenSearch Kibana Logstash
+Grafana Prometheus Splunk Datadog Nagios Zabbix PRTG SolarWinds Sentry PagerDuty Opsgenie
+
+# --- databases ---
+SQL MySQL PostgreSQL Postgres SQLite MariaDB MongoDB Cassandra DynamoDB CouchDB Couchbase InfluxDB
+TimescaleDB Neo4j Snowflake Databricks BigQuery Redshift Teradata Firebird Firestore Firebase Supabase
+PlanetScale CockroachDB DuckDB ClickHouse Oracle NoSQL PL/SQL TSQL
+
+# --- operating systems and platforms ---
+Windows Linux Unix macOS iOS iPadOS watchOS tvOS visionOS Android ChromeOS Ubuntu Debian Fedora CentOS RHEL
+Rocky AlmaLinux openSUSE SUSE Gentoo Arch Manjaro Mint Kali Raspbian FreeBSD OpenBSD NetBSD Solaris AIX
+HarmonyOS Tizen WSL Cygwin MinGW DOS 
+
+# --- developer and IT tools and services ---
+Git GitHub GitLab Bitbucket Gitea SourceForge Subversion SVN Mercurial Jenkins TeamCity Bamboo CircleCI Travis 
+GitHub's Docker Dockerfile Podman Kubernetes kubectl Helm OpenShift Rancher Nomad Consul Vault Terraform
+OpenTofu Pulumi Ansible Puppet Chef SaltStack Vagrant Packer VMware vSphere vCenter ESXi VirtualBox Hyper Proxmox
+KVM QEMU Xen Citrix XenApp XenDesktop AWS EC2 S3 Lambda CloudFront CloudWatch Azure Entra Intune Autopilot GCP
+Heroku Netlify Vercel DigitalOcean Linode Vultr Hetzner OVH Cloudflare Akamai Fastly Backblaze Wasabi
+VSCode IntelliJ PyCharm WebStorm PhpStorm CLion GoLand Rider RubyMine DataGrip Xcode Eclipse NetBeans Vim Neovim
+Emacs Nano Notepad Sublime Atom BBEdit RStudio Spyder Thonny Jupyter Colab Kaggle Replit CodePen JSFiddle
+ Copilot ChatGPT OpenAI Claude Gemini Bard Llama Mistral Perplexity Midjourney DALL
+
+# --- Microsoft, Adobe, Apple, Google products ---
+Microsoft Office Word Excel PowerPoint Outlook OneNote OneDrive SharePoint Teams Skype Access Publisher Visio
+Project Planner Yammer Viva Exchange Dynamics PowerApps Power Automate Bing Edge Cortana BitLocker Defender
+ActiveX DirectX Win32 WinForms WPF UWP WinUI NET LINQ IIS MSSQL SSMS SSIS SSRS Azure Xbox Surface HoloLens
+Adobe Acrobat Photoshop Illustrator InDesign Lightroom Premiere Dreamweaver Audition Animate XD
+Bridge Fresco Firefly Behance Typekit PostScript PDF PDFs Flash Shockwave ColdFusion FrameMaker RoboHelp
+Apple Mac Macs MacBook iMac iPhone iPhones iPad iPads iPod AirPods AirPlay AirTag HomePod iCloud iTunes
+iMessage FaceTime Siri Safari Finder Keynote Pages Numbers GarageBand iMovie FileVault Spotlight TestFlight
+SwiftUI UIKit AppKit CocoaPods Xcode
+Google Gmail Chrome Chromium Android Firebase Workspace Docs Sheets Slides Drive Meet Hangouts Calendar
+Keep Gemini YouTube Waze Nest Fitbit Pixel Chromebook Chromecast Kotlin Flutter Angular TensorFlow Colab
+Mozilla Firefox Thunderbird Opera Vivaldi Brave Tor DuckDuckGo
+
+# --- hardware and interfaces ---
+CPU CPUs GPU GPUs RAM SSD SSDs HDD HDDs NVMe SATA SAS RAID NAS SAN USB HDMI DisplayPort Thunderbolt Lightning
+Bluetooth NFC RFID BIOS UEFI TPM Intel AMD Nvidia GeForce Radeon Ryzen Xeon Core Celeron Pentium Atom Snapdragon
+Qualcomm ARM Exynos Tensor Raspberry Arduino ESP32 Jetson ThinkPad ThinkCentre IdeaPad Latitude OptiPlex
+Precision Inspiron XPS Alienware PowerEdge ProLiant EliteBook ProBook Pavilion Envy Spectre ZBook Chromebook
+Surface Galaxy Pixel Kindle Echo Alexa Roku PlayStation Nintendo Switch Oculus Quest
+
+# --- security ---
+antivirus antimalware malware ransomware spyware adware rootkit rootkits keylogger keyloggers trojan trojans
+botnet botnets phishing smishing vishing spoofing spoofed exploit exploits exploited vulnerability
+vulnerabilities pentest pentesting pentester cybersecurity cyberattack cyberattacks infosec firewall firewalls
+sandbox sandboxed sandboxing whitelist whitelisted blacklist blacklisted allowlist allowlisted denylist
+encryption encrypt encrypted encrypting decrypt decrypted decryption cryptographic cryptography hashing
+hashed passphrase passphrases passcode passcodes passwordless authenticator authenticators authentication
+authenticate authenticated reauthenticate OAuth OpenID SAML Kerberos LDAP RADIUS TACACS MFA SSO TOTP FIDO
+YubiKey Okta Duo OneLogin LastPass Bitwarden KeePass Dashlane CrowdStrike SentinelOne Sophos Fortinet
+FortiGate SonicWall Palo Alto Bitdefender McAfee Norton Symantec Kaspersky Malwarebytes ESET Avast AVG Webroot
+Huntress Mimecast Proofpoint Barracuda Zscaler Netskope Tenable Nessus Qualys Rapid7 Metasploit
+Wireshark Nmap Burp Kali Snort Suricata pfSense OPNsense
+
+# --- general IT and programming words ---
+codebase backend backends frontend frontends fullstack devops DevOps DevSecOps MLOps sysadmin sysadmins
+api apis sdk sdks gui ux ui ide ides cli localhost hostname hostnames username usernames login logins logon
+logoff signup timestamp timestamps metadata dataset datasets database databases schema schemas backup backups
+failover redundancy uptime downtime cache caching cached caches proxy proxies microservice microservices
+serverless middleware runtime runtimes compiler compilers transpiler transpile transpiled interpreter
+interpreters bytecode refactor refactors refactoring refactored debug debugger debuggers debugging deprecated
+deprecation async asynchronous synchronous multithreaded multithreading concurrency parallelism mutex
+semaphore deadlock deadlocks callback callbacks lambda lambdas closure closures iterator iterators iterable
+enum enums struct structs boolean booleans int ints integer integers float floats char chars varchar namespace
+namespaces webhook webhooks websocket websockets restful endpoint endpoints payload payloads hotfix hotfixes
+firmware bootloader virtualization hypervisor hypervisors containerized containerization orchestration
+autoscaling intranet extranet chatbot chatbots regex regexes unicode utf ascii bitmap bitmaps
+jpeg jpg png gif svg tiff webp heic docx xlsx pptx csv tsv json yaml toml xml html css scss sass xaml
+zip gzip tarball rar checksum checksums toolbar toolbars dropdown dropdowns checkbox checkboxes textbox
+textboxes popup popups tooltip tooltips sidebar sidebars navbar hotkey hotkeys keystroke keystrokes screenshot
+screenshots screencast touchscreen trackpad touchpad scrollbar fullscreen desktop desktops laptop laptops
+smartphone smartphones webcam webcams headset headsets plugin plugins addon addons subfolder subfolders
+filename filenames filepath filepaths pathname dotfile dotfiles stdin stdout stderr cron crontab systemd daemon
+daemons repo repos monorepo changelog changelogs readme config configs dev devs prod admin admins sudo chmod
+grep diff diffs commit commits rebase rebased upstream downstream fork forked branching linter linters
+minify minified uglify polyfill polyfills transpilers npm's js ts py tsx jsx mjs dll dlls exe msi dmg apk
+emoji emojis wiki wikis blog blogs vlog podcast podcasts livestream livestreaming geolocation geofence
+postscript
+rescript

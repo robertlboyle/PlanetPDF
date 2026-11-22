@@ -1,0 +1,247 @@
+<html><head><title>What's New</title></head><body>
+<h1 id="top">What's New</h1>
+<p>The changes in each version of PlanetPDF, newest first. Help ▸ About PlanetPDF shows the same list.</p>
+
+<h2 id="v0-1-17">Version 0.1.17</h2>
+<!-- index: version 0.1.17; security; redaction; zoom; revocation -->
+<ul>
+  <li><b>Safer redaction:</b> a redacted copy that fails any of its checks is no longer saved, and
+    never replaces the original; the report offers <b>Discard</b>, or <b>Save Anyway…</b> after a
+    second question. The checks now also fail when they can't run, and when a curved shape (text drawn
+    as outlines, a drawn signature) is only partly under a box. Removing hidden information also removes
+    the accessibility tags and alternate text, which can describe what was redacted. See
+    <a href="protect-redact.html#apply-redactions">Applying redactions</a>.</li>
+  <li><b>Links in documents</b> open only web pages and email: links to shared folders on other
+    computers, to files, or that start programs are refused, and the question shows the site. See
+    <a href="viewing.html#links">Links in documents</a>.</li>
+  <li><b>Word, Excel, and PowerPoint files</b> are converted with their macros turned off (Windows).</li>
+  <li><b>Digital signatures:</b> a new setting checks online whether a signer's certificate was revoked
+    (Preferences ▸ Signatures); a revoked one makes the signature invalid. Each signature says whether
+    this was checked, and a timestamp that doesn't verify no longer counts.</li>
+  <li><b>Programs using PlanetPDF's API</b> are asked about the first time, showing the program they
+    really are, and their key works only for that program.</li>
+  <li><b>Updates</b> are checked again on a copy only administrators can change, and never go back to
+    an older version. These take effect with the update after this one.</li>
+  <li><b>Zoom:</b> <b>Ctrl+Shift+Plus</b> always turns the view (it sometimes zoomed); Zoom In and Out
+    step through the same levels each time (100, 125, 150, 200%…); typing a percentage in the zoom box
+    and pressing <b>Enter</b> works.</li>
+  <li>The PlanetPDF printer no longer accepts connections from other computers, and network scanners'
+    answers are checked more strictly.</li>
+</ul>
+
+<h2 id="v0-1-16">Version 0.1.16</h2>
+<!-- index: version 0.1.16; Add Text; auto-complete; Report a Problem -->
+<ul>
+  <li><b>Click to type:</b> with no tool chosen (also right after placing a signature, initials, or a
+    stamp), a click on an empty spot of a page starts Add Text there. Turn it off in Preferences ▸
+    Documents ▸ Adding text. See <a href="forms.html#click-to-type">Click anywhere to type</a>.</li>
+  <li><b>Text you've typed before is suggested:</b> as you add text, PlanetPDF offers the rest of
+    something you typed earlier; <b>Tab</b>, <b>Right</b>, or <b>End</b> takes it, <b>Up</b> and
+    <b>Down</b> show others, and <b>Shift+Delete</b> forgets one. The list stays on your computer, in
+    your profile folder, and can be turned off or cleared in Preferences (<a href="forms.html#remembered-text">Remembered text</a>).</li>
+  <li><b>Help ▸ Report a Problem:</b> starts an email to software@planet.net in your own email program,
+    with the version and system filled in. Nothing is sent until you send it.</li>
+  <li><b>Updates:</b> after you install a version with Setup, PlanetPDF no longer reports that an
+    earlier attempt to update to it "wasn't installed".</li>
+</ul>
+
+<h2 id="v0-1-15">Version 0.1.15</h2>
+<!-- index: version 0.1.15; Mac; macOS 15; Sequoia -->
+<ul>
+  <li><b>Mac:</b> fixed PlanetPDF 0.1.14 closing as it started on Macs with macOS 26.2 or earlier.
+    The Mac version now runs on macOS 15 (Sequoia) and later, and saving as PDF/A, PDF/X, PDF/E, and
+    PostScript works on all of them. If 0.1.14 closes as it starts, download PlanetPDF.dmg again and
+    replace it: it can't update itself.</li>
+</ul>
+
+<h2 id="v0-1-14">Version 0.1.14</h2>
+<!-- index: version 0.1.14; Linux; AppImage; ARM64 -->
+<ul>
+  <li><b>PlanetPDF for Linux:</b> an AppImage, a .deb (Ubuntu, Debian), and an .rpm (Fedora,
+    openSUSE), for PCs and for ARM64 computers. Everything works as on Windows and the Mac, including
+    text recognition, PDF/A, signing, and Read Out Loud, and it updates itself (the .deb and .rpm ask
+    for an administrator's password). The .deb and .rpm also add PlanetPDF's package repository, so the
+    system's own updates include PlanetPDF. See
+    <a href="getting-started.html#install-linux">Installing on Linux</a>.</li>
+  <li><b>Mac:</b> fixed a crash that could close PlanetPDF while it read a certificate from the
+    Keychain.</li>
+  <li><b>Windows updates:</b> when Windows' administrator prompt fails while an update installs, PlanetPDF no
+    longer shows Windows' "File system error" box or reports the update as canceled: it says what happened
+    and offers the download page for the full installer. If the update installed anyway, it says so. See
+    <a href="troubleshooting.html#update-not-installed">The update wasn't installed</a>.</li>
+</ul>
+
+<h2 id="v0-1-13">Version 0.1.13</h2>
+<!-- index: version 0.1.13; accessibility; screen reader; circle; symbols -->
+<ul>
+  <li><b>Screen readers:</b> PlanetPDF works with Windows Narrator, NVDA, and other screen readers (VoiceOver on a
+    Mac). Every button, box, list, and panel has a name the screen reader says; status messages and the progress
+    of long jobs are read out; opening a file and turning pages are announced. See
+    <a href="accessibility.html#top">Accessibility</a>.</li>
+  <li><b>Reading a page's text:</b> <b>Reflow</b> (<b>Ctrl+4</b>) marks headings as headings, says where
+    pictures are, and explains a page with no words (a scan). With a screen reader running, you can read it
+    word by word; <b>Ctrl+Page Down</b> / <b>Ctrl+Page Up</b> turn pages.</li>
+  <li><b>Everything by keyboard:</b> <b>F6</b> / <b>Shift+F6</b> move between the toolbars, the page, and the
+    panels (<b>Window ▸ Next Pane</b>); the arrow keys go along a toolbar; a ring shows where the keyboard is.
+    Forms are filled in from the Fill Form panel (choose a field, press <b>Enter</b>), comments are read, edited,
+    and answered in the Comments panel, and stamps, signatures, and added text are placed with <b>Enter</b> and
+    moved with the arrow keys.</li>
+  <li><b>Contrast themes and larger text:</b> a Windows contrast theme now wins over PlanetPDF's own colors,
+    icons included, and <b>Preferences ▸ Appearance ▸ Text size</b> makes the program's text up to twice as
+    large.</li>
+  <li><b>Preferences:</b> <b>Tab</b> starts at the list of pages, as you see it.</li>
+  <li><b>Fill &amp; Sign circles:</b> drag from one corner to the other to draw a circle or any oval (hold
+    <b>Shift</b> for a perfect circle). The ▾ beside the circle button chooses <b>Outline</b> or <b>Solid Fill</b>
+    and the line width, and the line keeps its width when you resize the circle. See
+    <a href="forms.html#symbols">Symbols</a>.</li>
+  <li><b>Symbols keep their size:</b> once you resize a check mark, cross, circle, line, or dot, the next ones
+    of that kind are placed at the same size, until you resize one again.</li>
+  <li><b>Tool bars stay put:</b> a tool's buttons start right after its name and no longer shift around when a
+    tool shows more options.</li>
+  <li><b>On the Mac</b> (the first Mac release since 0.1.1, with everything above): <b>PDF from Scanner</b>
+    works with USB and network scanners; Word, Excel, and PowerPoint files become PDFs through Office for Mac;
+    Digital IDs in the Keychain sign, open certificate-protected files, and are trusted; <b>Read Out Loud</b> uses
+    the Mac's own voices and offers to download the natural voices; <b>PDF from Web Page</b> finds Chrome, Edge,
+    Chromium, and Brave; Helvetica, Avenir, Menlo, and the Mac's other font collections are offered; and a
+    printer's problem (offline, out of paper, paused) is named.</li>
+  <li><b>Installer:</b> Setup's button on the taskbar shows the PlanetPDF icon instead of a blank program
+    icon.</li>
+</ul>
+
+<h2 id="v0-1-10">Version 0.1.10</h2>
+<!-- index: version 0.1.10 -->
+<ul>
+  <li><b>Security fix:</b> PlanetPDF now uses Pillow 13.0.0, which fixes three critical security problems in
+    the picture library it relies on. One of them could be reached when Compress PDF or Optimize Scans turned a
+    scanned page into black and white: a specially made scan could crash PlanetPDF or worse. Installing this
+    version is recommended.</li>
+</ul>
+
+<h2 id="v0-1-9">Version 0.1.9</h2>
+<!-- index: version 0.1.9 -->
+<ul>
+  <li><b>Fixed: Setup started an older PlanetPDF.</b> When Setup asked which app opens PDF files, it could
+    start the version installed before (0.1.0) instead of the new one. It now always starts the version it has
+    just installed.</li>
+  <li><b>Installer:</b> the desktop shortcut is ticked by default, and every task starts ticked each time you
+    install, also over an older version. The tips while installing show menu names correctly ("Fill &amp; Sign",
+    "Scan &amp; OCR").</li>
+</ul>
+
+<h2 id="v0-1-8">Version 0.1.8</h2>
+<!-- index: version 0.1.8 -->
+<ul>
+  <li><b>Barcode fields:</b> a new <b>Barcode</b> tool in Prepare Form makes a QR code or PDF417 barcode of
+    the form's answers, drawn again whenever an answer changes. See <a href="forms.html#barcodes">Barcode
+    fields</a>.</li>
+  <li><b>Field detection finds more blanks:</b> the usual form labels without a colon ("Date of Birth",
+    "Phone"), placeholders such as "MM/DD/YYYY", "(___) ___-____", and "$______", and the empty cells of tables
+    meant to be filled in (a price list full of data is left alone). See
+    <a href="forms.html#auto-detection">What auto detection finds</a>.</li>
+  <li><b>Edit PDF:</b> a line whose words use different fonts (a bold word in a sentence) opens as one line;
+    each word keeps its font, and words you type take on the font of the word beside them. See
+    <a href="editing.html#edit-text">Editing text in place</a>.</li>
+  <li><b>Text drawn as outlines</b> can be made searchable: <b>Recognize Text</b> lists such pages with the
+    scanned ones. Words that are already real text aren't added twice.</li>
+  <li><b>Progress you can see:</b> <b>Find</b> counts the pages of a long document as it searches and has
+    <b>Stop</b>; saving a long document shows each step; Find Text &amp; Redact counts too. Applying
+    redactions, splitting, and the comparison report run in the background, so the window keeps drawing.</li>
+  <li><b>Fonts on Windows:</b> fonts that come in collections (Cambria's regular style, MS Gothic, Yu Gothic,
+    SimSun, Microsoft YaHei, and others) are offered in the font lists.</li>
+  <li><b>The right pointer everywhere:</b> after Add Text and Enter the I-beam comes back; the Select arrow
+    shows the I-beam over text; text form fields show the I-beam and buttons the pointing hand; the Pencil shows
+    a pen and Marquee Zoom a magnifier. See <a href="viewing.html#pointer">What the pointer shows</a>.</li>
+</ul>
+
+<h2 id="v0-1-7">Version 0.1.7</h2>
+<!-- index: version 0.1.7 -->
+<ul>
+  <li><b>Installer:</b> the Windows installer shows PlanetPDF's own pictures instead of the installer's
+    standard ones, and while the files are copied it shows tips about what PlanetPDF can do, a new one every
+    few seconds (<b>Next tip</b> shows the next one at once).</li>
+  <li><b>Fixed: making PlanetPDF the default app for PDF files.</b> Instead of Windows' "How do you want to
+    open .pdf files?" window, you only got a message sending you to Settings. Now the window opens: choose
+    PlanetPDF and click <b>Always</b>. When PlanetPDF already opens your PDF files, the installer and
+    Preferences simply say so. See <a href="preferences.html#default-app">PDF files</a>.</li>
+  <li><b>The PlanetPDF printer:</b> if a printout fails, Windows keeps it in the printer's queue and holds
+    up every printout after it. The manual now explains how to clear it (see
+    <a href="troubleshooting.html#planetpdf-printer-stuck">The PlanetPDF printer shows an error or nothing
+    comes out</a>), and the printer's log says more about what it turned away.</li>
+</ul>
+
+<h2 id="v0-1-6">Version 0.1.6</h2>
+<!-- index: version 0.1.6 -->
+<ul>
+  <li><b>Add Text:</b> <b>Enter</b> finishes the text and <b>Shift+Enter</b> starts a new line. Text you've
+    just added is no longer left selected, so its handles don't hide where it sits.</li>
+  <li><b>Fixed:</b> choosing another tool (a signature, for example) left the last item's handles showing.
+    Choosing a tool now clears the selection.</li>
+</ul>
+
+<h2 id="v0-1-5">Version 0.1.5</h2>
+<!-- index: version 0.1.5 -->
+<ul>
+  <li><b>AI text reading for exports:</b> exports to Word, Rich Text, text, and HTML can read the pages with
+    Unlimited-OCR, an AI model, for one flowing document with headings, paragraphs, lists, and tables. It needs
+    the optional PlanetPDF AI Text Reading add-on and an NVIDIA graphics card with about 8 GB of memory. See
+    <a href="create-export.html#ai-reading">AI text reading</a>.</li>
+  <li><b>Fixed:</b> a file opened while PlanetPDF was still starting could start a second copy of PlanetPDF,
+    so one file could be open twice and closing one copy didn't ask about the other's changes. Now a file is
+    only ever open in one PlanetPDF.</li>
+</ul>
+
+<h2 id="v0-1-4">Version 0.1.4</h2>
+<!-- index: version 0.1.4 -->
+<ul>
+  <li><b>Text tools:</b> Highlight, Underline, Strike-Out, Replace Text, and Text Callout show the I-beam over
+    text and a crosshair elsewhere. With the marking tools, start a drag off the text to draw a box: every
+    word it touches is marked.</li>
+  <li><b>Edit PDF:</b> the first button is now a <b>Select</b> arrow, for picking what's already on the page
+    to change it.</li>
+  <li><b>Eraser:</b> a <b>Width</b> box appears on the Edit PDF bar while the Eraser is on. Fixed: with a line
+    selected, the Eraser moved it instead of erasing it.</li>
+</ul>
+
+<h2 id="v0-1-3">Version 0.1.3</h2>
+<!-- index: version 0.1.3 -->
+<ul>
+  <li>Fixed: the Windows taskbar showed a generic icon for PlanetPDF instead of its own.</li>
+</ul>
+
+<h2 id="v0-1-2">Version 0.1.2</h2>
+<!-- index: changes; release notes; version 0.1.2 -->
+<ul>
+  <li><b>The PlanetPDF printer:</b> print from any program to the "PlanetPDF" printer and the document
+    becomes a PDF. PlanetPDF asks whether to open it afterwards (you can have it remember your answer),
+    then where to save it, starting in the folder you used last. Preferences ▸ Documents can set a folder
+    and a file name pattern so it saves without asking. It works for each person on a terminal server. On
+    a Mac, choose <b>Open in PlanetPDF</b> from any print dialog's PDF menu.</li>
+  <li><b>A manual:</b> this help, with Contents, an Index, and Search (<b>F1</b>), also as a PDF in the
+    install folder.</li>
+  <li><b>Scripts and other programs:</b> every function can be used from a command prompt
+    (<b>planetpdf help</b>), from other programs through PlanetPDF's local API, and by plugins that add
+    their own menu commands. Signing always asks you first. See
+    <a href="scripting.html">Scripts, Programs, and Plugins</a>.</li>
+  <li><b>Tools stay on</b> until you choose another tool or close the tool; tools for one thing (a
+    stamp, a signature, Attach File, Add Image) switch off after it. The tool that's on is highlighted.</li>
+  <li><b>Choosing PlanetPDF for PDF files:</b> the installer now opens Windows' "How do you want to open
+    .pdf files?" window, where you pick PlanetPDF.</li>
+  <li>Fixed: page thumbnails jumping between two sizes on some files; deleting and reordering pages in
+    the Pages panel while editing; PDF from Web Page failing on some computers.</li>
+</ul>
+
+<h2 id="v0-1-1">Version 0.1.1</h2>
+<!-- index: version 0.1.1 -->
+<ul>
+  <li>Faster start and less memory; tool bars are made when first used.</li>
+  <li>A native launcher that starts PlanetPDF quicker.</li>
+  <li>Preferences in pages down the left; the page cache size and when to check for updates are
+    settings.</li>
+</ul>
+
+<h2 id="v0-1-0">Version 0.1.0</h2>
+<!-- index: version 0.1.0; first version -->
+<p>The first version: viewing, organizing pages, editing, comments, stamps, forms, signatures, digital
+signing, protection, redaction, scans and text recognition, creating and exporting, PDF standards,
+comparing, printing, and updates.</p>
+</body></html>

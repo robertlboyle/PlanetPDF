@@ -1,0 +1,252 @@
+<html><head><title>Scans, Text Recognition, and File Size</title></head><body>
+<h1 id="top">Scans, Text Recognition, and File Size</h1>
+<p>This chapter covers paper documents: scanning them into a PDF, making their text searchable (text recognition, often called OCR), cleaning up crooked or dirty scans, and making large files smaller.</p>
+
+<h2 id="tools-overview">The tools for scans</h2>
+<!-- index: Scan & OCR tool; Optimize Scans tool; Compress PDF tool; scanned documents; paper -->
+<p>Three tools on the tool strip at the right of the window work with scans. You can also open each one from the <b>Tools</b> menu.</p>
+<table>
+  <tr><th>Tool</th><th>What it is for</th></tr>
+  <tr><td><b>Scan &amp; OCR</b></td><td>Scanning pages in, recognizing text, correcting recognized words, quick enhancements, Bates numbers, cropping, turning, and deleting pages.</td></tr>
+  <tr><td><b>Optimize Scans</b></td><td>Cleaning scanned pages: turning them the right way up, straightening, removing dark edges, specks, and bleed-through, black and white, and removing blank pages.</td></tr>
+  <tr><td><b>Compress PDF</b></td><td>Making the file smaller, and seeing what takes up the room in it.</td></tr>
+</table>
+<p>The <b>Scan &amp; OCR</b> bar has these buttons: <b>Insert</b> ▾ (From File…, From Scanner), <b>Enhance</b> ▾ (Scanned Document…, Camera Image…, Optimize Scans…), <b>Recognize Text</b> ▾ (In This File, In Multiple Files…, Correct Recognized Text…), <b>Bates Numbering</b> ▾ (Add…, Remove…), then <b>Crop Pages</b>, rotate counterclockwise, rotate clockwise, and delete pages.</p>
+<p class="note"><b>What PlanetPDF calls a scanned page:</b> a page that is one picture covering the whole page (with, perhaps, invisible recognized text on top). Pages with ordinary text, drawings, or several pictures are not scans, and the scan tools leave them alone.</p>
+
+<h2 id="scanning">Scanning paper into a PDF</h2>
+<!-- index: scanner; scan; PDF from Scanner; acquire; flatbed; WIA; import from scanner -->
+<p>You can scan straight into a new PDF, or add scanned pages to the document that is open.</p>
+<ul>
+  <li><b>A new PDF:</b> choose <b>File ▸ Create ▸ PDF from Scanner…</b>, or open the <b>Create PDF</b> tool, click <b>Scanner</b>, and click <b>Scan</b>.</li>
+  <li><b>Add pages to this document:</b> choose <b>File ▸ Insert Pages ▸ From Scanner…</b>, or <b>Insert ▸ From Scanner</b> on the <b>Scan &amp; OCR</b> bar. The pages go in after the selected page, as one step that <b>Edit ▸ Undo</b> takes back.</li>
+</ul>
+<p>When you make a new PDF, PlanetPDF asks where to save it, opens it in a tab, and then asks <b>Make the scanned pages searchable (OCR) now?</b> Click <b>Yes</b> to recognize the text right away (see <a href="#recognize-text">Recognizing text</a>).</p>
+
+<h3 id="scan-windows">Scanning on Windows</h3>
+<!-- index: Windows scan dialog; Windows Image Acquisition; scan another page -->
+<p>On Windows, PlanetPDF uses Windows' own scan window, the same one other Windows programs show.</p>
+<ol>
+  <li>Choose <b>File ▸ Create ▸ PDF from Scanner…</b>.</li>
+  <li>In Windows' scan window, choose the paper source, color, and resolution your scanner offers, and click <b>Scan</b>.</li>
+  <li>PlanetPDF says how many pages are scanned so far and asks <b>Scan another page?</b> Put the next page on the scanner and click <b>Yes</b>, or click <b>No</b> when you are done.</li>
+  <li>Choose where to save the new PDF.</li>
+</ol>
+<p>If no scanner is found, PlanetPDF says so: check that the scanner is on, connected, and installed in Windows (<b>Settings ▸ Bluetooth &amp; devices ▸ Printers &amp; scanners</b>).</p>
+
+<h3 id="scan-mac-linux">Scanning on a Mac or Linux: the Scan window</h3>
+<!-- index: AirScan; eSCL; network scanner; USB scanner; Image Capture; document feeder; duplex; both sides; Mac scanning; Linux scanning -->
+<p>On a Mac and on Linux, PlanetPDF shows its own <b>PDF from Scanner</b> window.</p>
+<ul>
+  <li><b>Scanner:</b> the scanners found. On a Mac this is every scanner the Mac can use: USB scanners (listed first, marked "(USB)"), network scanners, and shared ones. On Linux it is the network scanners that announce themselves (AirScan, which most current office scanners and multifunction printers support). The scanner you used last stays in the list even if it didn't answer this time.</li>
+  <li><b>Find Again:</b> looks for scanners again (useful when one was just switched on).</li>
+  <li><b>Add by Address…:</b> type the scanner's network address (for example <code>192.168.1.40</code>) when it isn't found by itself. PlanetPDF remembers it.</li>
+  <li><b>Scan from:</b> only what the chosen scanner has: <b>Glass (flatbed)</b>, <b>Document feeder</b>, or <b>Document feeder, both sides</b>.</li>
+  <li><b>Colors:</b> <b>Color</b>, <b>Grayscale</b>, or <b>Black and white</b>, as the scanner offers them.</li>
+  <li><b>Resolution:</b> 150, 200, 300, or 600 dpi (only the ones the scanner offers). 300 dpi is the usual choice for documents and for text recognition.</li>
+</ul>
+<p>Click <b>Scan</b>. PlanetPDF remembers the scanner and your choices for next time.</p>
+<ul>
+  <li><b>From the glass,</b> each scan is one page. PlanetPDF then asks <b>Scan another page?</b></li>
+  <li><b>From the feeder,</b> every page in the feeder is scanned at once. PlanetPDF then asks <b>Scan more pages from the feeder?</b>, so you can load another stack.</li>
+</ul>
+<p>Click <b>Cancel</b> in the progress window to stop a scan. Pages already scanned are kept.</p>
+<p class="note"><b>Mac: Local Network permission.</b> macOS asks once whether PlanetPDF may find devices on your local network. Click <b>Allow</b>. If you clicked <b>Don't Allow</b>, network scanners can't be reached: turn PlanetPDF on in <b>System Settings ▸ Privacy &amp; Security ▸ Local Network</b>. The Scan window reminds you of this when no scanner answers.</p>
+
+<h2 id="recognize-text">Recognizing text (OCR)</h2>
+<!-- index: OCR; optical character recognition; searchable PDF; make text searchable; Tesseract; text layer; scanned text; copy text from a scan -->
+<p>A scan is a picture of the page: you can't search it, select its words, or copy them. The same goes for <b>text drawn as outlines</b>: some design programs and printers turn letters into shapes, which look like text but aren't. <b>Recognize Text</b> reads the words in the picture and puts an invisible layer of text exactly on top of them. The page looks the same as before, but now <b>Find</b> (<b>Ctrl+F</b>), text selection, copying, Read Out Loud, redaction search, and exports to Word or text all work on it.</p>
+<ol>
+  <li>Open the <b>Scan &amp; OCR</b> tool and choose <b>Recognize Text ▸ In This File</b> (or press <b>Ctrl+Shift+O</b>).</li>
+  <li>In <b>Pages</b>, choose <b>Pages without searchable text</b> (PlanetPDF lists the scanned pages, and the pages whose words are drawn as outlines) or <b>These pages:</b> and type them, for example <code>1,5,8-12</code>.</li>
+  <li>Choose the <b>Language</b> of the text.</li>
+  <li>Choose the <b>Resolution</b> the pages are read at: <b>200 dpi (faster)</b>, <b>300 dpi (recommended)</b>, or <b>400 dpi (small print)</b>.</li>
+  <li>Click <b>Recognize</b>. A window counts the pages ("Recognizing text on page 3 of 10"); <b>Cancel</b> stops without changing anything.</li>
+</ol>
+<p>When it finishes, the status bar says how many words were recognized on how many pages. The whole recognition is one step: <b>Edit ▸ Undo</b> removes the recognized text again. Save the document to keep it.</p>
+<ul>
+  <li>Pages that already have text PlanetPDF recognized are skipped, so running it again doesn't double the text.</li>
+  <li>Words that are already ordinary text on the page aren't added again, so a page that's partly real text and partly a picture or outlines finds each word once.</li>
+  <li>The recognized text is kept in its own layer, named "PlanetPDF OCR text".</li>
+</ul>
+
+<h3 id="ocr-languages">Languages</h3>
+<!-- index: OCR language; Spanish; French; German; tessdata; language files -->
+<p>The <b>Language</b> list shows the languages installed for text recognition on this computer (for example English, Spanish, French, German). PlanetPDF remembers the language and resolution you chose last. If text recognition isn't installed at all, PlanetPDF says that it needs Tesseract OCR and doesn't open the window; ask IT to install it.</p>
+
+<h3 id="ocr-clean-first">"Straighten and clean them first?"</h3>
+<!-- index: crooked scans; specks; deskew before OCR; clean before OCR -->
+<p>Text is recognized better on straight, clean pages. Before recognizing, PlanetPDF looks at a few of the scanned pages. If they are crooked (half a degree or more off level) or full of specks, it says so and asks:</p>
+<ul>
+  <li><b>Straighten and Clean First:</b> runs <a href="#optimize-quick">Straighten &amp; Clean</a> on those pages (one undo step), then recognizes the text.</li>
+  <li><b>Recognize As They Are:</b> recognizes the pages without changing them.</li>
+  <li><b>Cancel:</b> does nothing.</li>
+</ul>
+
+<h3 id="ocr-multiple">Recognizing text in many files at once</h3>
+<!-- index: batch OCR; Recognize Text in Multiple Files; many PDFs; folder of scans -->
+<ol>
+  <li>On the <b>Scan &amp; OCR</b> bar, choose <b>Recognize Text ▸ In Multiple Files…</b>.</li>
+  <li>Click <b>Add Files…</b> or <b>Add Folder…</b> to list the PDFs. <b>Remove</b>, <b>Up</b>, and <b>Down</b> change the list.</li>
+  <li>Choose the <b>Language</b>.</li>
+  <li>Either leave <b>Replace the original files</b> unticked and choose a folder in <b>Save in:</b> (new copies go there), or tick it to write the text into the original files (each is replaced only after it worked).</li>
+  <li>Click <b>Recognize Text</b>.</li>
+</ol>
+<p>Every scanned page in each file gets searchable text; pages that already have text are left alone. The progress window counts files and pages ("File 2 of 5 (report.pdf): recognizing text on page 3…"). If you cancel, the files finished before that stay done. At the end PlanetPDF lists how many files were done and any that weren't, with the reason.</p>
+
+<h2 id="correct-ocr">Correcting recognized text</h2>
+<!-- index: Correct Recognized Text; OCR mistakes; OCR errors; misread words; suspects -->
+<p>Text recognition sometimes misreads a word, especially on faint or small print. <b>Correct Recognized Text</b> lists the words that look wrong, so you can compare each with the scan and fix it. This changes only the invisible text (what search and copy find); the picture of the page stays as it is.</p>
+<ol>
+  <li>On the <b>Scan &amp; OCR</b> bar, choose <b>Recognize Text ▸ Correct Recognized Text…</b>.</li>
+  <li>The list <b>Words that may be misread</b> shows each suspect word and its page: words not in the dictionary, or letters mixed with digits and odd marks. Click one. The page view goes to it and marks it with a red box, and <b>On the page:</b> shows that part of the scan.</li>
+  <li>In <b>Recognized as</b>, type the right word or pick a suggestion from the list. Leave it empty to remove the word.</li>
+  <li>Click <b>Correct</b> (or press <b>Enter</b>). Each correction is its own undo step.</li>
+</ol>
+<ul>
+  <li><b>Not a Mistake:</b> the word is right; it leaves the list.</li>
+  <li><b>Ignore All:</b> that word is never listed again while PlanetPDF is open.</li>
+</ul>
+<p>If the document has no recognized text yet, PlanetPDF offers to recognize it first. Only text PlanetPDF recognized can be corrected here. Edit ▸ Check Spelling can also correct recognized words.</p>
+
+<h2 id="optimize-scans">Optimizing scans</h2>
+<!-- index: Optimize Scans; clean up scans; enhance scans; deskew; despeckle; scan cleanup -->
+<p>The <b>Optimize Scans</b> tool cleans up scanned pages: it turns pages the right way up, straightens them, removes dark copier edges, whitens the paper, removes specks and dust, removes faint text showing through from the back of thin paper, and stores the pages in black and white, gray, or color. Clean pages are easier to read, print better, recognize better, and are much smaller.</p>
+<p>Only the picture of each scanned page is replaced, so the page keeps its comments, links, and anything else on it. Other pages aren't touched. Everything the tool does is one step that <b>Edit ▸ Undo</b> takes back; save the document to keep it.</p>
+
+<h3 id="optimize-dialog">Optimize… (all the steps, with a preview)</h3>
+<!-- index: Optimize dialog; before and after; preview; simple; all automatic -->
+<ol>
+  <li>Open the <b>Optimize Scans</b> tool and click <b>Optimize…</b> (or choose <b>Enhance ▸ Optimize Scans…</b> on the <b>Scan &amp; OCR</b> bar).</li>
+  <li>Under <b>Pages</b>, keep <b>All N scanned pages</b>, or choose <b>Pages:</b> and type them.</li>
+  <li>Under <b>Clean-up</b>, tick the steps you want. They are all ticked, and all automatic, to start with:
+    <ul>
+      <li><b>Turn pages scanned sideways or upside down the right way up</b></li>
+      <li><b>Straighten crooked pages</b></li>
+      <li><b>Remove dark borders at the edges (from a copier or scanner lid)</b></li>
+      <li><b>Clean up: white paper (no shadows or yellowing), no specks or dust</b></li>
+      <li><b>Remove bleed-through from the back of thin paper</b></li>
+    </ul>
+  </li>
+  <li>Under <b>Result</b>, choose the <b>Color</b> and <b>Resolution</b> (see below), and whether to <b>Remove blank pages (you'll choose which)</b> and <b>Recognize text afterwards (OCR), so it can be searched and copied</b>.</li>
+  <li>Look at the <b>Preview</b>: the page as scanned and as it will be. Use the left and right arrows to step through the scanned pages ("Page 4 (scan 2 of 3)").</li>
+  <li>Click <b>Optimize</b>. The progress window counts the pages.</li>
+</ol>
+<p>When it's done, the status bar sums up what happened, for example "Cleaned 12 scanned pages, turned 2 the right way up, straightened 5, 10 in black and white." Pages that aren't scans are named and left alone.</p>
+<p class="note"><b>Straightened pages lose their recognized text,</b> because it no longer lines up with the words. Tick <b>Recognize text afterwards</b> (or run Recognize Text again) to put it back. Pages that were only turned keep their text.</p>
+
+<h3 id="optimize-color">Color and resolution</h3>
+<!-- index: black and white; grayscale; color mode; dpi; CCITT; smaller scans -->
+<p><b>Color:</b></p>
+<ul>
+  <li><b>Automatic (black and white for text pages):</b> pages that are only dark text on paper become black and white; pages with shading, photos, or faint tones become gray; pages with real color stay in color.</li>
+  <li><b>Black and white:</b> crisp text and by far the smallest file.</li>
+  <li><b>Grayscale</b>, or <b>Keep the colors as scanned</b>.</li>
+</ul>
+<p><b>Resolution:</b> <b>300 dpi (best for text)</b>, <b>200 dpi</b>, <b>150 dpi (smallest)</b>, or <b>Keep the scan's resolution</b>. Scans finer than the choice are reduced to it; coarser ones are left as they are.</p>
+
+<h3 id="optimize-advanced">Advanced: each step automatic or manual</h3>
+<!-- index: Advanced Optimize Scans; manual threshold; manual angle; step preview -->
+<p>Click <b>Advanced…</b> to set each step yourself. The steps are listed on the left in the order they run, each with what it did on the preview page. Click one to see its settings, and choose <b>Off</b>, <b>Automatic</b>, or <b>Manual</b>. The preview then shows that step alone: "Before: straighten" and "After: straighten". Tick <b>Whole clean-up</b> to see the page as scanned and as it will be.</p>
+<table>
+  <tr><th>Step</th><th>What it does</th><th>Manual setting</th></tr>
+  <tr><td><b>Page direction</b></td><td>Turns pages scanned sideways or upside down the right way up. Automatic reads a strip of text both ways to decide, so it needs text recognition to be installed. The page is turned without changing its picture, so nothing is lost.</td><td><b>Turn every page:</b> 90° clockwise, 180° (upside down), or 90° counterclockwise.</td></tr>
+  <tr><td><b>Dark borders</b></td><td>Makes the black edges a copier or scanner lid leaves white.</td><td><b>Clear at every edge:</b> a band in millimeters cleared at all four edges.</td></tr>
+  <tr><td><b>Straighten</b></td><td>Measures how crooked the lines of text are (up to 10° either way) and turns the picture level.</td><td><b>Turn the picture by:</b> degrees; a positive number turns it counterclockwise.</td></tr>
+  <tr><td><b>Clean up</b></td><td>Makes the paper white (no shadows or yellowing) and removes specks and dust. Periods and the dots on i's stay.</td><td><b>Remove specks up to:</b> a size in millimeters.</td></tr>
+  <tr><td><b>Bleed-through</b></td><td>Removes faint text showing through from the back of thin paper. Automatic only acts when something is showing through.</td><td><b>Remove:</b> a slider from <b>Less</b> to <b>More</b>. Further right removes darker marks too, including faint pencil or stamps, so check the preview.</td></tr>
+  <tr><td><b>Color</b></td><td>The color chosen under Result.</td><td><b>Manual threshold</b> for black and white: a slider from <b>Lighter</b> to <b>Darker</b>. Further right keeps fainter writing (and makes text bolder).</td></tr>
+</table>
+<p>Click <b>Simple…</b> to go back to the check boxes. Manual steps become automatic again.</p>
+
+<h3 id="optimize-quick">The one-click buttons</h3>
+<!-- index: Black & White; Straighten & Clean; Fix Page Direction; quick clean-up -->
+<p>The <b>Optimize Scans</b> bar also has buttons that do the most common jobs on every scanned page at once, with no questions:</p>
+<ul>
+  <li><b>Black &amp; White:</b> makes the scanned pages black and white (crisp text, much smaller). Nothing else is changed.</li>
+  <li><b>Straighten &amp; Clean:</b> straightens crooked pages and removes dark edges, specks, and bleed-through, and makes the paper white. Colors stay as scanned.</li>
+  <li><b>Fix Page Direction:</b> turns pages scanned sideways or upside down the right way up.</li>
+</ul>
+<p>Each is one undo step.</p>
+
+<h3 id="blank-pages">Removing blank pages</h3>
+<!-- index: Remove Blank Pages; empty pages; backs of double-sided scans; duplex blanks -->
+<p>Double-sided scanning often leaves empty pages: the blank backs of one-sided sheets.</p>
+<ol>
+  <li>On the <b>Optimize Scans</b> bar, click <b>Remove Blank Pages…</b> (or tick <b>Remove blank pages</b> in <b>Optimize…</b>).</li>
+  <li>PlanetPDF looks at each page and shows the ones that look blank (nothing on them but specks or show-through from the back), each with a small picture.</li>
+  <li>Untick any page you want to keep, then click <b>Delete N Pages</b>.</li>
+</ol>
+<p>Faint pencil writing counts as something on the page, so such pages aren't offered. If every page looks blank, none are deleted. <b>Edit ▸ Undo</b> brings deleted pages back.</p>
+
+<h2 id="enhance">Enhance: Scanned Document and Camera Image</h2>
+<!-- index: Enhance; Camera Image; phone photo; photo of a document; perspective; sharpen; scanned document enhance -->
+<p>The <b>Enhance</b> menu on the <b>Scan &amp; OCR</b> bar is a quick way to make a page clearer:</p>
+<ul>
+  <li><b>Scanned Document…:</b> straightens the page, makes the paper white, and sharpens the text.</li>
+  <li><b>Camera Image…:</b> for a photo of a sheet of paper taken with a phone or camera. It finds the sheet in the photo, flattens it to a straight-on rectangle (taking out the angle the photo was taken at), then cleans it the same way.</li>
+</ul>
+<ol>
+  <li>Choose <b>Enhance ▸ Scanned Document…</b> or <b>Enhance ▸ Camera Image…</b>.</li>
+  <li>Type the <b>Pages</b> (the selected pages are filled in).</li>
+  <li>Tick <b>Keep the colors</b> if you want them; otherwise the result is black text on white, the clearest.</li>
+  <li>Click <b>Enhance</b>.</li>
+</ol>
+<p>The page becomes the cleaned-up picture. Run <a href="#recognize-text">Recognize Text</a> afterwards for searchable text. <b>Edit ▸ Undo</b> puts the pages back. For more control, use <a href="#optimize-scans">Optimize Scans</a>.</p>
+
+<h2 id="compress">Making a file smaller (Compress PDF)</h2>
+<!-- index: Compress PDF; reduce file size; Reduced Size PDF; Optimized PDF; shrink; smaller file; email size; file too big -->
+<p>Scanned files in particular can be very large. <b>Compress PDF</b> shrinks the pictures, stores text-only scans in black and white, cuts fonts down to the letters used, and writes the file compactly.</p>
+<ol>
+  <li>Open the <b>Compress PDF</b> tool and click <b>Compress…</b>. (<b>File ▸ Save as Other ▸ Reduced Size PDF…</b> and <b>File ▸ Save as Other ▸ Optimized PDF…</b> open the same window.)</li>
+  <li><b>Current size</b> shows how big the file is now.</li>
+  <li>Choose the <b>Quality</b>:
+    <ul>
+      <li><b>Smallest (for email and screens, 96 dpi pictures)</b></li>
+      <li><b>Balanced (150 dpi pictures)</b>, the usual choice</li>
+      <li><b>High quality (300 dpi pictures, for printing)</b></li>
+      <li><b>Keep pictures as they are (compact the rest)</b></li>
+    </ul>
+  </li>
+  <li>Under <b>Scanned pages</b>, PlanetPDF says how many pages are scans. Both options are ticked to start with:
+    <ul>
+      <li><b>Store text-only scans in black and white (much smaller):</b> pages that are only dark text on paper lose the paper's tint, specks, and shading. Pages with color, photos, or shaded boxes are left in color or gray.</li>
+      <li><b>Store scans without real color in gray:</b> pages that look gray anyway become a third of the size with the same look.</li>
+    </ul>
+  </li>
+  <li>Under <b>Result</b>, choose:
+    <ul>
+      <li><b>Make this document smaller (Save it afterwards; Undo puts it back)</b>, or</li>
+      <li><b>Save a smaller copy as a new file (this document isn't changed)</b>. You then choose its name; PlanetPDF suggests "<i>name</i>_smaller.pdf".</li>
+    </ul>
+  </li>
+  <li>Click <b>Compress</b>.</li>
+</ol>
+<p>PlanetPDF then shows the size before and after, and how many scanned pages went to black and white or gray. If compressing wouldn't make the file smaller, nothing is changed and PlanetPDF says the document is already compact.</p>
+<ul>
+  <li><b>Password-protected files</b> keep their password when made smaller in place. For a smaller copy, PlanetPDF asks whether to protect the copy too.</li>
+  <li><b>Digitally signed files:</b> changing the file breaks its signatures, so PlanetPDF asks first, and the window starts on <b>Save a smaller copy</b>.</li>
+</ul>
+<p class="note"><b>Tip:</b> for scans, <a href="#optimize-scans">Optimize Scans</a> first (straighten, clean, black and white), then Compress: clean pages compress far better.</p>
+
+<h3 id="space-usage">Space Usage: what takes up the room</h3>
+<!-- index: Space Usage; audit space usage; why is my file so big; file size breakdown -->
+<p>Click <b>Space Usage</b> on the <b>Compress PDF</b> bar to see how much of the file each kind of content takes, as a size and a percentage:</p>
+<ul>
+  <li><b>Pictures</b> (scans, photos, logos)</li>
+  <li><b>Fonts</b></li>
+  <li><b>Page content (text and drawings)</b></li>
+  <li><b>Comments and form fields</b></li>
+  <li><b>Document structure and other</b></li>
+</ul>
+<p>It also gives the file size and how many pages are scans. If pictures take most of the room, Compress makes the biggest difference.</p>
+
+<h2 id="scans-troubleshooting">When something doesn't work</h2>
+<!-- index: OCR not available; Tesseract missing; no scanner found; scan problems -->
+<ul>
+  <li><b>"Text recognition needs Tesseract OCR":</b> text recognition isn't installed on this computer. Ask IT to install it. Fix Page Direction and the page-direction step also need it.</li>
+  <li><b>"This document has no scanned pages":</b> the Optimize Scans steps only work on pages that are one picture of the whole page.</li>
+  <li><b>"No text was recognized on those pages":</b> the pages may be blank, very faint, or too coarse. Scan at 300 dpi, or choose 400 dpi in Recognize Text for small print.</li>
+  <li><b>A network scanner doesn't appear</b> (Mac, Linux): click <b>Find Again</b>, use <b>Add by Address…</b>, and on a Mac check the Local Network permission.</li>
+</ul>
+</body></html>
