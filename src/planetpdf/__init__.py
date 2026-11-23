@@ -1,4 +1,4 @@
-"""PlanetPDF: internal desktop PDF editor."""
+"""PlanetPDF: a free, open-source desktop PDF editor."""
 
 __version__ = "1.0.0"
 APP_NAME = "PlanetPDF"
