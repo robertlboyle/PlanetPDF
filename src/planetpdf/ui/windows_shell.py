@@ -41,6 +41,53 @@ def allow_foreground() -> None:
         pass
 
 
+def force_foreground(hwnd: int) -> bool:
+    """Bring a window to the front even when PlanetPDF isn't the program in use (user 2026-11-22: a
+    printout's question "is hidden in the background and I was waiting for something to happen").
+    Windows refuses SetForegroundWindow to a program that didn't get the last input, and the
+    printer's service started PlanetPDF / handed it the file, so neither counts. The usual ways
+    round it: an Alt key tap (which lifts the lock for the next SetForegroundWindow) and joining
+    the input of the window in front for the moment of the switch. Flashes the taskbar button if
+    it still didn't work. True = it's in front."""
+    from ctypes import wintypes
+
+    try:
+        user32 = ctypes.windll.user32
+        kernel32 = ctypes.windll.kernel32
+        user32.GetForegroundWindow.restype = wintypes.HWND
+        user32.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.c_void_p]
+        hwnd = wintypes.HWND(hwnd)
+        if user32.IsIconic(hwnd):
+            user32.ShowWindow(hwnd, 9)  # SW_RESTORE
+        front = user32.GetForegroundWindow()
+        if front == hwnd.value:
+            return True
+        mine = kernel32.GetCurrentThreadId()
+        theirs = user32.GetWindowThreadProcessId(front, None) if front else 0
+        joined = bool(theirs and theirs != mine and user32.AttachThreadInput(mine, theirs, True))
+        try:
+            user32.keybd_event(0x12, 0, 0, 0)  # Alt down
+            user32.keybd_event(0x12, 0, 2, 0)  # Alt up (KEYEVENTF_KEYUP)
+            user32.BringWindowToTop(hwnd)
+            user32.SetForegroundWindow(hwnd)
+            user32.SetActiveWindow(hwnd)
+        finally:
+            if joined:
+                user32.AttachThreadInput(mine, theirs, False)
+        if user32.GetForegroundWindow() == hwnd.value:
+            return True
+
+        class FLASHWINFO(ctypes.Structure):
+            _fields_ = [("cbSize", wintypes.UINT), ("hwnd", wintypes.HWND), ("dwFlags", wintypes.DWORD),
+                        ("uCount", wintypes.UINT), ("dwTimeout", wintypes.DWORD)]
+
+        # FLASHW_ALL | FLASHW_TIMERNOFG: flash until it's brought forward
+        user32.FlashWindowEx(ctypes.byref(FLASHWINFO(ctypes.sizeof(FLASHWINFO), hwnd, 0x3 | 0xC, 0, 0)))
+    except (AttributeError, OSError):
+        pass
+    return False
+
+
 CHOOSE_PDF_APP = "--choose-pdf-app"
 # what Windows records when PlanetPDF is picked: the installer's ProgId (packaging/PlanetPDF.iss),
 # or the "Open with" entry for the launcher
@@ -71,12 +118,10 @@ def pdf_app_is_planetpdf() -> bool:
 
 
 def choose_pdf_app_main() -> int:
-    """``PlanetPDF.exe --choose-pdf-app`` (the installer, as the user): the chooser, or a message
-    that PlanetPDF already opens PDF files (the chooser would offer only "Just once")."""
+    """``PlanetPDF.exe --choose-pdf-app`` (the installer, as the user): the chooser, or nothing at
+    all when PlanetPDF already opens PDF files (the chooser would offer only "Just once"; user
+    2026-11-22: a message saying so "is annoying to see every upgrade. Just stay silent")."""
     if pdf_app_is_planetpdf():
-        MB_ICONINFORMATION = 0x40
-        ctypes.windll.user32.MessageBoxW(None, "PlanetPDF already opens your PDF files.", "PlanetPDF",
-                                         MB_ICONINFORMATION)
         return 0
     return 0 if choose_pdf_app() else 1
 

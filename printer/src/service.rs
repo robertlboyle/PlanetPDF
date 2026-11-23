@@ -19,10 +19,18 @@ use crate::{PIPE_NAME, PRINTER_NAME, SERVICE_NAME};
 /// SYSTEM and Administrators full; Everyone may write (the spooler connects with its own,
 /// sometimes anonymous, identity): who may *use* it is decided by the client's process
 /// (`client_allowed`: the spooler's own process, or a Windows print helper in System32 that the
-/// spooler started; both told by Windows, not by the client). Nobody from another computer:
-/// network logons are denied here (NU) and the pipe refuses remote clients
-/// (`PIPE_REJECT_REMOTE_CLIENTS`; security review 2026-11-21).
-const PIPE_SDDL: &str = "D:(D;;GA;;;NU)(A;;GA;;;SY)(A;;GA;;;BA)(A;;GRGW;;;WD)";
+/// spooler started; both told by Windows, not by the client). Nobody from another computer: the
+/// pipe refuses remote clients (`PIPE_REJECT_REMOTE_CLIENTS`; security review 2026-11-21).
+///
+/// **Everyone also needs DELETE (`SD`)** (user 2026-11-22: every job from Visio and Notepad stuck
+/// as "Error, Printing, Retained", printer.log with no connection at all). Process Monitor showed
+/// the spooler, impersonating the printing user, opening the port with
+/// `Generic Write | Read Attributes | Delete`, OpenIf, share Read: ACCESS DENIED, twice, 10 s
+/// apart, then the job failed. The same request on a test pipe was refused without `SD` and
+/// allowed with it. Administrators always had it (GA), so a print from an administrator
+/// PowerShell worked and hid this. (0.1.17's "deny network logons" entry, dropped in 0.1.19 while
+/// looking for this, isn't put back: the flag above already keeps other computers out.)
+const PIPE_SDDL: &str = "D:(A;;GA;;;SY)(A;;GA;;;BA)(A;;GRGWSD;;;WD)";
 const BUFFER: usize = 64 * 1024;
 
 static STOPPING: AtomicBool = AtomicBool::new(false);

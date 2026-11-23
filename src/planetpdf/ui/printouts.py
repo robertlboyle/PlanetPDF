@@ -6,9 +6,12 @@ the rules; here: the Save dialog, moving the file out of the inbox, opening it."
 from __future__ import annotations
 
 import shutil
+import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from PySide6.QtCore import QTimer
+from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QCheckBox, QFileDialog, QMessageBox
 
 from planetpdf.core import printouts as P
@@ -37,6 +40,10 @@ def ask_open(window: MainWindow, document: str) -> tuple[bool, bool]:
     box.setDefaultButton(yes)
     remember = QCheckBox("Remember my answer (Preferences ▸ Documents can change it)", box)
     box.setCheckBox(remember)
+    if sys.platform == "win32" and QGuiApplication.platformName() == "windows":  # (the question in front too)
+        from planetpdf.ui import windows_shell
+
+        QTimer.singleShot(0, lambda: windows_shell.force_foreground(int(box.winId())))
     box.exec()
     return box.clickedButton() is yes, remember.isChecked()
 
@@ -58,6 +65,10 @@ def receive(window: MainWindow, path: Path) -> tuple[Path, bool] | None:
     s = window.settings
     path = Path(path)
     document = path.stem
+    # In front before asking anything (user 2026-11-22: the question "is hidden in the background
+    # and I was waiting for something to happen"): the print came from another program, so Windows
+    # wouldn't otherwise let PlanetPDF come forward.
+    window.bring_forward(force=True)
     name = P.file_name(P.template(s.print_name_template), document)
     folder = P.default_folder(s.print_folder)
     open_after = s.print_open_after

@@ -50,14 +50,13 @@ def is_default() -> bool | None:
 
 
 def make_default(window: MainWindow, *, tell: bool = True) -> bool:
-    """Mac: set it now; Windows: Windows' chooser, where the user confirms (or, when PlanetPDF
-    already opens PDF files, say so: the chooser would offer only "Just once")."""
+    """Mac: set it now; Windows: Windows' chooser, where the user confirms (or nothing at all when
+    PlanetPDF already opens PDF files: the chooser would offer only "Just once", and a message
+    saying so was "annoying to see every upgrade. Just stay silent", user 2026-11-22)."""
     if sys.platform == "win32":
         from planetpdf.ui import windows_shell
 
         if windows_shell.pdf_app_is_planetpdf():
-            if tell:
-                QMessageBox.information(window, "Default App", f"{APP_NAME} already opens your PDF files.")
             return True
         return windows_shell.choose_pdf_app(int(window.winId())) or QDesktopServices.openUrl(QUrl(WINDOWS_SETTINGS))
     from planetpdf.ui import macos_shell

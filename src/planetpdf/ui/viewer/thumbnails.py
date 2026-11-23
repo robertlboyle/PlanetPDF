@@ -32,6 +32,8 @@ from PySide6.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QStyle,
+    QStyledItemDelegate,
+    QStyleOptionViewItem,
     QWidget,
 )
 
@@ -45,6 +47,48 @@ THUMB_H = 140
 MAX_THUMB_W = 600  # (the side panel can be dragged wide: thumbnails grow up to this)
 RENDERS_PER_TICK = 3
 DROP_LINE = QColor(0x3D, 0xA5, 0xFF)
+
+
+SELECTED_FRAME = QColor(0x3D, 0xA5, 0xFF)  # bright blue: shows on the dark backdrop and on white
+SELECTED_FILL = QColor(0x3D, 0xA5, 0xFF, 70)
+
+
+class PageFrameDelegate(QStyledItemDelegate):
+    """Draws an obvious blue box around each selected page (user 2026-11-22: "there is no
+    visible indication that something is selected"): a tint behind the page and a thick
+    rounded frame around the page and its number. With ``checked=True`` a ticked page counts
+    as selected too (lists where pages are chosen by their tick boxes)."""
+
+    def __init__(self, parent: QWidget | None = None, checked: bool = False) -> None:
+        super().__init__(parent)
+        self.checked = checked
+
+    def is_marked(self, option: QStyleOptionViewItem, index) -> bool:
+        if option.state & QStyle.StateFlag.State_Selected:
+            return True
+        return self.checked and index.data(Qt.ItemDataRole.CheckStateRole) in (
+            Qt.CheckState.Checked, Qt.CheckState.Checked.value)
+
+    def paint(self, painter: QPainter, option: QStyleOptionViewItem, index) -> None:
+        marked = self.is_marked(option, index)
+        box = QRectF(option.rect).adjusted(2.5, 2.5, -2.5, -2.5)
+        if marked:  # the tint first, so it shows around the page, not over it
+            painter.save()
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(SELECTED_FILL)
+            painter.drawRoundedRect(box, 6, 6)
+            painter.restore()
+        plain = QStyleOptionViewItem(option)
+        plain.state &= ~QStyle.StateFlag.State_Selected  # (Qt's own highlight: barely visible here)
+        super().paint(painter, plain, index)
+        if marked:
+            painter.save()
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            painter.setPen(QPen(SELECTED_FRAME, 4))
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawRoundedRect(box, 6, 6)
+            painter.restore()
 
 
 def _pdf_paths(event: QDropEvent | QDragEnterEvent | QDragMoveEvent) -> list[Path]:
@@ -79,6 +123,7 @@ class ThumbnailList(QListWidget):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setMinimumWidth(self.thumb_w + 40 if grid else 90)  # (the sidebar can be dragged narrow)
         self.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        self.setItemDelegate(PageFrameDelegate(self))
         # Reordering pages is a drag of our own (mouse press / move / release), not Qt's
         # system drag: that one started but never delivered the drop on Windows (user bug
         # 2026-10-02, "where did you add the feature?"). Files dropped from Explorer still

@@ -469,6 +469,9 @@ class BlankPagesDialog(QDialog):
         self.list.setIconSize(QSize(110, 140))
         self.list.setResizeMode(QListWidget.ResizeMode.Adjust)
         self.list.setMinimumSize(560, 330)
+        from planetpdf.ui.viewer.thumbnails import PageFrameDelegate
+
+        self.list.setItemDelegate(PageFrameDelegate(self.list, checked=True))  # ticked = framed in blue
         for index in blank:
             pix = window.session.doc[index].get_pixmap(dpi=18)
             image = QImage(pix.samples, pix.width, pix.height, pix.stride, QImage.Format.Format_RGB888).copy()

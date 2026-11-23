@@ -9,16 +9,35 @@ use std::path::{Path, PathBuf};
 pub const INBOX: [&str; 3] = ["Planet Networks", "PlanetPDF", "printouts"];
 const FALLBACK: &str = "Printout";
 const MAX_CHARS: usize = 120;
-/// Programs that put their own name in front of the document's (older Office, some browsers).
-const PREFIXES: [&str; 6] = ["Microsoft Word - ", "Microsoft Excel - ", "Microsoft PowerPoint - ", "Microsoft Outlook - ",
-                             "Notepad - ", "Untitled - "];
-/// The document's own extension goes: "Quote 1043.docx" prints as "Quote 1043.pdf".
-const EXTENSIONS: [&str; 18] = [".docx", ".docm", ".doc", ".xlsx", ".xlsm", ".xls", ".pptx", ".ppt", ".txt", ".rtf",
-                                ".htm", ".html", ".pdf", ".msg", ".eml", ".csv", ".odt", ".xps"];
+/// Programs that put their own name in front of the document's (older Office, Visio, some browsers).
+const PREFIXES: [&str; 7] = ["Microsoft Word - ", "Microsoft Excel - ", "Microsoft PowerPoint - ", "Microsoft Outlook - ",
+                             "Notepad - ", "Untitled - ", "Visio-"];
+/// Programs that put their own name after it (Windows 11's Notepad: "Notes.txt - Notepad").
+const SUFFIXES: [&str; 3] = [" - Notepad", " - Paint", " - WordPad"];
+
+/// The document's own extension goes, whatever it is (user 2026-11-22: "Instead of something.txt.pdf
+/// or chart.vsdx.pdf, it should just be something.pdf or chart.pdf"): a dot, a letter, then up
+/// to four more letters or digits, at the very end. "Fiber map v2.1" and "Mr. Smith" keep theirs.
+fn extension_len(name: &str) -> Option<usize> {
+    let dot = name.rfind('.')?;
+    let ext = &name[dot + 1..];
+    let ok = dot > 0
+        && (1..=5).contains(&ext.len())
+        && ext.chars().next().is_some_and(|c| c.is_ascii_alphabetic())
+        && ext.chars().all(|c| c.is_ascii_alphanumeric());
+    ok.then_some(ext.len() + 1)
+}
 
 /// A file name (without ".pdf") from the print job's document name.
 pub fn file_stem(document: &str) -> String {
-    let mut name = document.trim().to_string();
+    // (Notepad marks a document with unsaved changes with a "*" in front)
+    let mut name = document.trim().trim_start_matches('*').trim().to_string();
+    for suffix in SUFFIXES {
+        if name.len() > suffix.len() && name.to_ascii_lowercase().ends_with(&suffix.to_ascii_lowercase()) {
+            name.truncate(name.len() - suffix.len());
+            break;
+        }
+    }
     for prefix in PREFIXES {
         if name.len() > prefix.len() && name.to_ascii_lowercase().starts_with(&prefix.to_ascii_lowercase()) {
             name = name[prefix.len()..].to_string();
@@ -32,9 +51,10 @@ pub fn file_stem(document: &str) -> String {
             name = last.to_string();
         }
     }
-    let lower = name.to_ascii_lowercase();
-    if let Some(ext) = EXTENSIONS.iter().find(|ext| lower.ends_with(*ext) && lower.len() > ext.len()) {
-        name.truncate(name.len() - ext.len());
+    let trimmed = name.trim_end().len();
+    name.truncate(trimmed);
+    if let Some(len) = extension_len(&name) {
+        name.truncate(name.len() - len);
     }
     let mut clean: String = name
         .chars()
@@ -89,6 +109,13 @@ mod tests {
         assert_eq!(file_stem("Tab\there\nand there"), "Tab here and there");
         assert_eq!(file_stem(&"x".repeat(300)).chars().count(), 120);
         assert_eq!(file_stem("https://www.planet.net/fiber/"), "fiber");
+        // any extension, and the tags Visio and Notepad add (user 2026-11-22)
+        assert_eq!(file_stem("Visio-Corporate structure chart Oct 2026.vsdx"), "Corporate structure chart Oct 2026");
+        assert_eq!(file_stem("*This is a test.txt - Notepad"), "This is a test");
+        assert_eq!(file_stem("*This is a test. - Notepad"), "This is a test");
+        assert_eq!(file_stem("photo.jpeg"), "photo");
+        assert_eq!(file_stem("Letter to Mr. Smith"), "Letter to Mr. Smith");
+        assert_eq!(file_stem("Version 2.0b"), "Version 2.0b");
     }
 
     #[test]

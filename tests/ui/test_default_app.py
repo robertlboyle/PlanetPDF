@@ -103,8 +103,9 @@ def test_windows_opens_its_app_chooser(win, monkeypatch):
     assert opened == ["ms-settings:defaultapps?registeredAppMachine=PlanetPDF"]
 
 
-def test_windows_says_so_when_planetpdf_already_opens_pdf_files(win, monkeypatch):
-    """User 2026-10-23: the chooser showed PlanetPDF as the default with only "Just once"."""
+def test_windows_stays_silent_when_planetpdf_already_opens_pdf_files(win, monkeypatch):
+    """User 2026-10-23: the chooser showed PlanetPDF as the default with only "Just once"; then
+    2026-11-22: no message either ("annoying to see every upgrade. Just stay silent")."""
     from planetpdf.ui import windows_shell
 
     chooser, told = [], []
@@ -115,7 +116,7 @@ def test_windows_says_so_when_planetpdf_already_opens_pdf_files(win, monkeypatch
         monkeypatch.setattr(windows_shell, "pdf_app", lambda prog_id=prog_id: prog_id)
         assert default_app.is_default() is True
         assert default_app.make_default(win)
-    assert chooser == [] and told == ["PlanetPDF already opens your PDF files."] * 2
+    assert chooser == [] and told == []
     for prog_id in ("Acrobat.Document.DC", None):
         monkeypatch.setattr(windows_shell, "pdf_app", lambda prog_id=prog_id: prog_id)
         assert default_app.is_default() is False

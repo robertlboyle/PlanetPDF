@@ -9,6 +9,7 @@ from PySide6.QtGui import (
     QAction,
     QActionGroup,
     QCloseEvent,
+    QGuiApplication,
     QColor,
     QDesktopServices,
     QDragEnterEvent,
@@ -1167,11 +1168,18 @@ class MainWindow(QMainWindow):
             return cls._last_active
         return windows[0] if windows else None
 
-    def bring_forward(self) -> None:
+    def bring_forward(self, force: bool = False) -> None:
+        """``force``: in front even when another program is in use (a printout arriving: the
+        printer's service, not the user, started it; Windows otherwise only flashes the button)."""
         if self.isMinimized():
             self.showNormal()
         self.raise_()
         self.activateWindow()
+        # (only on the real display: offscreen tests must never tap a real Alt key)
+        if force and sys.platform == "win32" and QGuiApplication.platformName() == "windows":
+            from planetpdf.ui import windows_shell
+
+            windows_shell.force_foreground(int(self.winId()))
 
     def quit_all(self) -> bool:
         """File ▸ Exit: close every window (each asks about unsaved changes; canceling
