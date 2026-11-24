@@ -65,7 +65,7 @@ def test_open_navigate_zoom(window, pdf_copy):
 
     window.view.set_zoom(1.0)
     window.view.zoom_in()
-    assert window.view.zoom == pytest.approx(1.2)
+    assert window.view.zoom == pytest.approx(1.25)  # (the next of Acrobat's zoom levels)
     assert window.view.zoom_mode is ZoomMode.CUSTOM
     window.view.fit_page()
     assert window.view.zoom_mode is ZoomMode.FIT_PAGE

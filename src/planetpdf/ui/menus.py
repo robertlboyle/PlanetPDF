@@ -288,7 +288,7 @@ class MenuBuilder:
         labels = self.menu(show, "Button &Labels")
         labels.addActions(list(w.view_options.label_actions.values()))
         rulers = self.menu(show, "&Rulers && Grids")
-        rulers.addActions([w.act_rulers, w.act_grid, w.act_snap, w.act_guides])
+        rulers.addActions([w.act_rulers, w.act_grid, w.act_snap, w.act_snap_objects, w.act_guides])
         rulers.addSeparator()
         rulers.addAction(w.act_clear_guides)
         self.add(show, w.act_cursor, None)

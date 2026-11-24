@@ -402,3 +402,17 @@ def test_moving_lines_over_each_other_again_and_again_changes_nothing_else(tmp_p
 def _letter_boxes(s, line):
     return [ch["bbox"] for b in s.doc[0].get_text("rawdict", clip=pymupdf.Rect(line.rect) + (-2, -2, 2, 2))["blocks"]
             for l in b.get("lines", []) for sp in l["spans"] for ch in sp["chars"] if ch["c"].strip()]
+
+
+def test_several_spaces_in_a_row_are_kept(text):
+    """User 2026-11-24: "If I edit a line of text with multiple spaces, when I close it, it loses all
+    the spaces except for one": the line was read with its spaces squeezed, and an edit that only
+    added spaces counted as no change."""
+    text.doc[0].insert_text((72, 640), "Total:    $25.00", fontsize=12, fontname="helv")
+    line = _line(text, "Total")
+    assert line.text == "Total:    $25.00"  # (offered for editing as it is)
+    E.replace_line(text, line, "Total:    $30.00")
+    assert "Total:    $30.00" in text.doc[0].get_text()
+    line = _line(text, "Total")
+    E.replace_line(text, line, "Total:        $30.00")  # (only spaces added: still a change)
+    assert "Total:        $30.00" in text.doc[0].get_text()

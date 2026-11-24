@@ -345,6 +345,16 @@ the content under them is still there.</p>
 step: "Step 1 of 3: embedding font 2 of 5", "Step 2 of 3: writing 120 pages…", "Step 3 of 3: opening
 the saved file…". A save can't be stopped once it has begun, so the window has no Cancel button.</p>
 
+<h3 id="saving-temporary">Files from a zip file or an e-mail</h3>
+<!-- index: temporary folder; Temp folder; zip file; e-mail attachment; Outlook attachment; Choose Where to Keep This File; file disappeared -->
+<p>A PDF opened straight from a zip file in File Explorer, or from an e-mail attachment, is really
+a copy in a temporary folder, which Windows or the e-mail program empties without asking (for a zip
+file, as soon as its window closes). PlanetPDF won't save there: when you open such a file the status
+bar says so, and <b>Save</b> asks <b>Choose Where to Keep This File</b> and opens <b>Save As</b> in a
+lasting folder (the last one you used, or Documents). Choosing a temporary folder in Save As is
+refused, and you are asked again. Until it is saved somewhere lasting, auto-save keeps a recovery
+copy of your changes.</p>
+
 <h3 id="saving-signed">Saving a signed document</h3>
 <!-- index: signed document; digital signature; Signatures Will Be Invalidated -->
 <p>A digitally signed document is saved by adding your changes to the end of the file, so the

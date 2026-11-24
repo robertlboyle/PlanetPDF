@@ -11,6 +11,9 @@ from tests.fixtures import generate
 # Qt must never open real windows during tests.
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 os.environ["PLANETPDF_UPDATE_URL"] = ""  # (never ask the real update server from a test)
+# pytest's tmp_path is inside the system's temporary folder, where PlanetPDF won't save a
+# document (core/temp_folders.py); tests of that rule switch this off themselves
+os.environ["PLANETPDF_ALLOW_TEMP_SAVES"] = "1"
 
 
 @pytest.fixture(scope="session")

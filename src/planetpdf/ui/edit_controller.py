@@ -13,7 +13,7 @@ changes).
 
 from __future__ import annotations
 
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -66,6 +66,19 @@ FIELD_TOOLS = {
 CLICK = 6.0  # smaller than this (points) was a click, not a drag
 
 
+@dataclass(frozen=True)
+class CopiedObjects:
+    """Edit ▸ Copy in Edit PDF / Prepare Form (user 2026-11-24): the selected objects, read when
+    they were copied (`EditController.copy_selection`)."""
+
+    content: E.CopiedContent  # page text, images, shapes
+    marks: tuple  # placed items (MarkupSpec)
+    fields: tuple  # form fields (FieldSpec)
+    page: int  # where they came from (unrotated positions on it)
+    text: str  # also put on the clipboard as text for other programs
+    count: int
+
+
 def _qrect(r) -> QRectF:
     r = pymupdf.Rect(r)
     return QRectF(r.x0, r.y0, r.width, r.height)
@@ -112,6 +125,9 @@ class EditController(QObject):
         self.mode: str | None = None
         self.tool: object = None  # "text", "image" or a FieldKind
         self.editor: InlineTextEditor | None = None
+        # the text format bar's changes while a line is being typed in (user 2026-11-24: a color picked
+        # then was lost): applied with the edited words when the typing ends
+        self.pending_format: dict = {}
         self._lines: dict[int, list[E.TextLine]] = {}
         self._images: dict[int, list[E.PageImage]] = {}
         self._drawings: dict[int, list] = {}  # drawn shapes (core.drawings.PageDrawing)
@@ -264,6 +280,15 @@ class EditController(QObject):
 
     def _page_lines(self, index: int) -> list[E.TextLine]:
         return self._cached(self._lines, index, E.text_lines)
+
+    def align_boxes(self, index: int) -> list[QRectF]:
+        """The page's lines of text as displayed, for the dotted guides while something is
+        dragged outside Edit PDF (in Edit PDF they are objects of their own already)."""
+        if self.session is None or self.mode == "edit" or not 0 <= index < self.session.doc.page_count:
+            return []
+        page = self.session.doc[index]
+        return [_qrect(to_display(page, line.rect)) for line in self._page_lines(index)
+                if not getattr(line, "invisible", False)]
 
     def _page_images(self, index: int) -> list[E.PageImage]:
         return self._cached(self._images, index, E.page_images)
@@ -657,6 +682,122 @@ class EditController(QObject):
             self._window.view.go_to_page(to_page)
         self.selectionChanged.emit(self._window.view.selected_markup)
         return True
+
+    # --- Edit ▸ Copy / Paste of the selected objects (user 2026-11-24) ----------------------------
+
+    def copy_selection(self) -> CopiedObjects | None:
+        """What Edit ▸ Copy takes in Edit PDF / Prepare Form: the selected lines of text (with
+        their underlines and frames), images, shapes, placed items and fields, read now so the
+        page may change before they are pasted. None when nothing selected can be copied."""
+        from planetpdf.core import drawings as DR
+        from planetpdf.core import markup as K
+
+        if self.mode is None or self.session is None:
+            return None
+        ids = self._window.view.selected_group
+        lines = [x for x in (self._line(i) for i in ids if i.startswith("txt:")) if x is not None]
+        images = [x for x in (self._image(i) for i in ids if i.startswith("img:")) if x is not None]
+        shapes = [x for x in (self._drawing(i) for i in ids if i.startswith("vec:")) if x is not None]
+        chosen = {(d.page, d.index) for d in shapes}
+        for line in lines:  # (a line brings its underline / word frame, as when it's moved)
+            for d in DR.decorations(self._page_drawings(line.page), line.rect, line.size):
+                if (d.page, d.index) not in chosen:
+                    chosen.add((d.page, d.index))
+                    shapes.append(d)
+        marks = []
+        for i in ids:
+            if i.startswith("mk:"):
+                try:
+                    spec = K.find_item(self.session, i[3:]).spec
+                except PdfError:
+                    spec = None
+                if spec is not None:
+                    marks.append(spec)
+        names = []
+        for i in ids:
+            if i in getattr(self, "_radio_groups", {}):
+                names.append(self._radio_groups[i][0])
+            elif i.startswith("fld:"):
+                names.append(split_key(i[4:])[0])
+        fields = []
+        for name in dict.fromkeys(names):
+            try:
+                fields.append(D.field_spec(self.session, name))
+            except PdfError:
+                pass
+        content = E.copy_group(self.session, lines, images, shapes)
+        if not (content or marks or fields):
+            return None
+        pages = [x.page for x in (*lines, *images, *shapes)] + [s.page for s in marks] + [f.page for f in fields]
+        text = "\n".join(t for t in [content.text] + [s.text or "" for s in marks] if t)
+        return CopiedObjects(content, tuple(marks), tuple(fields), min(pages), text, len(ids) or 1)
+
+    def paste_copied(self, copied: CopiedObjects, target: int, dx: float, dy: float) -> bool:
+        """Put copied objects on page ``target``, moved by (dx, dy) (unrotated points): one undo
+        step; the copies are selected (drag them, or paste again for another copy)."""
+        from planetpdf.core import markup as K
+        from planetpdf.ui.commands import DocumentSnapshotCommand
+
+        session = self.session
+        new_marks = [K.transformed(replace(s, mark_id=K.new_id(), page=target),
+                                   (s.rect[0] + dx, s.rect[1] + dy, s.rect[2] + dx, s.rect[3] + dy))
+                     for s in copied.marks]
+        taken = set(D.field_names(session))
+        new_fields = []
+        for spec in copied.fields:
+            name = D.unique_name(session, spec.name)
+            while name in taken:  # (two copied fields with one base name)
+                name = D.unique_name(session, name)
+            taken.add(name)
+            shift = lambda r: (r[0] + dx, r[1] + dy, r[2] + dx, r[3] + dy)  # noqa: E731
+            new_fields.append(replace(spec, name=name, page=target, rect=shift(spec.rect),
+                                      option_rects=tuple(shift(r) for r in spec.option_rects), extra_widgets=()))
+
+        def apply(s) -> None:
+            E.paste_group(s, copied.content, target, dx, dy)
+            for spec in new_marks:
+                K.add_markup(s, spec)
+            for spec in new_fields:
+                D.create_field(s, spec)
+
+        count = copied.count
+        label = f"Paste {count} Objects" if count > 1 else "Paste"
+        try:
+            command = DocumentSnapshotCommand.applied(self._window, apply, label)
+        except Exception as exc:  # nothing changed (the snapshot was put back)
+            self._window.report_error("Paste", exc)
+            self.refresh()
+            return False
+        self._window.push_command(command)
+        self.refresh()
+        new_ids = []
+        for line, *_rest in copied.content.lines:
+            found = self._line_at(target, (line.origin[0] + dx, line.origin[1] + dy))
+            if found is not None:
+                new_ids.append(found[0])
+        for r, _png in copied.content.images:
+            found = self._find_image_id(target, (r[0] + dx, r[1] + dy, r[2] + dx, r[3] + dy))
+            if found is not None:
+                new_ids.append(found)
+        if not copied.content.lines:  # (a line's underline is pasted with it, not selected on its own)
+            for r, _path in copied.content.drawings:
+                found = self._find_drawing_id(target, (r[0] + dx, r[1] + dy, r[2] + dx, r[3] + dy))
+                if found is not None:
+                    new_ids.append(found)
+        new_ids += ["mk:" + s.mark_id for s in new_marks]
+        view = self._window.view
+        for spec in new_fields:
+            new_ids += [key for key in self._all_overlay_ids() if key.startswith(f"fld:{spec.name}")
+                        and split_key(key[4:])[0] == spec.name]
+        view.set_group(new_ids)
+        if new_ids and view.current_page != target:
+            view.go_to_page(target)
+        self.selectionChanged.emit(view.selected_markup)
+        return True
+
+    def _all_overlay_ids(self) -> list[str]:
+        return list(getattr(self._window.view, "_markup_items", {}))
+
     def erase(self, page_index: int, points) -> bool:
         """Free-form eraser stroke (points as displayed): one undo step; the tool stays on."""
         from planetpdf.core import drawings as DR
@@ -822,6 +963,22 @@ class EditController(QObject):
         self._window.push_command(command)
         return True
 
+    def typing_line(self) -> bool:
+        """A line of page text is being typed in (Edit PDF)."""
+        import shiboken6
+
+        return self.mode == "edit" and self.editor is not None and shiboken6.isValid(self.editor)
+
+    def format_while_typing(self, change: dict) -> None:
+        """The text format bar while a line is being typed in: remembered for when the typing
+        ends (then the edited words get it, one undo step); the color shows in the box now."""
+        names = {"font_size": "size", "color": "color", "font": "font", "bold": "bold", "italic": "italic"}
+        for key, value in change.items():
+            if key in names:
+                self.pending_format[names[key]] = tuple(value) if key == "color" else value
+        if "color" in change and self.typing_line():
+            self.editor.show_color(QColor.fromRgbF(*change["color"]))
+
     def edit_line(self, item_id: str) -> None:
         line = self._line(item_id)
         if line is None:
@@ -838,7 +995,9 @@ class EditController(QObject):
 
         rect = QRectF(shown.left() - BOX_PADDING, shown.top() - BOX_PADDING, shown.width() + 2 * BOX_PADDING, shown.height() + 2 * BOX_PADDING)
 
-        def commit(text: str, _rect: QRectF, sources=None) -> None:
+        def commit(text: str, final: QRectF, sources=None) -> None:
+            restyle = dict(self.pending_format)  # (chosen in the text format bar while typing)
+            self.pending_format.clear()
             if len(group) > 1:  # (a line in several fonts: each piece in its run's; user 2026-10-23)
                 pieces: list[tuple[str, int]] = []
                 for ch, source in zip(text, sources or [0] * len(text)):
@@ -846,13 +1005,27 @@ class EditController(QObject):
                         pieces[-1] = (pieces[-1][0] + ch, source)
                     else:
                         pieces.append((ch, source))
-                label = "Delete Text" if not text.strip() else "Edit Text"
-                self._content(line.page, lambda s: E.replace_runs(s, group, pieces), label)
+                write = lambda s: E.replace_runs(s, group, pieces)  # noqa: E731
+            elif text == line.text and not restyle:
                 return
-            if text == line.text:
+            else:
+                write = lambda s: E.replace_line(s, line, text)  # noqa: E731
+            if not text.strip():
+                self._content(line.page, write, "Delete Text")
                 return
-            label = "Delete Text" if not text.strip() else "Edit Text"
-            self._content(line.page, lambda s: E.replace_line(s, line, text), label)
+            if not restyle:
+                self._content(line.page, write, "Edit Text")
+                return
+            area = from_display(self.session.doc[line.page], _tuple(final.united(rect)))
+
+            def write_then_restyle(s) -> None:  # (one undo step: the words and their new look)
+                write(s)
+                baseline = line.origin[1]
+                for new in E.text_lines(s, line.page):
+                    if abs(new.origin[1] - baseline) < 1.0 and pymupdf.Rect(new.rect).intersects(pymupdf.Rect(area)):
+                        E.restyle_line(s, new, **restyle)
+
+            self._content(line.page, write_then_restyle, "Edit Text")
 
         self._open_editor(line.page, rect, line.text, commit, font_size=line.size, color=QColor.fromRgbF(*line.color),
                           families=_families(line), bold=line.bold, italic=line.italic, single_line=True, opaque=True,
@@ -874,6 +1047,7 @@ class EditController(QObject):
         ``on_commit`` then also gets each character's run."""
         view = self._window.view
         self.finish_editing()
+        self.pending_format.clear()
         holder: dict = {}
         min_height = rect.height()
 

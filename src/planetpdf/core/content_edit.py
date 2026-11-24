@@ -163,7 +163,9 @@ def text_lines(session: PdfSession, index: int) -> list[TextLine]:
         for s in spans[1:]:
             box |= pymupdf.Rect(s["bbox"])
         lines.append(
-            TextLine(index, tuple(box), " ".join(text.split()) if "  " in text else text.strip(), first["font"],
+            # (spaces inside the line kept as they are: user 2026-11-24, several spaces in a row
+            # came back as one after an edit)
+            TextLine(index, tuple(box), text.strip(), first["font"],
                      first["size"], _rgb(first["color"]), first["flags"], tuple(first["origin"]), direction,
                      text[:1].isspace(), text[-1:].isspace())
         )
@@ -855,8 +857,8 @@ def replace_line(session: PdfSession, line: TextLine, new_text: str) -> None:
         raise PdfError("Replace one line at a time (use Add Text for more lines).")
     doc = session.doc
     page = doc[line.page]
-    if " ".join(new_text.split()) == " ".join(line.text.split()):
-        return  # (nothing changed: the line stays exactly as it is)
+    if new_text.strip() == line.text.strip():
+        return  # (nothing changed: the line stays exactly as it is; added spaces are a change)
     fontname, buffer = choose_font(doc, page, line, new_text)
     font_runs = _layout_font_runs(doc, page, line, new_text)  # (a font split into partial copies)
     _remove_lines(session, line.page, [line])
@@ -953,7 +955,7 @@ def replace_runs(session: PdfSession, group: list[TextLine], pieces: list[tuple[
     if len(group) == 1:
         replace_line(session, group[0], new_text)
         return
-    if " ".join(new_text.split()) == " ".join("".join(t for t, _n in group_text(group)).split()) \
+    if new_text.strip() == "".join(t for t, _n in group_text(group)).strip() \
             and [n for t, n in pieces if t.strip()] == [n for t, n in group_text(group) if t.strip()]:
         return  # (nothing changed: the line stays exactly as it is)
     doc = session.doc
@@ -1080,6 +1082,71 @@ def move_group(session: PdfSession, lines: list[tuple], images: list[tuple], dra
         _insert(doc[target], origin, line.text, fontname, buffer, line.size, line.color,
                 _rotation_of(line.direction), direction=line.direction, runs=runs)
     DR.move_links(session, list(links))
+    session.mark_modified()
+
+
+@dataclass(frozen=True)
+class CopiedContent:
+    """Page content copied by Edit ▸ Copy (user 2026-11-24: Copy and Paste copied "some random
+    thing I selected before" instead of the object selected): everything needed to draw it
+    again, read when it was copied, so the page (or the whole document) may change before it is
+    pasted. Positions are unrotated, on the page it came from."""
+
+    page: int
+    lines: tuple = ()  # (line, fontname, font buffer, word runs, font runs, letters)
+    images: tuple = ()  # (rect, png)
+    drawings: tuple = ()  # (rect, get_drawings() path)
+
+    @property
+    def text(self) -> str:
+        return "\n".join(entry[0].text for entry in self.lines)
+
+    def __bool__(self) -> bool:
+        return bool(self.lines or self.images or self.drawings)
+
+
+def copy_group(session: PdfSession, lines: list[TextLine] = (), images: list[PageImage] = (),
+               drawings: list = ()) -> CopiedContent:
+    """Read these lines of text, images and shapes so they can be drawn again (`paste_group`)."""
+    doc = session.doc
+    pages = [x.page for x in (*lines, *images, *drawings)]
+    copied_lines = []
+    for line in sorted(lines, key=lambda l: (l.page, l.origin[1], l.origin[0])):
+        page = doc[line.page]
+        fontname, buffer = choose_font(doc, page, line, line.text)
+        runs = _line_runs(page, line)
+        if " ".join(w for w, _ in runs) != " ".join(line.text.split()):
+            runs = None
+        copied_lines.append((line, fontname, buffer, runs, _font_runs(doc, page, line), _moving_glyphs(doc, line)))
+    return CopiedContent(page=min(pages) if pages else 0, lines=tuple(copied_lines),
+                         images=tuple((image.rect, image_png(session, image)) for image in images),
+                         drawings=tuple((d.rect, d.path) for d in drawings))
+
+
+def paste_group(session: PdfSession, copied: CopiedContent, target: int, dx: float, dy: float) -> None:
+    """Draw copied content on page ``target``, moved by (dx, dy) (unrotated). Nothing on the
+    page is taken away: the copy goes on top."""
+    from planetpdf.core import drawings as DR
+
+    doc = session.doc
+    if not 0 <= target < doc.page_count:
+        raise PdfError("Page out of range.")
+    page = doc[target]
+    for _rect, path in copied.drawings:
+        DR.redraw(page, path, dx, dy)
+    for r, png in copied.images:
+        place_image(session, target, (r[0] + dx, r[1] + dy, r[2] + dx, r[3] + dy), png)
+    for line, fontname, buffer, runs, font_runs, letters in copied.lines:
+        page = doc[target]  # (re-fetched: inserting may replace the page's contents)
+        if letters:
+            _put_glyphs(page, letters[0], letters[1], dx, dy)
+            continue
+        if font_runs:
+            _insert_font_runs(page, font_runs, dx, dy, line.size, line.color, _rotation_of(line.direction))
+            continue
+        moved = [(word, (x + dx, y + dy)) for word, (x, y) in runs] if runs else None
+        _insert(page, (line.origin[0] + dx, line.origin[1] + dy), line.text, fontname, buffer, line.size,
+                line.color, _rotation_of(line.direction), direction=line.direction, runs=moved)
     session.mark_modified()
 
 

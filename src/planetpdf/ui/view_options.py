@@ -50,6 +50,9 @@ class ViewOptions:
         self.act_grid = toggle("&Grid", "show_grid", view.set_grid, "Lines every inch (with quarter-inch lines)")
         self.act_snap = toggle("&Snap to Grid", "snap_to_grid", view.set_snap,
                                "Drawing, moving, and guides land on the nearest quarter inch")
+        self.act_snap_objects = toggle("Snap to &Objects", "snap_to_objects", view.set_snap_to_objects,
+                                       "While you drag something, dotted lines show when it lines up with the text "
+                                       "and objects near it, and it snaps into line (hold Alt to place it freely)")
         self.act_guides = toggle("G&uides", "show_guides", view.set_guides_shown,
                                  "Show the guides (drag from a ruler onto a page to add one)")
         self.act_clear_guides = QAction("&Clear Guides", window)
@@ -70,7 +73,7 @@ class ViewOptions:
         self.act_search_tools = QAction("Searc&h More Tools…", window)
         self.act_search_tools.setToolTip("Find any command by name")
         self.act_search_tools.triggered.connect(self.search_tools)
-        for name in ("act_gaps", "act_rulers", "act_grid", "act_snap", "act_guides", "act_clear_guides", "act_cursor",
+        for name in ("act_gaps", "act_rulers", "act_grid", "act_snap", "act_snap_objects", "act_guides", "act_clear_guides", "act_cursor",
                      "act_page_controls", "act_tools_pane", "act_search_tools"):
             setattr(window, name, getattr(self, name))  # (ui/shortcuts.py finds them on the window)
         self.coordinates = QLabel(window)
@@ -87,6 +90,7 @@ class ViewOptions:
         view.set_show_gaps(s.show_page_gaps)
         view.set_grid(s.show_grid)
         view.set_snap(s.snap_to_grid)
+        view.set_snap_to_objects(s.snap_to_objects)
         view.set_guides_shown(s.show_guides)
         if s.show_rulers:
             view.set_rulers(True)

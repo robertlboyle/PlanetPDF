@@ -164,6 +164,7 @@ GRID_SUBDIVISIONS = 4
 GRID_COLOR = QColor(80, 140, 230, 90)
 GRID_MINOR_COLOR = QColor(80, 140, 230, 40)
 GUIDE_COLOR = QColor(0, 170, 200)
+ALIGN_COLOR = QColor(230, 0, 140)  # the dotted guides while dragging (magenta, like most editors)
 UNSNAPPED_MODES = ("ink", "text", "place", None)  # freehand, text selection, stamp ghost: never snapped
 MIN_ZOOM = 0.1
 MAX_ZOOM = 8.0
@@ -466,6 +467,46 @@ class PageView(QGraphicsView):
     def set_snap(self, on: bool) -> None:
         self.snap_to_grid = on
 
+    # dotted guides and snapping to other objects while one is dragged (user 2026-11-24;
+    # View ▸ Rulers & Grids ▸ Snap to Objects; Alt held while dragging = no snapping)
+    snap_to_objects = True
+
+    def set_snap_to_objects(self, on: bool) -> None:
+        self.snap_to_objects = on
+
+    def _aligned(self, page, moving: QRectF, skip: set[str]) -> QPointF:
+        """The nudge that lines ``moving`` (page coordinates) up with the other objects on its
+        page; the dotted guides are drawn until the drag ends. No nudge with Snap to Grid on
+        (the grid wins) or Alt held."""
+        from planetpdf.ui.viewer import align_guides as AG
+
+        self._set_align_lines([])
+        if (not self.snap_to_objects or self.snap_to_grid
+                or QApplication.keyboardModifiers() & Qt.KeyboardModifier.AltModifier):
+            return QPointF()
+        cache = self._drag if self._drag is not None else {}
+        targets = cache.get("align_targets")
+        if targets is None:  # (once per drag: the boxes don't change while it lasts)
+            targets = [QRectF(o.rect()) for key, o in self._markup_items.items()
+                       if o.parentItem() is page and key not in skip and o.isVisible()]
+            if self.align_targets is not None:
+                try:  # (the page's own text; not what is being dragged)
+                    start = cache["start"] if isinstance(cache.get("start"), QRectF) else moving
+                    targets += [r for r in self.align_targets(page.index) if not r.intersects(start)]
+                except Exception:  # (guides are a help: never let them stop the drag)
+                    pass
+            cache["align_targets"] = targets
+        if not targets:
+            return QPointF()
+        scale = (page.sceneTransform() * self.transform()).map(QLineF(0, 0, 1, 0)).length() or 1.0
+        found = AG.align(moving, targets, AG.SNAP_PIXELS / scale)
+        self._set_align_lines([(page, line) for line in found.lines])
+        return QPointF(found.dx, found.dy)
+
+    # page index -> more boxes to line up with (page coordinates as displayed): the page's own
+    # text lines outside Edit PDF (MainWindow sets it)
+    align_targets = None
+
     def snapped(self, point: QPointF) -> QPointF:
         """``point`` (page coordinates) on the nearest grid crossing when Snap to Grid is on."""
         if not self.snap_to_grid:
@@ -497,6 +538,7 @@ class PageView(QGraphicsView):
             for ruler in self._rulers:
                 ruler.update()
         guides = self.guides if self.show_guides else []
+        self._draw_align_lines(painter)
         if not (self.show_grid or guides) or not self._items:
             return
         painter.save()
@@ -538,6 +580,32 @@ class PageView(QGraphicsView):
                     painter.drawLine(QPointF(box.left(), box.top() + position), QPointF(box.right(), box.top() + position))
                 elif orientation == "v" and 0 <= position <= box.width():
                     painter.drawLine(QPointF(box.left() + position, box.top()), QPointF(box.left() + position, box.bottom()))
+        painter.restore()
+
+    def _set_align_lines(self, lines: list) -> None:
+        """The dotted guides to show (none when the drag ends). The whole view is repainted
+        whenever they change: the view repaints only what it thinks changed, so a guide that
+        was just dropped stayed on the screen looking like a real line (user 2026-11-24)."""
+        if not lines and not getattr(self, "_align_lines", None):
+            return
+        self._align_lines = list(lines)
+        self.viewport().update()
+
+    def _draw_align_lines(self, painter: QPainter) -> None:
+        lines = getattr(self, "_align_lines", None)
+        if not lines:
+            return
+        if self._drag is None or self._drag.get("mode") not in ("move", "group"):
+            self._align_lines = []  # (the drag ended or was canceled)
+            QTimer.singleShot(0, self.viewport().update)  # (and its picture goes too)
+            return
+        painter.save()
+        pen = QPen(ALIGN_COLOR, 1.0, Qt.PenStyle.DashLine)
+        pen.setCosmetic(True)
+        painter.setPen(pen)
+        for page, line in lines:
+            transform = page.sceneTransform()
+            painter.drawLine(transform.map(line))
         painter.restore()
 
     def guide_position(self, orientation: str, view_pos: QPoint) -> tuple[int, float] | None:
@@ -1401,6 +1469,7 @@ class PageView(QGraphicsView):
 
     def _cancel_drag(self) -> None:
         drag, self._drag = self._drag, None
+        self._set_align_lines([])
         self._lower_pages()
         if drag is None:
             return
@@ -2087,6 +2156,12 @@ class PageView(QGraphicsView):
         if drag["mode"] == "group":  # several objects move together
             pos = page.mapFromScene(self.mapToScene(event.position().toPoint()))
             delta = pos - drag["origin"]
+            mine = [(o, s) for o, s in drag["members"] if o.parentItem() is page]
+            if mine:  # lined up with the other objects as a whole (their outer box)
+                box = QRectF(mine[0][1])
+                for _o, start in mine[1:]:
+                    box = box.united(start)
+                delta += self._aligned(page, box.translated(delta), {o.item_id for o, _s in drag["members"]})
             drag["delta"] = delta
             for overlay, start in drag["members"]:
                 overlay.setRect(start.translated(delta))
@@ -2162,6 +2237,8 @@ class PageView(QGraphicsView):
                 moved = drag["start"].translated(pos - drag["origin"])
                 if self.snap_to_grid:  # the moved item's top-left corner lands on the grid
                     moved.moveTopLeft(self.snapped(moved.topLeft()))
+                else:  # lined up with the objects near it (dotted guides)
+                    moved.translate(self._aligned(page, moved, {overlay.item_id}))
                 overlay.setRect(moved)
             else:
                 stretch = overlay.stretchable and bool(event.modifiers() & Qt.KeyboardModifier.ShiftModifier)
@@ -2185,6 +2262,7 @@ class PageView(QGraphicsView):
                 self.pageClicked.emit(pending[0], pending[1])
             return
         self._drag = None
+        self._set_align_lines([])  # (the guides go with the drag)
         self._lower_pages()
         mode, page = drag["mode"], drag["page"].index
         item = drag.get("item")

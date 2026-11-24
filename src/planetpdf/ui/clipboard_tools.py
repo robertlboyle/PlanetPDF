@@ -1,9 +1,16 @@
 """Edit menu: Cut, Copy, Paste, Delete, Select All, Deselect All, Copy File to Clipboard,
 Take a Snapshot (as in Acrobat).
 
-Copy/Cut work on the selected item (comment, placed text, signature, stamp, picture) or
-on selected page text. Paste puts back a copied item (slightly offset), or turns a
-picture or text copied in another program into a movable item on the current page.
+Copy/Cut work on the selected item (comment, placed text, signature, stamp, picture), on the
+objects selected in Edit PDF (lines of text, images, shapes) or Prepare Form (fields), or on
+selected page text. Paste puts back a copied item (slightly offset, a little further with each
+paste), or turns a picture or text copied in another program into a movable item on the current
+page.
+
+**What is selected wins** (user 2026-11-24: Copy and Paste made "a copy of some random thing I
+selected before"): Copy used to know only comments, so with a line of text or an image selected in
+Edit PDF it copied an old text selection, and Paste then put back an item copied long before. Now
+Copy takes the selected objects, and an old text selection only when nothing is selected.
 """
 
 from __future__ import annotations
@@ -43,6 +50,8 @@ class ClipboardTools(QObject):
         super().__init__(window)
         self._window = window
         self._copied: list[K.MarkupSpec] = []
+        self._objects = None  # (edit_controller.CopiedObjects: Edit PDF / Prepare Form objects)
+        self._pastes = 0  # pastes since the copy: each lands a little further down and right
 
     @property
     def clipboard(self):
@@ -58,9 +67,19 @@ class ClipboardTools(QObject):
     # --- copy / cut / paste ------------------------------------------------------------------
 
     def copy(self) -> bool:
+        objects = self._window.edit.copy_selection() if self._window.edit.mode is not None else None
+        if objects is not None:
+            self._copied, self._objects, self._pastes = [], objects, 0
+            mime = QMimeData()
+            mime.setData(ITEM_MIME, QByteArray(b"objects"))
+            if objects.text:
+                mime.setText(objects.text)
+            self.clipboard.setMimeData(mime)
+            self._status(f"Copied {objects.count} objects." if objects.count > 1 else "Copied the object.")
+            return True
         item = self._item()
         if item is not None and item.spec is not None:
-            self._copied = [item.spec]
+            self._copied, self._objects, self._pastes = [item.spec], None, 0
             mime = QMimeData()
             mime.setData(ITEM_MIME, QByteArray(item.spec.mark_id.encode()))
             if item.spec.text:
@@ -71,6 +90,11 @@ class ClipboardTools(QObject):
         return self._window.text_tools.copy()
 
     def cut(self) -> bool:
+        if self._window.edit.mode is not None and self._window.view.selected_group:
+            if self.copy():  # (Edit PDF / Prepare Form objects: copied, then deleted as one step)
+                self._window.edit.delete()
+                return True
+            return False
         item = self._item()
         if item is not None and item.spec is not None and self.copy():
             return self._window.markup.delete(item.item_id)
@@ -82,7 +106,7 @@ class ClipboardTools(QObject):
 
     def _ours_on_clipboard(self) -> bool:
         mime = self.clipboard.mimeData()
-        return bool(self._copied) and mime is not None and mime.hasFormat(ITEM_MIME)
+        return bool(self._copied or self._objects) and mime is not None and mime.hasFormat(ITEM_MIME)
 
     def visible_point(self, page_index: int) -> QPointF:
         """Middle of what's visible of the page (displayed coordinates)."""
@@ -100,11 +124,17 @@ class ClipboardTools(QObject):
             return False
         page_index = max(0, window.view.current_page)
         if self._ours_on_clipboard():
+            self._pastes += 1
+            if self._objects is not None:  # (Edit PDF / Prepare Form objects)
+                objects = self._objects
+                step = PASTE_OFFSET * self._pastes if objects.page == page_index else 0.0
+                return window.edit.paste_copied(objects, page_index, step, step)
             for spec in self._copied:
                 target = spec.page if spec.page == page_index else page_index
                 rect = pymupdf.Rect(spec.rect)
                 if spec.page == page_index:
-                    rect += (PASTE_OFFSET, PASTE_OFFSET, PASTE_OFFSET, PASTE_OFFSET)
+                    step = PASTE_OFFSET * self._pastes
+                    rect += (step, step, step, step)
                 page_rect = session.doc[target].cropbox
                 if not page_rect.contains(rect):  # keep it on the page
                     rect = pymupdf.Rect(page_rect.x0 + 36, page_rect.y0 + 36,

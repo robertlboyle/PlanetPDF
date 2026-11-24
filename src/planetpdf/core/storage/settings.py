@@ -43,6 +43,7 @@ class Settings:
     show_rulers: bool = False
     show_grid: bool = False
     snap_to_grid: bool = False
+    snap_to_objects: bool = True  # (dotted guides while dragging, user 2026-11-24)
     show_guides: bool = True
     cursor_coordinates: bool = False
     button_labels: str = "default"  # "none" / "default" / "all"

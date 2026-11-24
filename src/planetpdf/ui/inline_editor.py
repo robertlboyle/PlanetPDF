@@ -94,6 +94,18 @@ class InlineTextEditor(QPlainTextEdit):
         self.textChanged.connect(self._grow)
         QTimer.singleShot(0, self, self._grow)  # (bound to the editor: never runs once it's gone)
 
+    def show_color(self, color: QColor) -> None:
+        """Edit PDF: a color picked while a line is being typed in shows in the box at once."""
+        from PySide6.QtGui import QTextCharFormat, QTextCursor
+
+        sheet = self.styleSheet()
+        self.setStyleSheet(re.sub(r"color: #[0-9a-fA-F]{6}", f"color: {color.name()}", sheet, count=1))
+        cursor = QTextCursor(self.document())  # (a line in several fonts colors each character)
+        cursor.select(QTextCursor.SelectionType.Document)
+        fmt = QTextCharFormat()
+        fmt.setForeground(color)
+        cursor.mergeCharFormat(fmt)
+
     def set_text_format(self, font: QFont, color: QColor) -> None:
         """Placed text: the font (family, size in points, bold, italic, underline,
         strike-out) and color chosen in the text format bar, shown while typing."""
@@ -388,6 +400,9 @@ class InlineTextEditor(QPlainTextEdit):
         box…): typing goes on there in the new format."""
         from PySide6.QtWidgets import QApplication
 
+        modal = QApplication.activeModalWidget()  # (the color window: Windows' own has no Qt focus)
+        if modal is not None and modal.property(KEEPS_EDITOR):
+            return
         widget = QApplication.focusWidget() or QApplication.activePopupWidget()
         while widget is not None:
             if widget.property(KEEPS_EDITOR):

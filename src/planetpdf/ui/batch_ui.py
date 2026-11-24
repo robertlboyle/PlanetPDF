@@ -64,6 +64,8 @@ class FileListDialog(QDialog):
         self.form = QFormLayout()
         self.folder = QLineEdit(window.settings.last_directory, self)
         self.folder.setAccessibleName("Save in folder")
+        self._folder_chosen = False  # (until the user picks one, it follows the first file's folder)
+        self.folder.textEdited.connect(lambda _text: setattr(self, "_folder_chosen", True))
         if folder:
             browse = QPushButton("Browse…", self)
             browse.clicked.connect(self._choose_folder)
@@ -87,6 +89,7 @@ class FileListDialog(QDialog):
 
     def add_paths(self, paths) -> None:
         existing = set(self.files())
+        was_empty = not existing
         for path in paths:
             path = Path(path)
             if path.is_file() and path not in existing:
@@ -94,6 +97,11 @@ class FileListDialog(QDialog):
                 item.setData(Qt.ItemDataRole.UserRole, str(path))
                 item.setToolTip(str(path))
                 existing.add(path)
+        files = self.files()
+        if was_empty and files and not self._folder_chosen:
+            # beside the files (user 2026-11-24: "it should default to saving the file in the same path")
+            self.folder.setText(str(self._window.new_pdf_folder(files[0])))
+            self._window.remember_source_folder(files[0])
 
     def files(self) -> list[Path]:
         return [Path(self.list.item(i).data(Qt.ItemDataRole.UserRole)) for i in range(self.list.count())]
@@ -122,6 +130,7 @@ class FileListDialog(QDialog):
         folder = QFileDialog.getExistingDirectory(self, "Save In", self.folder.text())
         if folder:
             self.folder.setText(folder)
+            self._folder_chosen = True
 
     def _accept(self) -> None:
         if not self.files():

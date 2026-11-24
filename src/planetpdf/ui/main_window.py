@@ -274,6 +274,7 @@ class MainWindow(QMainWindow):
         self.act_signatures_panel.setText("Si&gnatures Panel")
         self.markup = MarkupController(self)
         self.edit = EditController(self)
+        self.view.align_targets = self.edit.align_boxes  # (dotted guides: the page's own text too)
         self.edit_ui = EditUi(self)
         from planetpdf.ui.form_panel import FormPanel
 
@@ -791,8 +792,19 @@ class MainWindow(QMainWindow):
     # --- placed text, nudging --------------------------------------------------------
 
     def pick_color(self, initial: QColor, title: str) -> QColor | None:
-        """The one place colors are picked (tests replace it)."""
-        color = QColorDialog.getColor(initial, self, title)
+        """The one place colors are picked (tests replace it). Text being typed stays open while the
+        window is up (user 2026-11-24: picking a color ended the typing, and the color was lost)."""
+        from planetpdf.ui.inline_editor import KEEPS_EDITOR
+
+        dialog = QColorDialog(initial, self)
+        dialog.setWindowTitle(title)
+        dialog.setProperty(KEEPS_EDITOR, True)
+        try:
+            if dialog.exec() != QColorDialog.DialogCode.Accepted:
+                return None
+            color = dialog.selectedColor()
+        finally:
+            dialog.deleteLater()
         return color if color.isValid() else None
 
     def _update_text_color_swatch(self) -> None:
@@ -1246,8 +1258,7 @@ class MainWindow(QMainWindow):
             if session is None:
                 return False
             self._add_document(session, index)
-            self.settings.last_directory = str(session.path.parent)
-            self.settings.add_recent_file(session.path)
+            self._opened(session)
             if not session.certificate_protection.recipients_known:
                 self.show_message(
                     "Certificate-Encrypted File",
@@ -1271,9 +1282,23 @@ class MainWindow(QMainWindow):
                 QMessageBox.critical(self, "Can't Open File", str(exc))
                 return False
         self._add_document(session, index)
-        self.settings.last_directory = str(session.path.parent)
-        self.settings.add_recent_file(session.path)
+        self._opened(session)
         return True
+
+    def _opened(self, session: PdfSession) -> None:
+        """Remember an opened file; one in a temporary folder (a zip opened in Explorer, an e-mail
+        attachment) is said to be so, and its folder isn't offered for saving later (user
+        2026-11-24: such a file was deleted with the changes made to it)."""
+        from planetpdf.core.temp_folders import temporary_reason
+
+        self.settings.add_recent_file(session.path)
+        reason = temporary_reason(session.path)
+        if reason is None:
+            self.settings.last_directory = str(session.path.parent)
+            return
+        self.statusBar().showMessage(
+            f"{session.path.name} is in {reason}, which can be emptied without warning. "
+            "Saving will ask you where to keep it.", 15000)
 
     def _open_elsewhere(self, path: Path) -> bool:
         """The file is open in another PlanetPDF already (user 2026-10-22: two copies of one
@@ -2444,7 +2469,8 @@ class MainWindow(QMainWindow):
         if dialog.exec() != CombineDialog.DialogCode.Accepted:
             return
         files, options = dialog.files(), dialog.options()
-        default = Path(self.settings.last_directory or files[0].parent) / ("Scans.pdf" if images_only else "Combined.pdf")
+        self.remember_source_folder(files[0])
+        default = self.new_pdf_folder(files[0]) / ("Scans.pdf" if images_only else "Combined.pdf")
         path, _ = QFileDialog.getSaveFileName(self, "Save New PDF As", str(default), PDF_FILTER)
         if not path:
             return
@@ -3343,21 +3369,57 @@ class MainWindow(QMainWindow):
     def save(self) -> bool:
         if self.session is None:
             return False
+        from planetpdf.core.temp_folders import temporary_reason
+
+        reason = temporary_reason(self.session.path)
+        if reason is not None:  # (user 2026-11-24: never save where it will be deleted)
+            answer = QMessageBox.warning(
+                self, "Choose Where to Keep This File",
+                f"{self.session.path.name} is in {reason}. Windows or the program that put it there "
+                "deletes that folder's files without asking, and your changes with them.\n\n"
+                "Choose a folder to save it in, such as Documents.",
+                QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Cancel, QMessageBox.StandardButton.Save)
+            if answer != QMessageBox.StandardButton.Save:
+                return False
+            return self.save_as_dialog()
         return self._run_save(lambda allow, progress: self.session.save(allow_signature_loss=allow, progress=progress))
 
     def save_as_dialog(self) -> bool:
         if self.session is None:
             return False
-        path, _ = QFileDialog.getSaveFileName(self, "Save As", str(self.session.path), PDF_FILTER)
-        if not path:
+        from planetpdf.core.temp_folders import lasting_folder, temporary_reason
+
+        start = self.session.path
+        if temporary_reason(start) is not None:  # (offer a lasting folder instead)
+            start = lasting_folder(self.settings.last_directory) / start.name
+        while True:
+            path, _ = QFileDialog.getSaveFileName(self, "Save As", str(start), PDF_FILTER)
+            if not path:
+                return False
+            target = Path(path)
+            if target.suffix.lower() != ".pdf":
+                target = target.with_name(target.name + ".pdf")
+            if not self.refuse_temporary(target):
+                return self.save_as(target)
+            start = lasting_folder(self.settings.last_directory) / target.name
+
+    def refuse_temporary(self, target: Path) -> bool:
+        """True (after saying so) when ``target`` is in a folder that gets emptied by itself."""
+        from planetpdf.core.temp_folders import temporary_reason
+
+        reason = temporary_reason(target)
+        if reason is None:
             return False
-        target = Path(path)
-        if target.suffix.lower() != ".pdf":
-            target = target.with_name(target.name + ".pdf")
-        return self.save_as(target)
+        QMessageBox.warning(
+            self, "Temporary Folder",
+            f"That folder is {reason}. Files saved there are deleted without asking, so "
+            "PlanetPDF won't save your document there.\n\nPlease choose another folder, such as Documents.")
+        return True
 
     def save_as(self, target: Path) -> bool:
         if self.session is None:
+            return False
+        if self.refuse_temporary(Path(target)):
             return False
         ok = self._run_save(lambda allow, progress: self.session.save_as(target, allow_signature_loss=allow,
                                                                          progress=progress))
@@ -3574,9 +3636,24 @@ class MainWindow(QMainWindow):
         self._remove_document(self.document)
         return self.open_file(path, tab)  # (in the same tab place)
 
-    def _save_new_pdf(self, data: bytes, default_name: str) -> bool:
+    def new_pdf_folder(self, source: Path | None = None) -> Path:
+        """Where a new PDF is offered: beside the file it was made from (user 2026-11-24: "If I open
+        a Word doc in a path, it should default to saving the file in the same path"), else the
+        folder used last; never a temporary one."""
+        from planetpdf.core.temp_folders import lasting_folder
+
+        return lasting_folder(source.parent if source is not None else None, self.settings.last_directory)
+
+    def remember_source_folder(self, source: Path) -> None:
+        """The next Open / Create dialog starts in the folder this file was chosen from."""
+        from planetpdf.core.temp_folders import is_temporary
+
+        if not is_temporary(source.parent):
+            self.settings.last_directory = str(source.parent)
+
+    def _save_new_pdf(self, data: bytes, default_name: str, source: Path | None = None) -> bool:
         """Ask where to save a newly created PDF, write it and open it."""
-        default = Path(self.settings.last_directory or Path.home()) / default_name
+        default = self.new_pdf_folder(source) / default_name
         path, _ = QFileDialog.getSaveFileName(self, "Save New PDF As", str(default), PDF_FILTER)
         if not path:
             return False
@@ -3599,6 +3676,7 @@ class MainWindow(QMainWindow):
             if not name:
                 return False
             path = Path(name)
+        self.remember_source_folder(Path(path))
         try:
             data = self._office_pdf(Path(path)) if self._is_office(Path(path)) else pdf_from_file(path)
         except TaskCanceled:
@@ -3606,7 +3684,7 @@ class MainWindow(QMainWindow):
         except PdfError as exc:
             QMessageBox.warning(self, "Create PDF", str(exc))
             return False
-        return self._save_new_pdf(data, Path(path).stem + ".pdf")
+        return self._save_new_pdf(data, Path(path).stem + ".pdf", source=Path(path))
 
     @staticmethod
     def _is_office(path: Path) -> bool:

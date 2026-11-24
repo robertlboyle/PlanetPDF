@@ -40,3 +40,35 @@ def test_a_word_file_goes_through_office(qapp, tmp_path, monkeypatch):
     finally:
         w.undo_stack.setClean()
         w.close()
+
+
+def test_the_new_pdf_is_offered_beside_the_file_it_came_from(qapp, tmp_path, monkeypatch):
+    """User 2026-11-24: "If I open a Word doc in a path, it should default to saving the file in
+    the same path. I shouldn't need to start over again each time." """
+    folder = tmp_path / "Clients" / "Acme"
+    folder.mkdir(parents=True)
+    source = folder / "Quote.docx"
+    source.write_bytes(b"not really Word")
+
+    def fake_office(src, target):
+        doc = pymupdf.open()
+        doc.new_page(width=612, height=792)
+        doc.save(target)
+
+    offered = []
+    monkeypatch.setattr(office, "to_pdf", fake_office)
+
+    def save_dialog(_parent, _title, start, _filter):
+        offered.append(start)
+        return "", ""
+
+    monkeypatch.setattr(QFileDialog, "getSaveFileName", staticmethod(save_dialog))
+    w = MainWindow(tmp_path / "profile")
+    w.settings.last_directory = str(tmp_path)  # (some other folder used before)
+    try:
+        assert not w.create_pdf_from_file(source)  # (Save canceled)
+        assert offered == [str(folder / "Quote.pdf")]
+        assert w.settings.last_directory == str(folder)  # the next Open / Create starts there too
+    finally:
+        w.undo_stack.setClean()
+        w.close()

@@ -395,6 +395,9 @@ class TextFormatter(QObject):
             fmt = {"font": E.line_font(line), "font_size": round(line.size, 1), "color": line.color,
                    "bold": all(l.bold for l in what), "italic": all(l.italic for l in what),
                    "underline": all(edit.underlined(l) for l in what), "strikeout": False}
+            if edit.typing_line():  # (what was picked while typing, not yet written)
+                names = {"size": "font_size", "color": "color", "font": "font", "bold": "bold", "italic": "italic"}
+                fmt.update({names[k]: v for k, v in edit.pending_format.items() if k in names})
             return fmt, {"font", "font_size", "color", "bold", "italic", "underline"}
         if kind == "next":
             style = self.w.markup.style_for(what)
@@ -446,6 +449,12 @@ class TextFormatter(QObject):
                 self.update()
                 return
         markup = self.w.markup
+        if kind == "lines" and self.w.edit.typing_line() and not {"underline", "strikeout"} & set(change):
+            # a line being typed in: the edited words get it when the typing ends (user 2026-11-24:
+            # restyling the line under the box lost the color: the typing then wrote the old one)
+            self.w.edit.format_while_typing(change)
+            self.update()
+            return
         if kind == "typing":
             if not markup.set_typing_format(**change):  # (not just for the selected words)
                 markup.remember_text_format(kind=markup.typing_kind, **change)
