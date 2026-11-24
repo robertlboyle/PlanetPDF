@@ -184,6 +184,7 @@ class MarkupController(QObject):
         view = window.view
         view.keyboard_placing = lambda: (not self.suspended and self._one_shot_box is None
                                          and self.tool in KEYBOARD_PLACED)
+        view.grab_with_tool = self._grabbed_with_tool
         # (a one-shot box, e.g. Marquee Zoom or Edit PDF ▸ Link, works in every mode)
         view.shapeDrawn.connect(lambda draw, page, data: self._on_shape(draw, page, data)
                                 if not self.suspended or (draw == "box" and self._one_shot_box is not None) else None)
@@ -1476,6 +1477,18 @@ class MarkupController(QObject):
             self._window.statusBar().showMessage("Nothing to flatten: no placed text, signatures, or stamps there.", 5000)
             return
         self._window.push_command(FlattenPagesCommand(self._window, pages))
+
+    GRAB_TOOLS = (Kind.TEXT, Kind.SYMBOL)  # (Fill & Sign's tools that stay on)
+
+    def _grabbed_with_tool(self, item_id: str) -> bool:
+        """With Add Text or a symbol tool on, a press on anything added (text, signatures,
+        initials, symbols, pictures, stamps) selects it: then it moves, stretches, gets bigger
+        or smaller (A− / A+) and a double-click retypes it, as in Edit PDF (user 2026-11-24).
+        A press anywhere else still adds text or a symbol."""
+        if self.suspended or self._one_shot_box is not None or self.tool not in self.GRAB_TOOLS:
+            return False
+        item = self._item(item_id)
+        return item is not None and item.kind is not None and (item.kind.placed or item.kind in (Kind.STAMP, Kind.SEAL))
 
     def select(self, item_id: str) -> None:
         self._window.view.set_selected_markup(item_id or None)

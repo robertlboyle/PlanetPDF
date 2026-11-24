@@ -1897,6 +1897,26 @@ class PageView(QGraphicsView):
             return True
         return False
 
+    # Set by the markup controller: may a press on this item, with the current tool on, select and
+    # move it instead of using the tool? (Fill & Sign's Add Text and symbols, user 2026-11-24:
+    # "After adding text … I should still be able to edit anything I have added and increase /
+    # decrease the size of text and move it around … like edit mode".)
+    grab_with_tool: Callable[[str], bool] | None = None
+
+    def _press_added(self, event: QMouseEvent, scene_pos: QPointF) -> bool:
+        if not self._markup_interactive or self.grab_with_tool is None:
+            return False
+        for item in self.scene().items(scene_pos):
+            if isinstance(item, MarkupOverlay) and item.isVisible() and self.grab_with_tool(item.item_id):
+                self.markupClicked.emit(item.item_id)
+                if item.movable:
+                    self._drag = {"mode": "move", "overlay": item, "start": QRectF(item.rect()),
+                                  "page": item.parentItem(), "origin": item.parentItem().mapFromScene(scene_pos)}
+                    self._raise_pages([item.parentItem()])
+                event.accept()
+                return True
+        return False
+
     def mousePressEvent(self, event: QMouseEvent) -> None:
         self.stop_auto_scroll()  # (a click on the page stops Automatically Scroll)
         self._pending_click = None  # (set below only by a plain press on the page with no tool on)
@@ -1953,6 +1973,8 @@ class PageView(QGraphicsView):
         # (an eraser always erases, even over the selected object: user 2026-10-18, it moved the line)
         if self._draw_tool is not None and getattr(self, "_brush", None) is None and self._press_selected(event, scene_pos):
             return  # (the item just placed: move / stretch it while the tool stays on)
+        if self._draw_tool is not None and self._press_added(event, scene_pos):
+            return  # (anything added: selected and moved, as with no tool on)
         if self._area_tool or self._draw_tool is not None:
             page = self._page_at(scene_pos)
             if page is not None:
