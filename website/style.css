@@ -105,6 +105,8 @@ a.card:hover { border-color: var(--c, var(--blue)); }
 .btn svg { width: 18px; height: 18px; }
 .btn.quiet { background: transparent; color: var(--ink); border: 1px solid var(--line); }
 .cta { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin: 22px 0 8px; }
+/* a second row under the downloads (Installing, Release notes) */
+.cta + .cta-more { margin-top: 0; }
 .facts { width: 100%; border-collapse: collapse; background: var(--surface); font-size: 17px; }
 .facts th, .facts td { text-align: left; padding: 10px 14px; border: 1px solid var(--line); vertical-align: top; overflow-wrap: anywhere; }
 .facts th { width: 30%; color: var(--ink-soft); font-weight: 600; }

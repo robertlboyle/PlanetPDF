@@ -8,6 +8,12 @@ PowerPoint files to PDF, through AppleScript (``osascript``), as ``windows_offic
   through Office's shared folder (``WORK``, in its group container), which Word, Excel and
   PowerPoint can always read and write; macOS asks the user once to let PlanetPDF use another
   app's data ("Allow"), and that's all.
+* **macOS 27 refuses that folder outright** (2026-11-26, macOS 27.2.1 with Office 16.115: writing
+  into another company's group container fails with "Operation not permitted", no question asked,
+  for Terminal and root alike). Then the files go through PlanetPDF's own folder (``OWN_WORK``)
+  instead, and each Office app asks once, with its own "Grant File Access" box, to use that
+  folder; it remembers the answer. Until it's granted, the app can't open the file, and the
+  message says what to click.
 * Office is quit afterwards only when PlanetPDF started it (never the user's open copy and their
   work). Unlike on Windows, it shows while it works: Office for Mac has no hidden mode.
 * **Word for Mac can't close a document by script** (16.113, 2026-10-14: ``close`` is refused for
@@ -28,6 +34,7 @@ from planetpdf.core.office import WORD_97_2003, OfficeBlocked, app_for
 
 APPS = {"word": "Microsoft Word", "excel": "Microsoft Excel", "powerpoint": "Microsoft PowerPoint"}
 WORK = Path.home() / "Library" / "Group Containers" / "UBF8T346G9.Office" / "PlanetPDF"  # (Office's shared folder)
+OWN_WORK = Path.home() / "Library" / "Application Support" / "Planet Networks" / "PlanetPDF" / "Office"  # (macOS 27)
 TIMEOUT = 600  # seconds for one file (a long document, Office starting up)
 NOT_ALLOWED = "-1743"  # errAEEventNotPermitted: the user said no to controlling the app
 
@@ -52,7 +59,7 @@ def _running(app: str) -> bool:
     return subprocess.run(["pgrep", "-x", APPS[app]], capture_output=True).returncode == 0
 
 
-def _run(app: str, script: str) -> None:
+def _run(app: str, script: str, folder: Path | None = None) -> None:
     was_running = _running(app)
     try:
         done = subprocess.run(["osascript", "-e", script], capture_output=True, text=True, timeout=TIMEOUT)
@@ -67,35 +74,69 @@ def _run(app: str, script: str) -> None:
         if NOT_ALLOWED in message:
             raise PdfError(f"macOS didn't let PlanetPDF use {APPS[app]}. Allow it in System Settings ▸ "
                            f"Privacy & Security ▸ Automation ▸ PlanetPDF ▸ {APPS[app]}, then try again.")
+        if folder is not None and folder.is_relative_to(OWN_WORK):
+            raise PdfError(f"{APPS[app]} couldn't open the file. The first time, {APPS[app]} asks for access to "
+                           f"PlanetPDF's folder ({OWN_WORK}): click Select or Grant Access there, then try again. "
+                           f"({message.split('execution error: ')[-1]})")
         raise PdfError(f"{APPS[app]} couldn't convert the file: {message.split('execution error: ')[-1]}")
 
 
 def _workspace() -> Path:
-    folder = WORK / uuid.uuid4().hex[:12]
-    folder.mkdir(parents=True, exist_ok=True)
+    try:
+        folder = WORK / uuid.uuid4().hex[:12]
+        folder.mkdir(parents=True, exist_ok=True)
+    except PermissionError:  # (macOS 27: another company's group container is off limits)
+        folder = OWN_WORK / uuid.uuid4().hex[:12]
+        folder.mkdir(parents=True, exist_ok=True)
     return folder
 
 
 def _script(app: str, source: Path, out: Path, kind: str) -> str:
-    """AppleScript that opens ``source`` (read-only where Office allows), saves ``out``, closes."""
+    """AppleScript that opens ``source`` (read-only where Office allows), saves ``out``, closes.
+
+    **Macros are off while Word and Excel open the file** (security review 2026-11-25, as Windows
+    does with ``AutomationSecurity``): Office for Mac 16.115 starts at ``msoAutomationSecurityLow``
+    for a script, so a .docm's AutoOpen or a workbook's Auto_Open would run. The scripts set
+    ``msoAutomationSecurityForceDisable`` first and put the old value back afterwards, on success
+    and on error: Office keeps this setting in its preferences, so it would otherwise
+    stay changed for the user's own work after PlanetPDF is done. PowerPoint lists the
+    same property but refuses to set it (error -10006, read back as "missing value"); a
+    presentation has no macro that runs when it's opened (Auto_Open only runs in add-ins, and
+    Office for Mac has no ActiveX controls), so PowerPoint is opened as before."""
     src, dst = _quoted(str(source)), _quoted(str(out))
     if app == "word":
         fmt = "format PDF" if kind == "pdf" else "format document97"
         return f'''with timeout of {TIMEOUT} seconds
 tell application "Microsoft Word"
-    open file name {src} read only true confirm conversions false add to recent files false
-    set docName to name of active document  -- (Word's open returns nothing; "active document"
-    set theDoc to document docName          -- is re-read each time, so hold the document by name)
-    save as theDoc file name ((POSIX file {dst}) as text) file format {fmt}
-    -- (no close: Word 16.113 for Mac can't close a document by script; see _convert)
+    set oldSecurity to automation security
+    set automation security to msoAutomationSecurityForceDisable
+    try
+        open file name {src} read only true confirm conversions false add to recent files false
+        set docName to name of active document  -- (Word's open returns nothing; "active document"
+        set theDoc to document docName          -- is re-read each time, so hold the document by name)
+        save as theDoc file name ((POSIX file {dst}) as text) file format {fmt}
+        -- (no close: Word 16.113 for Mac can't close a document by script; see _convert)
+    on error errText number errNumber
+        set automation security to oldSecurity
+        error errText number errNumber
+    end try
+    set automation security to oldSecurity
 end tell
 end timeout'''
     if app == "excel":
         return f'''with timeout of {TIMEOUT} seconds
 tell application "Microsoft Excel"
-    set theBook to open workbook workbook file name {src} read only true
-    save workbook as theBook filename ((POSIX file {dst}) as text) file format PDF file format
-    close theBook saving no
+    set oldSecurity to automation security
+    set automation security to msoAutomationSecurityForceDisable
+    try
+        set theBook to open workbook workbook file name {src} read only true
+        save workbook as theBook filename ((POSIX file {dst}) as text) file format PDF file format
+        close theBook saving no
+    on error errText number errNumber
+        set automation security to oldSecurity
+        error errText number errNumber
+    end try
+    set automation security to oldSecurity
 end tell
 end timeout'''
     return f'''with timeout of {TIMEOUT} seconds
@@ -119,7 +160,7 @@ def _convert(app: str, source: Path, target: Path, kind: str) -> None:
         shutil.copy2(source, inside)
         out = work / (Path(source).stem + (".pdf" if kind == "pdf" else ".doc"))
         try:
-            _run(app, _script(app, inside, out, kind))
+            _run(app, _script(app, inside, out, kind), work)
         except PdfError as exc:
             if kind == "doc97" and "block" in str(exc).lower():
                 raise OfficeBlocked("Microsoft Word on this Mac isn't allowed to save Word 97-2003 files "

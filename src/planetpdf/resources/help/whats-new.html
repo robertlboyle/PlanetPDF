@@ -32,6 +32,11 @@ come with this version.</p>
   <li><b>Updates.</b> The step that installs an update with administrator rights no longer takes
     anything from the user's own environment settings, and starts Windows' tools only from Windows'
     own folder.</li>
+  <li><b>Office on the Mac.</b> Word and Excel now open the files PlanetPDF converts with their
+    macros switched off, and put your own macro setting back afterwards. On macOS 27, Office
+    couldn't reach the files PlanetPDF handed it, so converting Office files didn't work; PlanetPDF
+    now hands them over in its own folder, and the first time, each Office app asks you to allow
+    it (see <a href="troubleshooting.html#office">Office conversions fail</a>).</li>
   <li><b>Libraries brought up to date.</b> Four of the libraries PlanetPDF is built from had
     published fixes (among them the second reader used by the redaction check, which a crafted PDF
     could send into an endless loop). They are updated, and every build is now checked against the

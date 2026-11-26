@@ -42,6 +42,7 @@ def fake(monkeypatch, tmp_path):
     runner = FakeOsascript()
     monkeypatch.setattr(M.subprocess, "run", runner)
     monkeypatch.setattr(M, "WORK", tmp_path / "work")
+    monkeypatch.setattr(M, "OWN_WORK", tmp_path / "own")
     monkeypatch.setattr(M, "available", lambda app: True)
     return runner
 
@@ -88,6 +89,31 @@ def test_permission_refused_says_where_to_allow_it(fake, tmp_path):
 
 
 @pytest.mark.skipif(sys.platform != "darwin", reason="Mac only: POSIX paths and the Mac helper")
+def test_planetpdf_s_own_folder_when_macos_refuses_office_s(fake, monkeypatch, tmp_path):
+    def refused(self, *args, **kwargs):
+        if M.WORK in (self, *self.parents):
+            raise PermissionError(1, "Operation not permitted")
+        return real_mkdir(self, *args, **kwargs)
+    real_mkdir = Path.mkdir
+    monkeypatch.setattr(Path, "mkdir", refused)
+    source = tmp_path / "letter.docx"
+    source.write_bytes(b"x")
+    M.to_pdf(source, tmp_path / "out.pdf")
+    assert str(M.OWN_WORK) in fake.scripts[0] and (tmp_path / "out.pdf").is_file()
+    fake.error = "execution error: missing value doesn’t understand the “save as” message. (-1708)"
+    with pytest.raises(PdfError, match="click Select or Grant Access"):
+        M.to_pdf(source, tmp_path / "again.pdf")
+
+
+@pytest.mark.parametrize("app", ["word", "excel"])
+def test_macros_are_off_while_word_and_excel_open_the_file(app):
+    script = M._script(app, Path("/tmp/in.docx"), Path("/tmp/out.pdf"), "pdf")
+    off = script.index("set automation security to msoAutomationSecurityForceDisable")
+    assert script.index("set oldSecurity to automation security") < off < script.index("open ")
+    assert script.count("set automation security to oldSecurity") == 2  # (after success and on error)
+
+
+@pytest.mark.skipif(sys.platform != "darwin", reason="Mac only: POSIX paths and the Mac helper")
 def test_paths_with_quotes_are_escaped():
     script = M._script("word", Path('/tmp/a "b".docx'), Path("/tmp/out.pdf"), "pdf")
     assert 'file name "/tmp/a \\"b\\".docx"' in script
@@ -125,3 +151,19 @@ def test_real_word_excel_powerpoint(tmp_path):
             assert "Hello from PlanetPDF" in pdf[0].get_text()
     M.word_save_as(word, tmp_path / "letter.doc")
     assert (tmp_path / "letter.doc").read_bytes()[:4] == b"\xd0\xcf\x11\xe0"  # (the old binary format)
+    for app in ("Microsoft Word", "Microsoft Excel"):  # (the user's own setting is put back)
+        subprocess.run(["open", "-g", "-a", app], check=True)
+        before = _security(app)
+        M.to_pdf(word if "Word" in app else sheet, tmp_path / "again.pdf")
+        assert _security(app) == before != "msoAutomationSecurityForceDisable"
+
+
+def _security(app: str) -> str:
+    for _ in range(30):  # (Office may still be starting)
+        done = subprocess.run(["osascript", "-e", f'tell application "{app}" to get automation security'],
+                              capture_output=True, text=True)
+        if done.returncode == 0:
+            return done.stdout.strip()
+        import time
+        time.sleep(1)
+    raise AssertionError(done.stderr)
