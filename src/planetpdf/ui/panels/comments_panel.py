@@ -36,6 +36,7 @@ from PySide6.QtWidgets import (
 )
 
 from planetpdf.core import markup as K
+from planetpdf.ui import plain
 
 if TYPE_CHECKING:
     from planetpdf.ui.main_window import MainWindow
@@ -67,7 +68,8 @@ class _Words(QWidget):
         self._text = text
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        self.label = QLabel(text or placeholder, self)
+        self.label = QLabel(self)
+        plain.plain(self.label, text or placeholder)  # (a comment's words, as written)
         self.label.setWordWrap(True)
         self.label.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction)
         if not text:

@@ -204,3 +204,91 @@ def test_scanner_xml_with_a_document_type_is_refused():
         E.parse_capabilities(bomb)
     with pytest.raises(ET.ParseError, match="too long"):
         E.parse_capabilities(b"<a>" + b" " * (E.MAX_XML + 1) + b"</a>")
+
+
+def _https_scanner(tmp_path, name):
+    """A stand-in scanner over HTTPS with a self-made certificate; returns (address, stop)."""
+    import http.server
+    import ssl
+    import threading
+
+    from cryptography.hazmat.primitives import serialization
+
+    from tests.fixtures.certs import _self_signed
+
+    key, cert = _self_signed(name)
+    pem = tmp_path / f"{name}.pem"
+    pem.write_bytes(cert.public_bytes(serialization.Encoding.PEM) + key.private_bytes(
+        serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()))
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):  # noqa: N802
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"ok")
+
+        def log_message(self, *args):
+            pass
+
+    server = http.server.HTTPServer(("127.0.0.1", 0), Handler)
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.load_cert_chain(pem)
+    server.socket = context.wrap_socket(server.socket, server_side=True)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    return server, f"https://127.0.0.1:{server.server_address[1]}/eSCL"
+
+
+def test_a_scanners_certificate_is_remembered_and_a_new_one_refused(tmp_path, monkeypatch):
+    """Security review 2026-11-25 (earlier finding 9): scanner HTTPS took any certificate."""
+    from planetpdf.core import escl_scanner as E
+
+    monkeypatch.setattr(E, "PINS_FILE", tmp_path / "scanner-certificates.json")
+    asked = []
+    monkeypatch.setattr(E, "first_use", lambda address, fp: asked.append(address) or True)
+    first, url = _https_scanner(tmp_path, "Scanner One")
+    with E._open(url, 5) as response:
+        assert response.read() == b"ok"
+    with E._open(url, 5) as response:  # (the second time: not asked again)
+        response.read()
+    assert len(asked) == 1
+    port = first.server_address[1]
+    first.shutdown()
+    first.server_close()
+    # something else answers at the same address with its own certificate
+    import http.server
+    import ssl
+    import threading
+
+    impostor, _url = _https_scanner(tmp_path, "Impostor")
+    impostor.shutdown()
+    impostor.server_close()
+    impostor = http.server.HTTPServer(("127.0.0.1", port), impostor.RequestHandlerClass)
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.load_cert_chain(tmp_path / "Impostor.pem")
+    impostor.socket = context.wrap_socket(impostor.socket, server_side=True)
+    threading.Thread(target=impostor.serve_forever, daemon=True).start()
+    try:
+        with pytest.raises(E.CertificateChanged):
+            E._open(url, 5)
+        E.forget_certificates()  # (the scanner was replaced: asked again)
+        with E._open(url, 5) as response:
+            response.read()
+        assert len(asked) == 2
+    finally:
+        impostor.shutdown()
+        impostor.server_close()
+
+
+def test_refused_when_nobody_is_there_to_ask(tmp_path, monkeypatch):
+    from planetpdf.core import escl_scanner as E
+    from planetpdf.core.document import PdfError
+
+    monkeypatch.setattr(E, "PINS_FILE", tmp_path / "pins.json")
+    monkeypatch.setattr(E, "first_use", None)
+    server, url = _https_scanner(tmp_path, "Lonely")
+    try:
+        with pytest.raises(PdfError, match="wasn't accepted"):
+            E._open(url, 5)
+    finally:
+        server.shutdown()
+        server.server_close()

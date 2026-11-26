@@ -6,7 +6,8 @@ from dataclasses import dataclass, fields
 
 import pymupdf
 
-from planetpdf.core.redaction.ocg import remove_hidden_layers
+from planetpdf.core.contents import replace_contents
+from planetpdf.core.redaction.ocg import _dict_entries, _page_resources_xref_key, remove_hidden_layers, tokenize
 
 # Markup annotations ("comments"). Widgets (form fields) and links are handled separately.
 _COMMENT_TYPES = {
@@ -60,15 +61,30 @@ LABELS = {
                   "pages without tags."),
 }
 
+# What a sanitize reports removed (the options, and the signatures when asked for).
+REMOVED_LABELS = {**LABELS, "signatures": ("Digital signatures", "The signatures, so the file is saved as a whole new file.")}
+
 
 @dataclass
 class SanitizeResult:
     removed: dict[str, int]
 
 
-def sanitize(doc: pymupdf.Document, options: SanitizeOptions) -> SanitizeResult:
+# MuPDF's own errors (``FzErrorFormat`` for a broken reference…) aren't RuntimeErrors
+# (security review 2026-11-25: Sanitize stopped on one in a file PlanetPDF had signed).
+OBJECT_ERRORS = (RuntimeError, ValueError, pymupdf.mupdf.FzErrorBase)
+
+
+def sanitize(doc: pymupdf.Document, options: SanitizeOptions, *, remove_signatures: bool = False) -> SanitizeResult:
+    """Removes what ``options`` names. ``remove_signatures``: a signed document's signatures go
+    too; the caller must then save it as a whole new file (``PdfSession.signatures_changed``), since
+    a signed file saved the usual way only has the changes added, which keeps everything removed
+    in its earlier, signed version (security review 2026-11-25)."""
     removed: dict[str, int] = {}
     catalog = doc.pdf_catalog()
+
+    if remove_signatures:
+        removed["signatures"] = _remove_signatures(doc)
 
     if options.hidden_layers:
         removed["hidden_layers"] = remove_hidden_layers(doc)
@@ -127,6 +143,37 @@ def sanitize(doc: pymupdf.Document, options: SanitizeOptions) -> SanitizeResult:
     return SanitizeResult(removed)
 
 
+def signed_fields(doc: pymupdf.Document) -> list[tuple[int, int]]:
+    """Signature fields holding a signature (their own value, or their parent's)."""
+    found = []
+    for page in doc:
+        for widget in page.widgets(types=[pymupdf.PDF_WIDGET_TYPE_SIGNATURE]):
+            owner = widget.xref
+            if doc.xref_get_key(owner, "V")[0] == "null":
+                kind, value = doc.xref_get_key(owner, "Parent")
+                owner = int(value.split()[0]) if kind == "xref" else 0
+            if owner and doc.xref_get_key(owner, "V")[0] != "null":
+                found.append((widget.xref, owner))
+    return found
+
+
+def _remove_signatures(doc: pymupdf.Document) -> int:
+    """Each signature (the field's value) and its picture, the certification (/Perms), and
+    /SigFlags. The fields stay, empty, ready to be signed again."""
+    from planetpdf.core.forms.fields import draw_empty_signature
+
+    found = signed_fields(doc)
+    for widget_xref, owner in found:
+        doc.xref_set_key(owner, "V", "null")
+        draw_empty_signature(doc, widget_xref)  # (the old picture showed who signed, and when)
+    catalog = doc.pdf_catalog()
+    if doc.xref_get_key(catalog, "Perms")[0] != "null":
+        doc.xref_set_key(catalog, "Perms", "null")
+    if doc.xref_get_key(catalog, "AcroForm/SigFlags")[0] != "null":
+        doc.xref_set_key(catalog, "AcroForm/SigFlags", "null")
+    return len({owner for _w, owner in found})
+
+
 def _remove_structure(doc: pymupdf.Document) -> int:
     """The tag tree (alternate text /Alt, replacement text /ActualText, expansions /E live in it)
     and the keys pointing into it. Returns 1 if the file had one."""
@@ -141,7 +188,73 @@ def _remove_structure(doc: pymupdf.Document) -> int:
         for annot_xref in [a[0] for a in page.annot_xrefs()]:
             if doc.xref_get_key(annot_xref, "StructParent")[0] != "null":
                 doc.xref_set_key(annot_xref, "StructParent", "null")
-    return int(had)
+    marked = _remove_marked_text(doc)
+    return int(had) + marked
+
+
+MARKED_TEXT_KEYS = (b"/Alt", b"/ActualText", b"/E")
+
+
+def _strip_marked_text(data: bytes) -> tuple[bytes, int]:
+    """Content with every /Alt, /ActualText, and /E (and its text) taken out of marked-content
+    property lists (``/Span << /ActualText (…) >> BDC``): the only dictionaries in page content."""
+    cuts, depth = [], 0
+    tokens = list(tokenize(data))
+    for i, tok in enumerate(tokens):
+        if tok.kind == "dict_start":
+            depth += 1
+        elif tok.kind == "dict_end":
+            depth = max(0, depth - 1)
+        elif depth and tok.kind == "name" and tok.value in MARKED_TEXT_KEYS and i + 1 < len(tokens) \
+                and tokens[i + 1].kind in ("str", "hex"):
+            cuts.append((tok.start, tokens[i + 1].end))
+    if not cuts:
+        return data, 0
+    out, pos = bytearray(), 0
+    for start, end in cuts:
+        out += data[pos:start] + b" "
+        pos = end
+    return bytes(out + data[pos:]), len(cuts)
+
+
+def _strip_properties(doc: pymupdf.Document, owner: int, key: str) -> int:
+    """The same keys in the named property lists of a resource dictionary (``/Properties``)."""
+    count = 0
+    for _name, xref in _dict_entries(doc, owner, f"{key}/Properties").items():
+        for k in ("Alt", "ActualText", "E"):
+            if doc.xref_get_key(xref, k)[0] != "null":
+                doc.xref_set_key(xref, k, "null")
+                count += 1
+    return count
+
+
+def _remove_marked_text(doc: pymupdf.Document) -> int:
+    """Alternate text, replacement text, and expansions written into the pages' own content and
+    their pictures' and forms' content, not only in the tag tree (security review 2026-11-25:
+    they were still there after Sanitize). Returns how many were removed."""
+    removed, seen = 0, set()
+
+    def forms(owner: int, key: str) -> None:
+        nonlocal removed
+        removed += _strip_properties(doc, owner, key)
+        for _name, xref in _dict_entries(doc, owner, f"{key}/XObject").items():
+            if xref in seen or doc.xref_get_key(xref, "Subtype")[1] != "/Form":
+                continue
+            seen.add(xref)
+            data, count = _strip_marked_text(doc.xref_stream(xref) or b"")
+            if count:
+                doc.update_stream(xref, data)
+                removed += count
+            forms(xref, "Resources")
+
+    for page in doc:
+        data, count = _strip_marked_text(page.read_contents())
+        if count:
+            replace_contents(doc, page.number, data)  # (never in place: streams can be shared)
+            removed += count
+        owner, key = _page_resources_xref_key(doc, page.xref)
+        forms(owner, key)
+    return removed
 
 
 def _clear_form_values(doc: pymupdf.Document) -> int:
@@ -209,7 +322,7 @@ def _remove_javascript(doc: pymupdf.Document) -> int:
             if doc.xref_get_key(xref, "S")[1] == "/JavaScript":
                 doc.xref_set_key(xref, "JS", "()")
                 count += 1
-        except (RuntimeError, ValueError):
+        except OBJECT_ERRORS:
             continue
     return count
 
@@ -218,6 +331,6 @@ def _deref_text(doc: pymupdf.Document, kind: str, value: str) -> str:
     if kind == "xref":
         try:
             return doc.xref_object(int(value.split()[0]))
-        except (RuntimeError, ValueError):
+        except OBJECT_ERRORS:
             return ""
     return value

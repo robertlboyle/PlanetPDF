@@ -39,7 +39,9 @@ mod windows {
     use std::process::Command;
     use std::time::{Duration, Instant};
 
+    use planetpdf_printer::acl;
     use planetpdf_printer::ffi::{self, HANDLE};
+    use planetpdf_printer::service::system_dir;
     use planetpdf_printer::{DRIVER_NAME, OLD_MONITOR_DLL, OLD_MONITOR_NAME, PIPE_NAME, PRINTER_NAME,
                             SERVICE_DESCRIPTION, SERVICE_DISPLAY_NAME, SERVICE_EXE, SERVICE_NAME};
 
@@ -56,14 +58,15 @@ mod windows {
         std::io::Error::from_raw_os_error(code as i32).to_string()
     }
 
+    /// Windows' System32 folder, asked of Windows: this runs as administrator, and neither the
+    /// folder nor the programs started from it are taken from the environment (SystemRoot, PATH).
     fn system32() -> PathBuf {
-        let root = std::env::var_os("SystemRoot").map(PathBuf::from).unwrap_or_else(|| PathBuf::from(r"C:\Windows"));
-        root.join("System32")
+        PathBuf::from(system_dir())
     }
 
     /// Windows PowerShell for the print cmdlets (every name in the script is one of ours).
     fn powershell(script: &str) -> Result<(), String> {
-        let output = Command::new("powershell.exe")
+        let output = Command::new(system32().join("WindowsPowerShell").join("v1.0").join("powershell.exe"))
             .args(["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script])
             .output()
             .map_err(|e| e.to_string())?;
@@ -229,6 +232,15 @@ mod windows {
         if !exe.is_file() {
             return Err(format!("{SERVICE_EXE} isn't beside this program"));
         }
+        // The service runs as SYSTEM: never from where someone other than an administrator can
+        // put another program in its place (security list 2026-11-26, item 3).
+        let open = acl::open_parts(&exe);
+        if !open.is_empty() {
+            return Err(format!("The PlanetPDF printer wasn't added: its service runs with system rights, and here \
+                                other users could replace its program.\n{}\nInstall PlanetPDF in Program Files, \
+                                or let only administrators write to its folder, then run this again.",
+                               open.join("\n")));
+        }
         let manager = manager(ffi::SC_MANAGER_ALL_ACCESS)?;
         let name = ffi::wide(SERVICE_NAME);
         let display = ffi::wide(SERVICE_DISPLAY_NAME);
@@ -267,6 +279,26 @@ mod windows {
         // SAFETY: a valid SERVICE_DESCRIPTIONW.
         unsafe {
             ffi::ChangeServiceConfig2W(service.0, ffi::SERVICE_CONFIG_DESCRIPTION, &description as *const _ as *const _)
+        };
+        // If the service ever ends without being told to, Windows starts it again (security list
+        // 2026-11-26, item 4: until someone did by hand, jobs failed in the queue and the pipe's
+        // name was free for the taking): after 5 seconds, then after 30; a third time in a day,
+        // it stays down for an administrator to look at.
+        let mut steps = [
+            ffi::SC_ACTION { Type: ffi::SC_ACTION_RESTART, Delay: 5_000 },
+            ffi::SC_ACTION { Type: ffi::SC_ACTION_RESTART, Delay: 30_000 },
+            ffi::SC_ACTION { Type: ffi::SC_ACTION_NONE, Delay: 0 },
+        ];
+        let failure = ffi::SERVICE_FAILURE_ACTIONSW {
+            dwResetPeriod: 24 * 60 * 60,
+            lpRebootMsg: std::ptr::null_mut(),
+            lpCommand: std::ptr::null_mut(),
+            cActions: steps.len() as u32,
+            lpsaActions: steps.as_mut_ptr(),
+        };
+        // SAFETY: a valid SERVICE_FAILURE_ACTIONSW whose array outlives the call.
+        unsafe {
+            ffi::ChangeServiceConfig2W(service.0, ffi::SERVICE_CONFIG_FAILURE_ACTIONS, &failure as *const _ as *const _)
         };
         // SAFETY: starts our service.
         if unsafe { ffi::StartServiceW(service.0, 0, std::ptr::null()) } == 0
@@ -309,7 +341,7 @@ mod windows {
             return Ok(());
         }
         // (Windows' "Microsoft Print to PDF" feature: on by default on PCs, sometimes off on servers)
-        let _ = Command::new("dism")
+        let _ = Command::new(system32().join("dism.exe"))
             .args(["/online", "/enable-feature", &format!("/featurename:{PDF_FEATURE}"), "/all", "/norestart",
                    "/quiet"])
             .output();
@@ -396,17 +428,24 @@ mod windows {
     pub fn status() -> Result<String, String> {
         let manager = manager(ffi::SC_MANAGER_CONNECT)?;
         let service = open_service(&manager, ffi::SERVICE_QUERY_STATUS);
+        let running = service.as_ref().is_some_and(|s| service_state(s) == ffi::SERVICE_RUNNING);
+        let pipe = pipe_open(0);
+        let open = std::env::current_exe().map(|e| acl::open_parts(&e.with_file_name(SERVICE_EXE))).unwrap_or_default();
         let checks = [
             ("PlanetPDF Print Service installed", service.is_some()),
-            ("PlanetPDF Print Service running",
-             service.as_ref().is_some_and(|s| service_state(s) == ffi::SERVICE_RUNNING)),
-            ("its pipe open", pipe_open(0)),
+            ("PlanetPDF Print Service running", running),
+            ("its pipe open", pipe),
+            // (the pipe there while the service isn't: another program holds it; security review 2026-11-25)
+            ("nothing else holds its pipe", running || !pipe),
+            // (the service runs as SYSTEM: its program must be out of other users' reach)
+            ("only administrators can change its program and PlanetPDF's folder", open.is_empty()),
             ("Microsoft Print To PDF driver", driver_installed()),
             ("PlanetPDF port", port_listed(PIPE_NAME)),
             ("PlanetPDF printer", printer_exists()),
         ];
-        let report: Vec<String> =
+        let mut report: Vec<String> =
             checks.iter().map(|(what, ok)| format!("{}  {what}", if *ok { "OK     " } else { "MISSING" })).collect();
+        report.extend(open.iter().map(|line| format!("         {line}")));
         if checks.iter().all(|(_, ok)| *ok) { Ok(report.join("\n")) } else { Err(report.join("\n")) }
     }
 }

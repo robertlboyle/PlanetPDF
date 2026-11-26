@@ -10,10 +10,61 @@ use std::path::{Path, PathBuf};
 use crate::ffi::{self, HANDLE};
 use crate::naming;
 
+#[derive(Clone, Debug, PartialEq)]
 pub struct Job {
     pub id: u32,
     pub user: String,
+    /// The account's SID when Windows said who wrote the job ("" when only the queue's name is known).
+    pub sid: String,
     pub document: String,
+}
+
+/// Why a printout wasn't delivered.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Failure {
+    /// It can't be told for sure whose session it belongs in: the printout is held, never guessed.
+    Unsure(String),
+    /// Whose it is is known, but it couldn't be handed over (they signed out, a folder failed…).
+    Failed(String),
+}
+
+impl std::fmt::Display for Failure {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Failure::Unsure(why) | Failure::Failed(why) => f.write_str(why),
+        }
+    }
+}
+
+/// Someone signed in to this computer: their session, and the account as Windows knows it.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Session {
+    pub id: u32,
+    pub active: bool,
+    pub user: String,
+    pub sid: String,
+}
+
+/// The session a printout belongs in (security list 2026-11-26, item 4: sessions were matched by
+/// user name alone, so a local "alice" and a domain "alice" signed in together could get each
+/// other's printouts). With the account's SID, only that account's session (an active one first; a
+/// disconnected one gets the file when they come back). With only a name (the queue's, when the
+/// spooler's own account wrote the job): that name's session, unless two different accounts
+/// carry the name, and then nobody's.
+pub fn pick_session(sessions: &[Session], user: &str, sid: &str) -> Result<u32, Failure> {
+    let best = |list: &[&Session]| list.iter().find(|s| s.active).or(list.first()).map(|s| s.id);
+    let gone = || Failure::Failed(format!("{user} isn't signed in here"));
+    if !sid.is_empty() {
+        let theirs: Vec<&Session> = sessions.iter().filter(|s| s.sid.eq_ignore_ascii_case(sid)).collect();
+        return best(&theirs).ok_or_else(gone);
+    }
+    let named: Vec<&Session> = sessions.iter().filter(|s| s.user.eq_ignore_ascii_case(user)).collect();
+    let one_account = named.iter().all(|s| !s.sid.is_empty() && s.sid.eq_ignore_ascii_case(&named[0].sid));
+    if named.len() > 1 && !one_account {
+        return Err(Failure::Unsure(format!("more than one account named {user} is signed in here, and Windows \
+                                            gave only the name")));
+    }
+    best(&named).ok_or_else(gone)
 }
 
 /// Closes a Windows handle when dropped.
@@ -50,21 +101,23 @@ impl Drop for Impersonation {
 
 /// Puts the spooled PDF in the job's user's PlanetPDF inbox and opens it in PlanetPDF there.
 /// Returns where it went.
-pub fn deliver(job: &Job, spooled: &Path) -> Result<PathBuf, String> {
-    let session = user_session(&job.user).ok_or_else(|| format!("{} isn't signed in here", job.user))?;
-    let token = user_token(session).map_err(|e| format!("no access to {}'s session {session}: {e}", job.user))?;
-    let local = local_app_data(&token).map_err(|e| format!("{}'s local app data folder: {e}", job.user))?;
-    let mut source = File::open(spooled).map_err(|e| format!("the spooled job: {e}"))?;  // (as SYSTEM)
+pub fn deliver(job: &Job, spooled: &Path) -> Result<PathBuf, Failure> {
+    let session = pick_session(&sessions(), &job.user, &job.sid)?;
+    let failed = Failure::Failed;
+    let token = user_token(session)
+        .map_err(|e| failed(format!("no access to {}'s session {session}: {e}", job.user)))?;
+    let local = local_app_data(&token).map_err(|e| failed(format!("{}'s local app data folder: {e}", job.user)))?;
+    let mut source = File::open(spooled).map_err(|e| failed(format!("the spooled job: {e}")))?;  // (as SYSTEM)
     let target = {
-        let _as_user = Impersonation::start(&token).map_err(|e| format!("acting as {}: {e}", job.user))?;
+        let _as_user = Impersonation::start(&token).map_err(|e| failed(format!("acting as {}: {e}", job.user)))?;
         // a folder per job, so two printouts of the same name never meet
         let folder = naming::INBOX.iter().fold(local.clone(), |path, part| path.join(part))
             .join(format!("job-{}-{}", job.id, std::process::id()));
-        std::fs::create_dir_all(&folder).map_err(|e| format!("{}: {e}", folder.display()))?;
+        std::fs::create_dir_all(&folder).map_err(|e| failed(format!("{}: {e}", folder.display())))?;
         let target = naming::unique_path(&folder, &naming::file_stem(&job.document));
-        let mut out = File::create(&target).map_err(|e| format!("{}: {e}", target.display()))?;
-        io::copy(&mut source, &mut out).map_err(|e| format!("{}: {e}", target.display()))?;
-        out.sync_all().map_err(|e| format!("{}: {e}", target.display()))?;
+        let mut out = File::create(&target).map_err(|e| failed(format!("{}: {e}", target.display())))?;
+        io::copy(&mut source, &mut out).map_err(|e| failed(format!("{}: {e}", target.display())))?;
+        out.sync_all().map_err(|e| failed(format!("{}: {e}", target.display())))?;
         target
     };
     if let Err(e) = open_in_planetpdf(&token, &target, &local) {
@@ -73,27 +126,46 @@ pub fn deliver(job: &Job, spooled: &Path) -> Result<PathBuf, String> {
     Ok(target)
 }
 
-/// The session of `user` (an active one first; a disconnected one gets the file when they come back).
-fn user_session(user: &str) -> Option<u32> {
-    let mut sessions: *mut ffi::WTS_SESSION_INFOW = std::ptr::null_mut();
+/// Everyone signed in here, each with their account's SID (read from their session's own token).
+fn sessions() -> Vec<Session> {
+    let mut list: *mut ffi::WTS_SESSION_INFOW = std::ptr::null_mut();
     let mut count = 0;
     // SAFETY: WTS fills in an array of `count` entries that we free with WTSFreeMemory.
     unsafe {
-        if ffi::WTSEnumerateSessionsW(ffi::WTS_CURRENT_SERVER_HANDLE, 0, 1, &mut sessions, &mut count) == 0 {
+        if ffi::WTSEnumerateSessionsW(ffi::WTS_CURRENT_SERVER_HANDLE, 0, 1, &mut list, &mut count) == 0 {
+            return Vec::new();
+        }
+        let found = std::slice::from_raw_parts(list, count as usize)
+            .iter()
+            .filter_map(|info| {
+                let user = session_user(info.SessionId)?;
+                let sid = user_token(info.SessionId).ok().and_then(|token| token_sid(token.0)).unwrap_or_default();
+                Some(Session { id: info.SessionId, active: info.State == ffi::WTS_ACTIVE, user, sid })
+            })
+            .collect();
+        ffi::WTSFreeMemory(list as *mut c_void);
+        found
+    }
+}
+
+/// The account a token stands for, as its SID in text ("S-1-5-21-…"); None when Windows won't say.
+pub fn token_sid(token: HANDLE) -> Option<String> {
+    // SAFETY: the buffer is sized as Windows asks (8-byte aligned); the SID string is freed.
+    unsafe {
+        let mut needed = 0u32;
+        ffi::GetTokenInformation(token, ffi::TOKEN_USER, std::ptr::null_mut(), 0, &mut needed);
+        let mut buffer = vec![0u64; (needed as usize).div_ceil(8).max(1)];
+        if ffi::GetTokenInformation(token, ffi::TOKEN_USER, buffer.as_mut_ptr() as *mut _, needed, &mut needed) == 0 {
             return None;
         }
-        let list = std::slice::from_raw_parts(sessions, count as usize);
-        let mut found: Option<(bool, u32)> = None;
-        for info in list {
-            if session_user(info.SessionId).is_some_and(|name| name.eq_ignore_ascii_case(user)) {
-                let active = info.State == ffi::WTS_ACTIVE;
-                if found.is_none_or(|(was_active, _)| active && !was_active) {
-                    found = Some((active, info.SessionId));
-                }
-            }
+        let sid = *(buffer.as_ptr() as *const *mut c_void);  // (TOKEN_USER.User.Sid)
+        let mut text: ffi::LPWSTR = std::ptr::null_mut();
+        if ffi::ConvertSidToStringSidW(sid, &mut text) == 0 {
+            return None;
         }
-        ffi::WTSFreeMemory(sessions as *mut c_void);
-        found.map(|(_, id)| id)
+        let value = ffi::from_wide(text);
+        ffi::LocalFree(text as *mut _);
+        (!value.is_empty()).then_some(value)
     }
 }
 
@@ -187,4 +259,49 @@ fn open_in_planetpdf(token: &Handle, file: &Path, folder: &Path) -> io::Result<(
         ffi::CloseHandle(process.hProcess);
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{pick_session, Failure, Session};
+
+    fn session(id: u32, active: bool, user: &str, sid: &str) -> Session {
+        Session { id, active, user: user.into(), sid: sid.into() }
+    }
+
+    const LOCAL_ALICE: &str = "S-1-5-21-1-1-1-1001";
+    const DOMAIN_ALICE: &str = "S-1-5-21-9-9-9-2001";
+
+    #[test]
+    fn the_printout_goes_to_the_account_not_just_the_name() {
+        // a local "alice" and a domain "alice", both signed in (the local one active)
+        let both = [session(2, true, "alice", LOCAL_ALICE), session(3, false, "Alice", DOMAIN_ALICE),
+                    session(4, true, "bob", "S-1-5-21-1-1-1-1002")];
+        assert_eq!(pick_session(&both, "alice", DOMAIN_ALICE), Ok(3));  // (hers, though the other alice is active)
+        assert_eq!(pick_session(&both, "alice", LOCAL_ALICE), Ok(2));
+        // the account isn't signed in: nobody else with the name gets it
+        assert!(matches!(pick_session(&both, "alice", "S-1-5-21-7-7-7-3001"), Err(Failure::Failed(_))));
+    }
+
+    #[test]
+    fn an_account_in_two_sessions_gets_it_in_the_active_one() {
+        let twice = [session(2, false, "alice", LOCAL_ALICE), session(5, true, "alice", LOCAL_ALICE)];
+        assert_eq!(pick_session(&twice, "alice", LOCAL_ALICE), Ok(5));
+        assert_eq!(pick_session(&twice, "ALICE", ""), Ok(5));  // (only a name, but one account)
+        assert_eq!(pick_session(&twice[..1], "alice", LOCAL_ALICE), Ok(2));  // (disconnected: when she's back)
+    }
+
+    #[test]
+    fn a_name_two_accounts_carry_is_nobodys_without_the_account() {
+        let both = [session(2, true, "alice", LOCAL_ALICE), session(3, false, "alice", DOMAIN_ALICE)];
+        assert!(matches!(pick_session(&both, "alice", ""), Err(Failure::Unsure(_))));
+        // (a session whose account couldn't be read counts as another account)
+        let unread = [session(2, true, "alice", LOCAL_ALICE), session(3, false, "alice", "")];
+        assert!(matches!(pick_session(&unread, "alice", ""), Err(Failure::Unsure(_))));
+        // one alice only: hers, as before
+        assert_eq!(pick_session(&both[..1], "alice", ""), Ok(2));
+        assert_eq!(pick_session(&[session(7, true, "alice", "")], "alice", ""), Ok(7));
+        assert!(matches!(pick_session(&both, "carol", ""), Err(Failure::Failed(_))));
+        assert!(matches!(pick_session(&[], "alice", LOCAL_ALICE), Err(Failure::Failed(_))));
+    }
 }

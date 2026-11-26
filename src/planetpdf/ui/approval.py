@@ -78,6 +78,7 @@ def ask_to_sign(who: str, description: str, *, remember: bool = False) -> bool |
     box = QMessageBox()
     box.setIcon(QMessageBox.Icon.Warning)
     box.setWindowTitle("Allow Digital Signing?")
+    box.setTextFormat(Qt.TextFormat.PlainText)  # (the program names itself)
     box.setText(f"{who} wants to sign with your Digital ID.")
     box.setInformativeText(description + "\n\nA digital signature is your legal signature. Allow it only if you "
                                          "started this yourself.")

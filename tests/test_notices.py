@@ -28,7 +28,8 @@ def test_every_runtime_package_is_listed_with_its_pinned_version():
     for line in (ROOT / "requirements.txt").read_text(encoding="utf-8").splitlines():
         line = line.split("#", 1)[0].split(";", 1)[0].strip()
         if "==" in line:
-            name, version = (part.strip() for part in line.split("==", 1))
+            name, version = line.split("==", 1)
+            name, version = name.strip(), version.split()[0]  # (hashes follow the version)
             assert listed.get(_key(name)) == version, f"{name} {version}: {REGENERATE}"
     dev_only = {"pytest", "pip-licenses", "pygments"}
     assert not dev_only & set(listed), "dev-only packages aren't shipped and shouldn't be listed"

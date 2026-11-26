@@ -9,6 +9,7 @@ Everything below works on Windows, the Mac and Linux. Programs may use every fun
 planetpdf help                      the commands, by group
 planetpdf help export               one command's options
 planetpdf commands --json           every command and parameter, for programs
+planetpdf policy                    what an administrator set for this computer (policy.json; exit 4 = part of it wasn't taken)
 planetpdf info report.pdf
 planetpdf export report.pdf --format docx --out report.docx
 planetpdf redact report.pdf --preset ssn --find "John Q. Public" --overlay-text REDACTED --out report_redacted.pdf
@@ -40,10 +41,19 @@ JSON-RPC 2.0, one JSON object per line (UTF-8), over a connection only programs 
 running as you, can open: a named pipe on Windows, a socket file on the Mac and Linux. Never a
 network port.
 
-- **Where it is:** the running PlanetPDF writes `api.json` (`{"address": …}`) into its local app
-  data folder (Windows `%LOCALAPPDATA%\Planet Networks\PlanetPDF`, Mac `~/Library/Application
+- **Where it is:** the running PlanetPDF writes `api.json` (`{"address": …, "key": …}`) into its
+  local app data folder (Windows `%LOCALAPPDATA%\Planet Networks\PlanetPDF`, Mac `~/Library/Application
   Support/Planet Networks/PlanetPDF`, Linux `~/.local/share/Planet Networks/PlanetPDF`). Without a
-  PlanetPDF window, `planetpdf serve` serves it until Ctrl+C.
+  PlanetPDF window, `planetpdf serve` serves it until Ctrl+C. The address is made at random each
+  time PlanetPDF starts (since 1.0.8), so read the file each time; never build the address yourself.
+- **Make sure it's PlanetPDF** (since 1.0.8; the Python client does it for you): `api.json` is a
+  file only you can read. Before `planetpdf.hello`, send
+  `{"jsonrpc":"2.0","id":0,"method":"planetpdf.prove","params":{"nonce":"<32 random hex digits>"}}`
+  and check that the result's `proof` is HMAC-SHA-256, as hex, of the text `PlanetPDF server|<nonce>`
+  with the file's `key` (as UTF-8 text) for its key. If it isn't, close the connection and say
+  nothing more: after a crash, another user of the same computer could be listening at the old
+  address. On Windows, open the pipe with `SECURITY_SQOS_PRESENT | SECURITY_IDENTIFICATION`, so
+  whatever is at the other end can learn who is calling but can't act as you.
 - **Python:** copy `resources/sdk/planetpdf_client.py` (standard library only):
 
   ```python
@@ -69,7 +79,10 @@ network port.
   -32602 bad parameters.
 - **Your control:** Preferences ▸ Scripting & Plugins lists every program that has used PlanetPDF:
   Block, Stop Signing (it's asked again next time), Remove; **Activity Log** shows what each one
-  did (which files, how it ended; never passwords). The API can be turned off there.
+  did (which files, how it ended; never passwords). The API is **off by default** and is turned on
+  there (turning a plugin on turns it on). `clients.json` is sealed (HMAC) with a key the operating
+  system keeps for the user (`core/storage/user_key.py`: DPAPI, the Keychain, libsecret); a list
+  changed outside PlanetPDF is ignored.
 - **Allowing a program:** the first time a program says hello, PlanetPDF asks you whether it may
   use PlanetPDF, naming the program file it really is (looked up from the operating system, not
   taken from the name it gives). Its token then works only for that program file: another
@@ -102,7 +115,8 @@ or in a folder IT lists in `PLANETPDF_PLUGINS`, with a `plugin.json`:
   asks for. If any of its files change afterwards it's off again until you turn it on again.
 - **Menus:** its items go at the end of the menus it names (File, Edit, View, Tools, Window, Help).
 - **Running:** choosing an item starts `run` (the program is looked for in the plugin's folder
-  first) in its own process and folder, with `PLANETPDF_API_ADDRESS`, `PLANETPDF_API_TOKEN`,
+  first) in its own process and folder, with `PLANETPDF_API_ADDRESS`, `PLANETPDF_API_KEY` (for
+  `planetpdf.prove`), `PLANETPDF_API_TOKEN`,
   `PLANETPDF_COMMAND`, and `PLANETPDF_DOCUMENT` / `PLANETPDF_PAGE` when a document is open. In
   Python: `PlanetPDF.from_environment()`. Its output goes to `<profile>\logs\plugins\<id>.log`.
 - **Permissions:** `read` (details, text, fields, searches, checks), `write` (make and change

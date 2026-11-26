@@ -82,7 +82,8 @@ class Settings:
     print_open_ask: bool = True  # ask "Open it after it's saved?" before the Save dialog (user 2026-10-18)
     print_open_after: bool = True  # the answer, once remembered (Preferences ▸ Documents)
     # scripting (2026-10-18): the local API for other programs and plugins; the plugins turned on
-    api_enabled: bool = True
+    api_enabled: bool = False  # (off until the user turns it on: security review 2026-11-25, user 2026-11-26)
+    api_off_by_default: bool = True  # (settings from before then: their "on" was the old default; see load_settings)
     plugins_enabled: dict[str, str] = field(default_factory=dict)  # plugin id -> its fingerprint when turned on
     # Updates (Preferences, user 2026-10-07; Help ▸ Check for Updates any time)
     check_updates_on_start: bool = True  # a quiet check 20 s after PlanetPDF starts
@@ -91,6 +92,10 @@ class Settings:
     font_previews: bool = True  # font lists show each font in its own typeface (off: just the names)
     page_cache_mb: int = 200  # rendered pages kept per window (pages on screen always stay)
     update_skipped: str = ""  # "Skip This Version"
+    update_noticed: str = ""  # a version this user was told about but can't install (said once)
+    # the version in which this user was told (or asked) about an install whose own programs are
+    # older than it (once per version; security list 2026-11-26, item 6)
+    install_parts_noticed: str = ""
     autosave_minutes: int = 5  # recovery copy of unsaved changes; 0 = off
     redact_fill: str = "#000000"
     redact_overlay_enabled: bool = False
@@ -124,6 +129,10 @@ class Settings:
     # remembered (<profile>/text-history.json) and suggested while typing
     click_adds_text: bool = True
     remember_text: bool = True
+    # ...including text holding what looks like an SSN, a card, or an account number (user
+    # 2026-11-26: "allow it to be configured to store cc numbers, ssn, etc. as an option. By
+    # default, that can be off")
+    remember_private_numbers: bool = False
     last_certificate: str = ""  # path of the last .pfx/.p12 used (the password is never stored)
     sign_reason: str = ""
     sign_location: str = ""
@@ -139,6 +148,21 @@ class Settings:
     window_geometry: str = ""  # base64 of QMainWindow.saveGeometry(); opaque to core
     window_state: str = ""
     _extra: dict[str, Any] = field(default_factory=dict, repr=False)
+    # An administrator's policy (core/policy.py): the settings it sets for everyone on this
+    # computer, and what this user's own file says for them (kept for when the policy is gone)
+    _locked: dict[str, Any] = field(default_factory=dict, repr=False, compare=False)
+    _own: dict[str, Any] = field(default_factory=dict, repr=False, compare=False)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        """A setting an administrator's policy sets keeps the policy's value, whatever sets it."""
+        locked = self.__dict__.get("_locked")
+        if locked and name in locked:
+            value = locked[name]
+        object.__setattr__(self, name, value)
+
+    def locked(self, name: str) -> bool:
+        """Set by the administrator's policy: Preferences shows it grayed."""
+        return name in self._locked
 
     def author(self) -> str:
         """The name comments are signed with: "Your name" from Preferences, else the
@@ -162,17 +186,26 @@ def _known_fields() -> dict[str, Any]:
     return {f.name: f for f in fields(Settings) if not f.name.startswith("_")}
 
 
+def _under_policy(values: dict[str, Any], extra: dict[str, Any] | None = None) -> Settings:
+    """The settings with the administrator's policy in force (core/policy.py)."""
+    from planetpdf.core import policy
+
+    locked = dict(policy.current().settings)
+    own = {name: values[name] for name in locked if name in values}
+    return Settings(**{**values, **locked}, _extra=extra or {}, _locked=locked, _own=own)
+
+
 def load_settings(directory: Path) -> Settings:
     path = directory / SETTINGS_FILENAME
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError:
-        return Settings()
+        return _under_policy({})
     except (OSError, ValueError) as exc:
         log.warning("Ignoring unreadable settings file %s: %s", path, exc)
-        return Settings()
+        return _under_policy({})
     if not isinstance(raw, dict):
-        return Settings()
+        return _under_policy({})
 
     known = _known_fields()
     defaults = Settings()
@@ -182,13 +215,23 @@ def load_settings(directory: Path) -> Settings:
             values[name] = raw[name]
     if "recent_files" in values:
         values["recent_files"] = [p for p in values["recent_files"] if isinstance(p, str)]
+    if "api_off_by_default" not in raw:
+        # Saved before the local API was off by default: its "on" was the old default, not a
+        # choice, so it goes off once, unless plugins are on (they work through it).
+        values["api_enabled"] = bool(values.get("api_enabled")) and bool(values.get("plugins_enabled"))
     extra = {k: v for k, v in raw.items() if k not in known}
-    return Settings(**values, _extra=extra)
+    return _under_policy(values, extra)
 
 
 def save_settings(settings: Settings, directory: Path) -> None:
     data = asdict(settings)
     extra = data.pop("_extra")
+    locked, own = data.pop("_locked"), data.pop("_own")
+    for name in locked:  # (the user's own choice is what's kept, not the policy's value)
+        if name in own:
+            data[name] = own[name]
+        else:
+            data.pop(name, None)
     payload = {**extra, **data}
     write_bytes_atomic(
         directory / SETTINGS_FILENAME,

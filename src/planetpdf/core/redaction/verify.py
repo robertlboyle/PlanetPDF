@@ -195,18 +195,75 @@ def _check_structure(report: VerificationReport, data: bytes, doc: pymupdf.Docum
     if doc.is_encrypted or doc.needs_pass:
         report.checks.append(Check(Status.WARN, "Output is encrypted", "Verification may be incomplete."))
     remaining = sum(1 for page in doc for _ in page.annots(types=[pymupdf.PDF_ANNOT_REDACT]))
+    thumbs = [page.number + 1 for page in doc if doc.xref_get_key(page.xref, "Thumb")[0] != "null"]
+    if thumbs:  # (a small picture of the page as it was before; security review 2026-11-25)
+        report.checks.append(Check(Status.FAIL, "Page thumbnails remain", f"Page(s) {thumbs[:10]} keep a thumbnail "
+                                   "picture, which can show the page as it was before redacting."))
     if remaining:
         report.checks.append(
             Check(Status.FAIL, "Unapplied redaction marks remain", f"{remaining} mark(s) were not applied.")
         )
 
 
+def _texts_outside_pages(doc: pymupdf.Document):
+    """(place, text) for everything a file can carry besides its pages' text: document
+    information, XMP, bookmarks, attachments (names, descriptions, and contents), comments, and
+    form fields. A term found here was never "an unmarked occurrence on a page"."""
+    for key, value in (doc.metadata or {}).items():
+        if value:
+            yield f"document information ({key})", value
+    yield "XMP metadata", doc.get_xml_metadata() or ""
+    for _level, title, *_rest in doc.get_toc(simple=True):
+        yield "a bookmark", title
+    for name in doc.embfile_names():
+        info = doc.embfile_info(name)
+        yield "an attachment's name", " ".join(str(info.get(k) or "") for k in ("name", "filename", "ufilename"))
+        yield "an attachment's description", info.get("description") or ""
+        try:
+            yield f"attachment {info.get('filename') or name}", _as_text(doc.embfile_get(name))
+        except (RuntimeError, ValueError, pymupdf.mupdf.FzErrorBase):
+            yield f"attachment {name} (unreadable)", ""
+    for page in doc:
+        for annot in page.annots():
+            info = annot.info
+            yield f"a comment on page {page.number + 1}", " ".join(info.get(k) or "" for k in ("content", "title",
+                                                                                                 "subject"))
+            if annot.type[0] == pymupdf.PDF_ANNOT_FILE_ATTACHMENT:
+                try:
+                    yield f"a file attached on page {page.number + 1}", _as_text(annot.get_file())
+                except (RuntimeError, ValueError, pymupdf.mupdf.FzErrorBase):
+                    pass
+        for widget in page.widgets():
+            yield f"a form field on page {page.number + 1}", " ".join(
+                str(v) for v in (widget.field_value, widget.field_label) if v not in (None, "", False, True))
+
+
+def _as_text(data: bytes) -> str:
+    if data[:2] in (b"\xfe\xff", b"\xff\xfe"):
+        return data.decode("utf-16", "replace")
+    return data.decode("utf-8", "replace") + "\n" + data.decode("latin-1")
+
+
+def _outside_pages(doc: pymupdf.Document, term: str, whole_word: bool) -> list[str]:
+    """Where outside the pages' text ``term`` is (case ignored; a short term only as a whole word)."""
+    pattern = re.compile((r"(?<![^\W_])" + re.escape(term) + r"(?![^\W_])") if whole_word else re.escape(term),
+                         re.IGNORECASE)
+    return list(dict.fromkeys(place for place, text in _texts_outside_pages(doc) if text and pattern.search(text)))
+
+
 def _check_term(report, term, doc, mu_pages, py_pages, blobs, areas_by_page) -> None:
     label = f'Term "{_mask(term)}"'
     if len(term) < MIN_TERM_LENGTH:
-        report.checks.append(
-            Check(Status.PASS, f"{label} (short)", "Too short to search reliably; covered by the area checks.")
-        )
+        # (too short to look for in page text and the file's bytes without false alarms; outside
+        # the pages, where a hit is never a word that only happens to match: security review
+        # 2026-11-25, "XQZ" stayed in the subject)
+        places = _outside_pages(doc, term, whole_word=True)
+        if places:
+            report.checks.append(Check(Status.FAIL, f"{label} (short) is still in the file",
+                                       "In " + ", ".join(places[:4]) + ("…" if len(places) > 4 else "") + "."))
+        else:
+            report.checks.append(Check(Status.PASS, f"{label} (short)", "Not in the file's information, bookmarks, "
+                                       "attachments, comments, or fields; on the pages, covered by the area checks."))
         return
     norm = _norm(term)
 
@@ -242,6 +299,12 @@ def _check_term(report, term, doc, mu_pages, py_pages, blobs, areas_by_page) -> 
             report.checks.append(
                 Check(Status.FAIL, f"{label} found by the second parser", f"Page(s) {extra_py} (pypdf).")
             )
+        # The unmarked occurrence explains the term in the pages' own data, not elsewhere in the
+        # file (security review 2026-11-25: an attachment kept it, and this check never ran).
+        places = _outside_pages(doc, term, whole_word=False)
+        if places:
+            report.checks.append(Check(Status.FAIL, f"{label} can still be extracted",
+                                       "In " + ", ".join(places[:4]) + ("…" if len(places) > 4 else "") + "."))
         return
 
     problems = []
@@ -321,53 +384,92 @@ def _check_areas(
         report.checks.append(Check(Status.PASS, f"Page {page_no + 1}: image areas under redactions are blank"))
 
 
-CURVED_SHARE = 0.25  # a curved shape with this much of it under a box is likely letters or ink
+def _points_on(item, steps: int = 32):
+    """Points along a path piece: a straight segment ("l") or a curve ("c")."""
+    if item[0] == "l":
+        p, q = item[1], item[2]
+        return [pymupdf.Point(p.x + (q.x - p.x) * t / steps, p.y + (q.y - p.y) * t / steps) for t in range(steps + 1)]
+    p0, c1, c2, p3 = item[1], item[2], item[3], item[4]
+    out = []
+    for n in range(steps + 1):
+        t = n / steps
+        a, b, c, d = (1 - t) ** 3, 3 * (1 - t) ** 2 * t, 3 * (1 - t) * t * t, t ** 3
+        out.append(pymupdf.Point(a * p0.x + b * c1.x + c * c2.x + d * p3.x, a * p0.y + b * c1.y + c * c2.y + d * p3.y))
+    return out
+
+
+def _piece_kind(item, box: pymupdf.Rect) -> str | None:
+    """What a path piece leaves under ``box``: None (nothing: it doesn't reach inside), "plain"
+    (a level or upright line, or a rectangle's edge: table lines, frames, rules), or "shape"
+    (a curve or a slanted line: a drawn signature, letters drawn as outlines, a chart)."""
+    inner = box + (0.5, 0.5, -0.5, -0.5)
+    kind = item[0]
+    if kind == "re" or (kind == "qu" and item[1].is_rectangular):
+        rect = item[1] if kind == "re" else item[1].rect
+        return "plain" if rect.intersects(inner) and not rect.contains(box) else None
+    if kind == "qu":
+        q = item[1]
+        edges = [("l", q.ul, q.ur), ("l", q.ur, q.lr), ("l", q.lr, q.ll), ("l", q.ll, q.ul)]
+        kinds = [_piece_kind(e, box) for e in edges]
+        return "shape" if "shape" in kinds else ("plain" if "plain" in kinds else None)
+    if kind not in ("l", "c"):
+        return None
+    if not any(inner.contains(p) for p in _points_on(item)):
+        return None
+    if kind == "l":
+        dx, dy = abs(item[2].x - item[1].x), abs(item[2].y - item[1].y)
+        if dx < 0.5 or dy < 0.5:
+            return "plain"
+    return "shape"
 
 
 def _check_shapes(report: VerificationReport, page: pymupdf.Page, rects) -> None:
-    """Shapes that cross a box keep their whole outline in the file (by default only shapes
-    fully under a box are removed; security review 2026-11-21: "text drawn as outlines, drawn
-    signatures, charts"). Curved shapes largely under a box (letters drawn as outlines, a drawn
-    signature) fail; others (table lines, frames) are a warning."""
+    """Shapes that reach under a box keep their whole outline in the file (by default only shapes
+    fully under a box are removed). A curve or a slanted line under a box fails: a signature drawn
+    as lines, a zig-zag, letters drawn as outlines can be read from it (security review 2026-11-21,
+    then 2026-11-25: straight segments crossing the box only warned, and a zig-zag around the box
+    wasn't checked at all). Level and upright lines and rectangle edges (table lines, frames) warn."""
     try:
         drawings = page.get_drawings()
-    except (RuntimeError, ValueError) as exc:
+    except (RuntimeError, ValueError, pymupdf.mupdf.FzErrorBase) as exc:
         report.checks.append(Check(Status.FAIL, f"Page {page.number + 1}: shapes couldn't be read to check them",
                                    str(exc)))
         return
-    curved, crossing = 0, 0
+    shapes, plain = 0, 0
     boxes = [pymupdf.Rect(r) for r in rects]
     for d in drawings:
         area = pymupdf.Rect(d["rect"])
-        if area.is_empty and area.width == 0 and area.height == 0:
-            continue
         padded = area + (-0.5, -0.5, 0.5, 0.5)  # (straight lines have an empty rect)
+        found = None
         for box in boxes:
             if not padded.intersects(box):
                 continue
             if _same_box(area, box) and d.get("fill") is not None:
-                break  # (the box's own fill)
-            if box.contains(area):
-                break  # (inside: removed, or our own label)
-            has_curves = any(item[0] == "c" for item in d.get("items", ()))
-            if not has_curves and area.contains(box):
-                break  # (a background or frame around the box: nothing of it is under the box but a plain area)
-            if has_curves and \
-                    (area & box).get_area() >= CURVED_SHARE * max(area.get_area(), 1e-6):
-                curved += 1
-            else:
-                crossing += 1
-            break
+                continue  # (the box's own fill)
+            if box.contains(area) and not area.is_empty:
+                continue  # (inside: removed, or our own label)
+            kinds = {_piece_kind(item, box) for item in d.get("items", ())}
+            if "shape" in kinds:
+                found = "shape"
+                break
+            if "plain" in kinds:
+                found = "plain"
+        if found == "shape":
+            shapes += 1
+        elif found == "plain":
+            plain += 1
     advice = "Apply the redactions again with “Also remove shapes that touch the box” turned on."
-    if curved:
+    if shapes:
         report.checks.append(Check(
-            Status.FAIL, f"Page {page.number + 1}: {curved} curved shape(s) partly under a box are still in the file",
-            "They keep their whole outline: text drawn as outlines or a drawn signature could still be read. "
-            + advice))
-    if crossing:
+            Status.FAIL, f"Page {page.number + 1}: {shapes} curved or slanted shape(s) reaching under a box are "
+            "still in the file",
+            "They keep their whole outline: a drawn signature, a drawing, or text drawn as outlines could still be "
+            "read. " + advice))
+    if plain:
         report.checks.append(Check(
-            Status.WARN, f"Page {page.number + 1}: {crossing} shape(s) cross a box and keep their whole outline",
-            "Usually table lines or frames. If a chart, a drawing or outlined text crosses the box, " + advice[0].lower()
+            Status.WARN, f"Page {page.number + 1}: {plain} straight line(s) or frame(s) cross a box and keep their "
+            "whole outline",
+            "Usually table lines or frames. If a chart or a drawing crosses the box, " + advice[0].lower()
             + advice[1:]))
 
 

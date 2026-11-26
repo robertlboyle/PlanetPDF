@@ -84,6 +84,44 @@ def _outside_project(path: Path) -> Path:
     return path
 
 
+def load_key(path: Path):
+    """The signing key; a passphrase-protected one asks for its passphrase (typed by whoever
+    releases: never stored, never on the command line). Security review 2026-11-25 (finding 9):
+    whether the key gets a passphrase is Robert's decision; ``protect-key`` adds one."""
+    data = _outside_project(path).read_bytes()
+    try:
+        return serialization.load_pem_private_key(data, password=None)
+    except TypeError:  # (encrypted)
+        import getpass
+
+        passphrase = getpass.getpass(f"Passphrase for the update-signing key ({path.name}): ").encode("utf-8")
+        try:
+            return serialization.load_pem_private_key(data, password=passphrase)
+        except ValueError:
+            sys.exit("That passphrase doesn't open the update-signing key.")
+
+
+def protect_key(args) -> None:
+    """Puts a passphrase on the signing key (the same key: copies already installed keep accepting
+    its updates). The passphrase is asked for twice and never stored; the unprotected file is
+    replaced. Back up the protected file, and keep the passphrase somewhere safe: without it, no
+    update can be signed."""
+    import getpass
+
+    path = _outside_project(Path(args.private_key))
+    key = load_key(path)
+    first = getpass.getpass("New passphrase (at least 12 characters): ")
+    if len(first) < 12 or getpass.getpass("The same passphrase again: ") != first:
+        sys.exit("The passphrases were too short or didn't match: nothing changed.")
+    protected = key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
+                                  serialization.BestAvailableEncryption(first.encode("utf-8")))
+    tmp = path.with_suffix(path.suffix + ".new")
+    tmp.write_bytes(protected)
+    tmp.replace(path)
+    print(f"{path} now needs its passphrase. Copies in other places (backups) are still unprotected: "
+          "replace or delete them.")
+
+
 def keygen(args) -> None:
     path = _outside_project(Path(args.private_key))
     if path.exists() and not args.replace:
@@ -113,7 +151,7 @@ def publish(args) -> None:
         sys.exit(f"{build} isn't there: point --build at the built AppImage, .deb or .rpm.")
     if platform == "windows" and not (build / "PlanetPDF.exe").is_file():
         sys.exit(f"{build} has no PlanetPDF.exe: point --build at the one-folder build.")
-    key = serialization.load_pem_private_key(_outside_project(Path(args.private_key)).read_bytes(), password=None)
+    key = load_key(Path(args.private_key))
     public = base64.b64encode(key.public_key().public_bytes(serialization.Encoding.Raw,
                                                             serialization.PublicFormat.Raw)).decode("ascii")
     if PUBLIC_KEY.read_text(encoding="ascii").strip() != public:
@@ -159,7 +197,7 @@ def voices(args) -> None:
 
     from planetpdf.core import voice_download
 
-    key = serialization.load_pem_private_key(_outside_project(Path(args.private_key)).read_bytes(), password=None)
+    key = load_key(Path(args.private_key))
     manifest, signature, files = voice_download.make_manifest(Path(args.models), key)
     out = Path(args.out) / voice_download.FOLDER
     for path in files:
@@ -192,8 +230,10 @@ def main() -> None:
     v.add_argument("--models", default=str(ROOT / "models"), help="the models folder (holds kokoro/)")
     v.add_argument("--out", default=str(ROOT / "dist" / "update-site"))
     v.add_argument("--private-key", default=str(DEFAULT_KEY))
+    k2 = sub.add_parser("protect-key", help="put a passphrase on the signing key (asked for at each release)")
+    k2.add_argument("--private-key", default=str(DEFAULT_KEY))
     args = parser.parse_args()
-    {"keygen": keygen, "publish": publish, "voices": voices}[args.command](args)
+    {"keygen": keygen, "publish": publish, "voices": voices, "protect-key": protect_key}[args.command](args)
 
 
 if __name__ == "__main__":

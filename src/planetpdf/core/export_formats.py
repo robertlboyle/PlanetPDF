@@ -264,6 +264,9 @@ def _number(text):
     return text
 
 
+FORMULA_STARTS = ("=", "+", "-", "@")  # (what a spreadsheet may take for the start of a formula)
+
+
 def export_xlsx(doc, pages: Sequence[int], target: Path, options: ExportOptions, progress: Progress = None) -> Path:
     """An Excel workbook: one sheet per page; tables cell for cell, other text line by line."""
     from openpyxl import Workbook
@@ -280,6 +283,12 @@ def export_xlsx(doc, pages: Sequence[int], target: Path, options: ExportOptions,
             sheet.append(row)
             for col, value in enumerate(row, start=1):
                 widths[col] = max(widths.get(col, 8), min(60, len(str(value)) + 2))
+                if isinstance(value, str) and value[:1] in FORMULA_STARTS:
+                    # The page's words, never a formula (security review 2026-11-25: "=SUM(2,3)" in a
+                    # PDF became a live formula); quoted, so editing the cell keeps it text too.
+                    cell = sheet.cell(row=sheet.max_row, column=col)
+                    cell.data_type = "s"
+                    cell.quotePrefix = True
         for col, width in widths.items():
             sheet.column_dimensions[get_column_letter(col)].width = width
     with _AtomicTarget(target) as tmp:

@@ -62,12 +62,15 @@ class AboutDialog(QDialog):
         self.setWindowTitle(f"About {APP_NAME}")
         self.resize(820, 640)
         title = QLabel(f"<h2>{APP_NAME} {__version__}</h2>"
-                       "<p>PDF editor for internal use at Planet Networks.<br>"
+                       "<p>A free PDF editor from Planet Networks, under the GNU AGPL-3.0-or-later: anyone "
+                       "may use it, read its source, change it, and share it "
+                       "(<a href='https://github.com/robertlboyle/PlanetPDF'>https://github.com/robertlboyle/PlanetPDF</a>). No warranty.<br>"
                        "Keyboard shortcuts follow Adobe Acrobat. The manual: Help ▸ PlanetPDF Help (F1).</p>", self)
         third_party = QLabel(f"{APP_NAME} is built with the components below, each under its own license. "
                              "Choose one to see its license text.", self)
         third_party.setWordWrap(True)
         title.setWordWrap(True)
+        title.setOpenExternalLinks(True)  # (the source code's page)
 
         self.components = load_components()
         self.table = QTableWidget(len(self.components), 3, self)

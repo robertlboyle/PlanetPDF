@@ -12,7 +12,7 @@ from pathlib import Path
 import pymupdf
 
 from planetpdf.core.cert_encryption import CertificateProtection
-from planetpdf.core.document import PdfError, PdfSession, Protection, protect_pdf_file
+from planetpdf.core.document import PdfError, PdfSession, Protection, private_folder, protect_pdf_file
 from planetpdf.core.progress import Progress, report
 from planetpdf.core.redaction.marks import Mark, list_marks, mark_text
 from planetpdf.core.redaction.sanitize import LABELS, SanitizeOptions, SanitizeResult, sanitize
@@ -110,6 +110,11 @@ def apply_marks(doc: pymupdf.Document, options: RedactionOptions,
             graphics=graphics,
             text=pymupdf.PDF_REDACT_TEXT_REMOVE,
         )
+        # A thumbnail is a small picture of the page as it was, and piece info can hold another
+        # program's copy of it: they go whatever Sanitize's choices (security review 2026-11-25).
+        for key in ("Thumb", "PieceInfo"):
+            if doc.xref_get_key(page.xref, key)[0] != "null":
+                doc.xref_set_key(page.xref, key, "null")
         pages += 1
         marks += len(rects)
     return pages, marks, removed
@@ -225,25 +230,29 @@ def redact_copy(
         from planetpdf.core.font_embedding import embed_quietly
 
         embed_quietly(work)
-        # Full rewrite, maximum garbage collection, no incremental update: nothing
-        # from earlier revisions or unreferenced objects survives.
-        work.save(
-            str(tmp),
-            garbage=4,
-            clean=True,
-            deflate=True,
-            incremental=False,
-            encryption=pymupdf.PDF_ENCRYPT_NONE,
-        )
-        work.close()
-        # verified as written, before any encryption (and before it replaces anything)
-        verification = verify_redaction(tmp, terms, areas, overlay_text=options.overlay_text.strip(),
-                                        progress=progress)
-        verification.output = target
-        plain = tmp.read_bytes() if isinstance(protection, CertificateProtection) else None
-        if protection is not None:
-            report(progress, 0, 0, "Protecting the new file…")
-            protect_pdf_file(tmp, protection)
+        with private_folder() as private:
+            # A protected copy is checked unencrypted in a folder only this user can open, and
+            # only its encrypted version goes beside the target (security review 2026-11-25).
+            checked = tmp if protection is None else private / "redacted.pdf"
+            # Full rewrite, maximum garbage collection, no incremental update: nothing
+            # from earlier revisions or unreferenced objects survives.
+            work.save(
+                str(checked),
+                garbage=4,
+                clean=True,
+                deflate=True,
+                incremental=False,
+                encryption=pymupdf.PDF_ENCRYPT_NONE,
+            )
+            work.close()
+            # verified as written, before any encryption (and before it replaces anything)
+            verification = verify_redaction(checked, terms, areas, overlay_text=options.overlay_text.strip(),
+                                            progress=progress)
+            verification.output = target
+            plain = checked.read_bytes() if isinstance(protection, CertificateProtection) else None
+            if protection is not None:
+                report(progress, 0, 0, "Protecting the new file…")
+                protect_pdf_file(checked, protection, target=tmp)
     except BaseException:
         if tmp is not None:
             remove_quietly(tmp)

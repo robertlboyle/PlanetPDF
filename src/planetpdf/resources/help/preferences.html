@@ -10,6 +10,7 @@
   <li>Change what you need and click <b>Save</b>. <b>Cancel</b> leaves everything as it was.</li>
 </ol>
 <p>Changes apply to every open PlanetPDF window as soon as you click Save. While PlanetPDF runs, Preferences opens on the page you looked at last.</p>
+<p><b>Grayed settings.</b> On a computer your company looks after, IT can set some settings for everyone who uses it. Those are shown as IT set them, grayed, and resting the pointer on one says <b>Set by your administrator for everyone on this computer</b>; a line at the bottom of Preferences says so too. What you had chosen yourself is kept and comes back if IT removes its setting. See <a href="administrators.html#policy">the policy file</a>.</p>
 
 <h2 id="general">General</h2>
 <!-- index: your name; author name; company name; date format; time format; profile folder; default PDF app -->
@@ -62,6 +63,7 @@
 <ul>
   <li><b>Clicking the page with no tool chosen adds text there</b>: a click on an empty spot of a page, with the Select arrow (also right after placing a signature or stamp), starts typing there, as <b>Add Text</b> does. See <a href="forms.html#click-to-type">Click anywhere to type</a>. Default: on.</li>
   <li><b>Remember the text I add and suggest it as I type</b>: see <a href="forms.html#remembered-text">Remembered text</a>. Off: nothing new is remembered and nothing is suggested (what's already remembered stays until you forget it). Default: on.</li>
+  <li><b>Also remember text with Social Security, card, or account numbers</b>: off (the default), text holding what looks like one of those numbers is never remembered, and switching this off forgets any that was. Default: off.</li>
   <li><b>Forget Remembered Text (<i>count</i>)</b> empties the list at once.</li>
 </ul>
 
@@ -107,7 +109,7 @@
 <p>This page controls which other programs and plugins may use PlanetPDF. See <a href="scripting.html#top">Scripts, Programs, and Plugins</a> for what they are.</p>
 <h3 id="api-setting">Command line and local API</h3>
 <!-- index: Let other programs and plugins use PlanetPDF -->
-<p><b>Let other programs and plugins use PlanetPDF (its local API)</b>: on by default. Only programs on this computer, running as you, can connect, and signing always asks you first. A change takes effect the next time PlanetPDF starts. The command line (<code>planetpdf help</code>) works either way.</p>
+<p><b>Let other programs and plugins use PlanetPDF (its local API)</b>: off by default (turning a plugin on turns it on). Only programs on this computer, running as you, can connect, and signing always asks you first. A change takes effect the next time PlanetPDF starts. The command line (<code>planetpdf help</code>) works either way.</p>
 <h3 id="programs-list">Programs that have used PlanetPDF</h3>
 <!-- index: Program; Last used; Signing; blocked; allowed; asks first; audit log -->
 <p>Each program (and plugin) that has connected is listed with when it was last used and its signing state: <b>asks first</b>, <b>allowed</b> (you chose "Always Allow This Program"), or <b>blocked</b>. Select one and click:</p>

@@ -294,6 +294,9 @@ class ReflowView(QTextBrowser):
         self.document().setDocumentMargin(24)
         self.setAccessibleDescription("Page Down at the end or Ctrl+Page Down turns the page; Ctrl+4 goes back to the page")
 
+    def loadResource(self, kind, url):  # noqa: N802 (Qt)
+        return None  # (the page's own words, escaped: nothing is ever loaded; security review 2026-11-25)
+
     def refresh(self) -> None:
         session = self._window.session
         if session is None:

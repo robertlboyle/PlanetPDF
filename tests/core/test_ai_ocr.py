@@ -122,3 +122,19 @@ def test_status_says_why_it_cant_run(monkeypatch, tmp_path):
     assert "too little memory" in A.status().reason
     monkeypatch.setattr(A, "nvidia_card", lambda: ("NVIDIA RTX 4070", 12.0))
     assert A.status().ready and "RTX 4070" in A.status().reason
+
+
+def test_the_models_code_is_checked_before_it_runs(tmp_path):
+    """Security review 2026-11-25: trust_remote_code ran whatever .py files the model folder had."""
+    import pytest
+
+    from planetpdf.core import ai_ocr as A
+
+    folder = tmp_path / "model"
+    folder.mkdir()
+    with pytest.raises(A.AiOcrError, match="isn't the reviewed one"):
+        A.check_model_code(folder)
+    for name in A.MODEL_CODE_SHA256:
+        (folder / name).write_bytes(b"something else")
+    with pytest.raises(A.AiOcrError, match="isn't the reviewed one"):
+        A.check_model_code(folder)

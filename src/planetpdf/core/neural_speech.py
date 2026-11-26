@@ -52,6 +52,61 @@ PIPER_VOICE_NAMES = {"en_US-kristin-medium": "Kristin (US, female)", "en_US-joe-
 USER_MODELS: Path | None = None
 
 
+# The voice files PlanetPDF was made with: (file in the models folder) -> SHA-256. A model file is
+# in effect code for ONNX Runtime, so one that doesn't match isn't loaded (security review
+# 2026-11-25). Kokoro: release model-files-v1.0; Piper: rhasspy/piper-voices at commit
+# 5ec43b18 (2026-11-24). scripts/download_voices.py fetches exactly these.
+MODEL_SHA256 = {
+    "kokoro/kokoro-v1.0.onnx": "7d5df8ecf7d4b1878015a32686053fd0eebe2bc377234608764cc0ef3636a6c5",
+    "kokoro/voices-v1.0.bin": "bca610b8308e8d99f32e6fe4197e7ec01679264efed0cac9140fe9c29f1fbf7d",
+    "piper/en_US-kristin-medium.onnx": "5849957f929cbf720c258f8458692d6103fff2f0e3d3b19c8259474bb06a18d4",
+    "piper/en_US-kristin-medium.onnx.json": "5681426d4aead22195de70531eeeeddb46493cfaffc5764b2ea3db73428b651c",
+    "piper/en_US-kristin-medium.MODEL_CARD.txt": "8c181b1d5f7d8152b914faab941fcbe6b8f0495e63e5189d6f27b8c68c8393fc",
+    "piper/en_US-joe-medium.onnx": "abf4b998e34045cbd00eaf050de2de620f81ded6eb8b85a24b022a1c2b3f08d2",
+    "piper/en_US-joe-medium.onnx.json": "9b91a652090ffa8a49e36569afa9acc8ead2b3a22a950e8e6ca11914f3e85d56",
+    "piper/en_US-joe-medium.MODEL_CARD.txt": "4b319248135916e8f5433ce7a9fe5271026b05cb598bab05807b22cb17fd129b",
+}
+_checked: dict[tuple[str, int, int], bool] = {}
+
+
+class ModelNotAsMade(RuntimeError):
+    """A voice file isn't the one PlanetPDF was made with (changed or damaged)."""
+
+
+def check_model(root: Path, relative: str) -> Path:
+    """The voice file ``relative`` in ``root``, if it's exactly the one PlanetPDF was made with
+    (checked once per run while the file is unchanged); else ``ModelNotAsMade``."""
+    import hashlib
+
+    path = Path(root) / relative
+    expected = MODEL_SHA256.get(relative)
+    if expected is None:
+        raise ModelNotAsMade(f"{relative} isn't one of the voice files PlanetPDF knows.")
+    stat = path.stat()
+    key = (str(path), stat.st_size, stat.st_mtime_ns)
+    if not _checked.get(key):
+        digest = hashlib.sha256()
+        with open(path, "rb") as f:
+            for block in iter(lambda: f.read(1 << 20), b""):
+                digest.update(block)
+        if digest.hexdigest() != expected:
+            raise ModelNotAsMade(f"The voice file {relative} isn't the one PlanetPDF was made with, so it isn't "
+                                 "used. Install the voices again (Preferences ▸ Read Out Loud).")
+        _checked[key] = True
+    return path
+
+
+def quiet_onnxruntime():
+    """onnxruntime with its telemetry switched off. Microsoft's Windows builds write TraceLogging
+    events (the model's file name, hashes, the hardware) that Windows' diagnostic data may pass on
+    (security review 2026-11-25). ONNX Runtime turns them back on when a trace session enables its
+    provider, so this is called again right before every model is loaded."""
+    import onnxruntime as ort
+
+    ort.disable_telemetry_events()
+    return ort
+
+
 def models_dir() -> Path | None:
     candidates = []
     if os.environ.get("PLANETPDF_MODELS"):
@@ -136,15 +191,17 @@ class KokoroEngine(Engine):
     default_voice = "af_heart"
 
     def __init__(self, root: Path) -> None:
-        import onnxruntime as ort
         from kokoro_onnx import Kokoro
+
+        model = check_model(root, f"kokoro/{KOKORO_MODEL}")
+        voices = check_model(root, f"kokoro/{KOKORO_VOICES}")
+        ort = quiet_onnxruntime()
 
         options = ort.SessionOptions()
         options.intra_op_num_threads = max(1, min(8, (os.cpu_count() or 4) // 2))  # (more was slower)
         options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
-        session = ort.InferenceSession(str(root / "kokoro" / KOKORO_MODEL), options,
-                                       providers=["CPUExecutionProvider"])
-        self._kokoro = Kokoro.from_session(session, str(root / "kokoro" / KOKORO_VOICES))
+        session = ort.InferenceSession(str(model), options, providers=["CPUExecutionProvider"])
+        self._kokoro = Kokoro.from_session(session, str(voices))
         have = set(self._kokoro.get_voices())
         self.voices = {code: label for code, label in KOKORO_VOICE_NAMES.items() if code in have}
 
@@ -168,7 +225,10 @@ class PiperEngine(Engine):
 
         voice = voice if voice in self.voices else self.default_voice
         if voice not in self._loaded:
-            self._loaded[voice] = PiperVoice.load(self._root / "piper" / f"{voice}.onnx")
+            check_model(self._root, f"piper/{voice}.onnx.json")
+            model = check_model(self._root, f"piper/{voice}.onnx")
+            quiet_onnxruntime()  # (Piper makes its own ONNX Runtime session)
+            self._loaded[voice] = PiperVoice.load(model)
         return self._loaded[voice]
 
     def make(self, text: str, voice: str, speed: float):

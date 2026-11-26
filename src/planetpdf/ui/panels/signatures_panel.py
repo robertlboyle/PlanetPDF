@@ -55,6 +55,8 @@ class SignaturesPanel(QWidget):
             when = status.signing_time.strftime("%Y-%m-%d %H:%M") if status.signing_time else ""
             if status.timestamped:
                 when += " (timestamped)"
+            elif when:
+                when += " (signer's clock)"  # (not proven: no timestamp from a trusted server)
             row = QTreeWidgetItem([text, status.signer, when, status.summary])
             row.setForeground(0, QColor(color))
             row.setToolTip(3, status.summary)
@@ -67,6 +69,10 @@ class SignaturesPanel(QWidget):
             self.summary.setText("This document has no digital signatures.")
         else:
             worst = max(statuses, key=lambda s: list(Verdict).index(s.verdict)).verdict
-            self.summary.setText(f"{len(statuses)} signature(s). Overall: {VERDICT_STYLE[worst][0]}.")
+            text = f"{len(statuses)} signature(s). Overall: {VERDICT_STYLE[worst][0]}."
+            if any(s.verdict in (Verdict.VALID, Verdict.VALID_UNTRUSTED) and not s.revocation_checked
+                   for s in statuses):  # (said up front, not only in each one's details: security review 2026-11-25)
+                text += " Whether the certificates were revoked wasn't checked (Preferences ▸ Signatures)."
+            self.summary.setText(text)
         self.check_button.setEnabled(self._window.session is not None)
         self.sign_button.setEnabled(self._window.session is not None)

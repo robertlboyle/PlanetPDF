@@ -160,3 +160,88 @@ def test_a_new_program_is_asked_about_by_its_real_program_file(server, client_mo
     with pytest.raises(Exception, match="didn't allow"):
         in_thread(refused)
     assert len(server.asked) == 2
+
+
+# --- nobody else can stand in for the API (security list 2026-11-26, item 2) ------------------------
+
+
+def test_the_api_listens_on_a_random_name_and_says_so_privately(server, tmp_path):
+    import getpass
+    import sys
+
+    info = json.loads((tmp_path / "api.json").read_text(encoding="utf-8"))
+    assert info["key"] == server.key and len(server.key) == 64
+    assert getpass.getuser().lower() not in server.address.lower()
+    # one API per user: another process finds this one (it proves it holds api.json's key) and doesn't listen
+    import subprocess
+    from pathlib import Path
+
+    import planetpdf
+
+    code = ("from pathlib import Path; from PySide6.QtWidgets import QApplication; app = QApplication([]); "
+            "from planetpdf.ui import api_server; "
+            f"api_server.info_path = lambda: Path({str(tmp_path / 'api.json')!r}); "
+            f"print(api_server.ApiServer(Path({str(tmp_path / 'profile2')!r})).listening)")
+    env = dict(os.environ, PYTHONPATH=str(Path(planetpdf.__file__).parents[1]), QT_QPA_PLATFORM="offscreen")
+    other = subprocess.Popen([sys.executable, "-c", code], stdout=subprocess.PIPE, text=True, env=env)
+    end = time.monotonic() + 60
+    while other.poll() is None and time.monotonic() < end:
+        QApplication.processEvents()
+        time.sleep(0.005)
+    assert other.stdout.read().strip() == "False"
+    assert json.loads((tmp_path / "api.json").read_text(encoding="utf-8"))["key"] == server.key  # (left alone)
+    if sys.platform != "win32":
+        assert (tmp_path / "api.json").stat().st_mode & 0o077 == 0
+
+
+def test_the_client_has_the_api_prove_itself_first(server, client_module, tmp_path, monkeypatch):
+    monkeypatch.setattr(client_module, "default_server", lambda: (server.address, server.key))
+
+    def work():
+        with client_module.PlanetPDF("Test Client", token_file=tmp_path / "t.txt") as pdf_api:
+            return pdf_api.call("planetpdf.commands")
+
+    assert in_thread(work)["commands"]
+
+
+def test_the_client_says_nothing_to_what_cannot_prove_it_is_planetpdf(server, client_module, tmp_path, monkeypatch):
+    """An old address someone else took (here: the real API, but api.json's key is another run's)."""
+    token_file = tmp_path / "t.txt"
+    token_file.write_text("the-programs-secret-token", encoding="utf-8")
+    monkeypatch.setattr(client_module, "default_server", lambda: (server.address, "0" * 64))
+    heard = []
+    real = server.service.handle
+
+    def handle(conn, message, send):
+        heard.append(message.get("method"))
+        return real(conn, message, send)
+
+    monkeypatch.setattr(server.service, "handle", handle)
+
+    def work():
+        try:
+            client_module.PlanetPDF("Test Client", token_file=token_file)
+        except client_module.PlanetPDFError as e:
+            return e.code
+
+    assert in_thread(work) == -32097
+    assert heard == ["planetpdf.prove"]  # (no hello, no token, no file names)
+
+
+def test_a_plugin_is_given_the_key(server, tmp_path, monkeypatch):
+    import sys
+
+    from planetpdf.core import plugins
+
+    folder = tmp_path / "plug"
+    folder.mkdir()
+    (folder / "show.py").write_text("import os, pathlib; pathlib.Path('key.txt').write_text("
+                                    "os.environ.get('PLANETPDF_API_KEY', ''))", encoding="utf-8")
+    plugin = plugins.Plugin(id="t", name="T", version="1", publisher="", run=[sys.executable, "show.py"],
+                            permissions=[], menu_items=[], folder=folder)
+    item = plugins.MenuItem(menu="Tools", title="Show", command="show")
+    monkeypatch.setattr(plugins, "command_line", lambda p: [sys.executable, "show.py"])
+    process = plugins.start(plugin, item, address=server.address, token="t", key=server.key,
+                            log_folder=tmp_path / "logs")
+    assert process.wait(30) == 0
+    assert (folder / "key.txt").read_text(encoding="utf-8") == server.key

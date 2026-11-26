@@ -109,3 +109,20 @@ def test_macos_speaks_a_sentence():
     engine = MacEngine()
     samples, rate = engine.make("Hello from PlanetPDF.", engine.default_voice, 1.2)
     assert rate == 22050 and 0.5 < len(samples) / rate < 5 and abs(samples).max() > 0.1
+
+
+def test_a_voice_file_that_isnt_the_pinned_one_isnt_loaded(tmp_path):
+    """Security review 2026-11-25: model files were fetched and loaded unchecked."""
+    import pytest
+
+    from planetpdf.core import neural_speech as NS
+
+    (tmp_path / "piper").mkdir()
+    (tmp_path / "piper" / "en_US-joe-medium.onnx").write_bytes(b"not the model")
+    with pytest.raises(NS.ModelNotAsMade):
+        NS.check_model(tmp_path, "piper/en_US-joe-medium.onnx")
+    with pytest.raises(NS.ModelNotAsMade):
+        NS.check_model(tmp_path, "piper/some-other-voice.onnx")
+    root = NS.models_dir()
+    if root is not None and (root / "piper" / "en_US-joe-medium.onnx").is_file():
+        assert NS.check_model(root, "piper/en_US-joe-medium.onnx").is_file()  # (the real one passes)

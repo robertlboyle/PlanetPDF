@@ -126,6 +126,10 @@ def web_page_to_pdf(address: str, target: Path, *, timeout: float = TIMEOUT_S,
                     progress: Progress | None = None) -> Path:
     """Print ``address`` to ``target`` with the browser (no header / footer lines).
     ``progress`` hears the seconds waited so far; False from it cancels."""
+    from planetpdf.core import policy
+
+    if policy.reason("web_capture"):
+        raise PdfError(policy.reason("web_capture"))
     browser = find_browser()
     if browser is None:
         raise PdfError("This needs Microsoft Edge or Google Chrome, which wasn't found on this computer.")

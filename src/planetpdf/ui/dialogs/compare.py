@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
 )
 
 from planetpdf.core import compare as C
+from planetpdf.ui.plain import escape, tip
 
 if TYPE_CHECKING:
     from planetpdf.ui.main_window import MainWindow
@@ -45,13 +46,13 @@ class CompareDialog(QDialog):
         self.current_is_new = current_is_new
         current_name = window.session.path.name
         old_name, new_name = (other_path.name, current_name) if current_is_new else (current_name, other_path.name)
-        self.heading = QLabel(f"<b>Old:</b> {old_name}<br><b>New:</b> {new_name}<br><br>{result.summary()}")
+        self.heading = QLabel(f"<b>Old:</b> {escape(old_name)}<br><b>New:</b> {escape(new_name)}<br><br>{escape(result.summary())}")
         self.heading.setTextFormat(Qt.TextFormat.RichText)
         self.list = QListWidget()
         for change in result.changes:
             item = QListWidgetItem(self._label(change))
             item.setForeground(QBrush(QColor.fromRgbF(*[c * 0.75 for c in C.COLORS[change.kind]])))
-            item.setToolTip(f"Old: {change.old_text or '—'}\nNew: {change.new_text or '—'}")
+            item.setToolTip(tip(f"Old: {change.old_text or '—'}\nNew: {change.new_text or '—'}"))
             item.setData(Qt.ItemDataRole.UserRole, change)
             self.list.addItem(item)
         self.list.currentItemChanged.connect(lambda item, _prev: self.show_change(item.data(Qt.ItemDataRole.UserRole) if item else None))
@@ -114,7 +115,7 @@ class CompareDialog(QDialog):
         self.result = C.compare(old, new)
         current = self._window.session.path.name
         old_name, new_name = (self._other_path.name, current) if self.current_is_new else (current, self._other_path.name)
-        self.heading.setText(f"<b>Old:</b> {old_name}<br><b>New:</b> {new_name}<br><br>{self.result.summary()}")
+        self.heading.setText(f"<b>Old:</b> {escape(old_name)}<br><b>New:</b> {escape(new_name)}<br><br>{escape(self.result.summary())}")
         self.list.clear()
         for change in self.result.changes:
             item = QListWidgetItem(self._label(change))
@@ -127,10 +128,12 @@ class CompareDialog(QDialog):
         session = self._window.session
         if path is None:
             default = session.path.with_name(f"{session.path.stem} - comparison.pdf")
-            name, _ = QFileDialog.getSaveFileName(self, "Save Comparison Report", str(default), "PDF files (*.pdf)")
-            if not name:
+            from planetpdf.ui.save_path import choose_save_path
+
+            path = choose_save_path(self, "Save Comparison Report", default,
+                                    last_directory=self._window.settings.last_directory)
+            if not path:
                 return None
-            path = Path(name)
         if path.resolve() in (session.path.resolve(), self._other_path.resolve()):
             QMessageBox.warning(self, "Comparison Report", "Choose a different file name; that's one of the documents being compared.")
             return None

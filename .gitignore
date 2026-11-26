@@ -22,6 +22,8 @@ update-site/
 
 # the launcher's build output (build.ps1 puts it in %LOCALAPPDATA%\PlanetPDF-build\launcher-target)
 /launcher/target/
+# the print service's (cargo test run in printer\)
+/printer/target/
 
 # macOS Finder's folder settings
 .DS_Store

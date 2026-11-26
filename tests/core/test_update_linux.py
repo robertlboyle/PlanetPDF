@@ -102,6 +102,17 @@ def test_a_package_is_installed_with_the_system_tool(tmp_path, monkeypatch, kind
         return Done()
 
     monkeypatch.setattr("subprocess.run", run)
+    # the tool is started from the system's own folders by its full path, never found on a search
+    # path the user's programs can change (security list 2026-11-26, item 10)
+    system = tmp_path / "system-bin"
+    system.mkdir()
+    monkeypatch.setattr(U, "SYSTEM_FOLDERS", (str(tmp_path / "none"), str(system)))
+    with pytest.raises(U.UpdateError, match=f"no {tool[0]}"):
+        U.apply(root, new, manifest, signature, key=key.public_key())
+    assert ran == []
+    (system / tool[0]).write_bytes(b"")
+    (system / tool[0]).chmod(0o755)
+    tool = [str(system / tool[0]), *tool[1:]]
     assert U.apply(root, new, manifest, signature, key=key.public_key()) == "1.1"
     # installed from a private copy, not from the download the user's programs can change
     assert ran[0][:-1] == tool and Path(ran[0][-1]).name == new.name and Path(ran[0][-1]) != new

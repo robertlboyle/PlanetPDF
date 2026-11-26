@@ -39,7 +39,9 @@ from planetpdf.core import update as U
 FINISH = "--finish-update"
 APPLY = "--apply-update"
 INSTALL = "--install-updates"
-FLAGS = (FINISH, APPLY, INSTALL)
+REFRESH = "--refresh-install"  # (as administrator: the install folder's own programs, from this version's copies)
+FLAGS = (FINISH, APPLY, INSTALL, REFRESH)
+REFRESH_LOG = "refresh.log"
 RESULT_FILE = "result.json"
 LOG_FILE = "update.log"  # what the helper did, step by step, beside the downloaded update
 STARTED_FILE = "installing"  # there while the installing step runs
@@ -154,6 +156,8 @@ def helper_main(argv: list[str]) -> int:
             return _finish(argv[argv.index(FINISH) + 1 :])
         if APPLY in argv:
             return _apply(argv[argv.index(APPLY) + 1 :])
+        if REFRESH in argv:
+            return _refresh(argv[argv.index(REFRESH) + 1 :])
         return _install_updates()
     except IndexError:
         return 2
@@ -183,8 +187,107 @@ def status_files(root: Path, result: Path) -> tuple[Path, Path, Path]:
     return folder / f"{name}.json", folder / f"{name}.log", folder / f"{name}.installing"
 
 
+def _registered_install_dir() -> Path | None:
+    """Windows: where the installer put PlanetPDF (HKLM ... InstallDir), or None."""
+    if sys.platform != "win32":
+        return None
+    from planetpdf.core import windows_elevate as E  # (Windows-only code lives in its own modules)
+
+    return E.registered_install_dir()
+
+
+def trusted_root(claimed: Path) -> Path:
+    """The folder the administrator step may install into: this program's own install folder,
+    and on Windows the one the installer registered too; never just what its command line says
+    (security review 2026-11-25). ``U.UpdateError`` when they don't agree."""
+    own = U.install_root()
+    if own is None:
+        raise U.UpdateError("the installing step must run from the installed PlanetPDF")
+
+    def same(a: Path, b: Path) -> bool:
+        return os.path.normcase(str(Path(a).resolve())) == os.path.normcase(str(Path(b).resolve()))
+
+    if not same(own, claimed):
+        raise U.UpdateError(f"the folder it was asked to update ({claimed}) isn't this PlanetPDF's ({own})")
+    registered = _registered_install_dir()
+    if registered is not None and not same(own, registered) and not U.is_app_bundle(own):
+        raise U.UpdateError(f"this PlanetPDF ({own}) isn't the one the installer registered ({registered})")
+    return own
+
+
+def close_install_folder(root: Path, log_to: Path | None = None) -> str:
+    """Windows, as administrator: before anything is installed into it, PlanetPDF's folder is
+    closed to everyone but administrators (security list 2026-11-26, item 3: an install outside
+    Program Files often lets every user write, who could then replace PlanetPDF's programs or the
+    print service, which runs with system rights). The installer does this since 1.0.8; this is for
+    installs made before. Returns what it did ("" = nothing to do), also for the log."""
+    if sys.platform != "win32" or U.is_app_bundle(root) or not root.is_dir():
+        return ""
+    from planetpdf.core import windows_acl
+    from planetpdf.core import windows_elevate as E
+
+    if not E.is_admin():
+        return ""
+    try:
+        if windows_acl.closed_to_others(root):
+            return ""
+        closed = windows_acl.protect_folder(root)
+    except Exception as exc:  # noqa: BLE001 (never in the way of the update)
+        closed, note = False, f" ({exc})"
+    else:
+        note = ""
+    said = (f"{root} could be changed by other users of this computer: it is now closed to everyone but "
+            "administrators" if closed else
+            f"WARNING: {root} can be changed by other users of this computer and couldn't be closed{note}. "
+            "Whoever can write there can replace PlanetPDF's programs. Let only administrators write to it.")
+    if log_to is not None:
+        log(log_to, said)
+    return said
+
+
+def refresh_command(root: Path) -> list[str]:
+    return self_command(REFRESH, str(root))
+
+
+def _refresh(args: list[str]) -> int:
+    """``--refresh-install ROOT``, as administrator: the install folder's launchers and print
+    service become the ones this version came with (``U.stale_root_files``: an install updated by
+    a version that replaced only the program kept its old ones). Only in the PlanetPDF this runs
+    from; the folder is closed to other users first. 0 when they are up to date afterwards."""
+    if not _is_admin():
+        return 1
+    try:
+        root = trusted_root(Path(args[0]))
+    except U.UpdateError:
+        return 1
+    log_to = status_folder(root) / REFRESH_LOG
+    try:
+        log_to.parent.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        pass
+    close_install_folder(root, log_to)
+    source = root / U.VERSIONS / str(U.current_version(root)) / U.ROOT_FILES
+    try:
+        changed = U.update_root_files(root, source)
+    except OSError as exc:
+        log(log_to, f"the install folder's programs couldn't be replaced: {exc}")
+        return 1
+    log(log_to, "replaced from this version's copies: " + (", ".join(changed) or "nothing (already the same)"))
+    return 0 if not U.stale_root_files(root, source) else 1
+
+
 def _apply(args: list[str]) -> int:
     root, zip_path, manifest, signature, result = (Path(a) for a in args[:5])
+    if _is_admin():
+        try:
+            root = trusted_root(root)
+        except U.UpdateError as exc:
+            own = U.install_root()
+            if own is not None:  # (said where only administrators write; nothing installed)
+                status, log_to, _started = status_files(own, result)
+                log(log_to, f"installing step refused: {exc}")
+                _write_result(status, False, f"The update wasn't installed: {exc}.", target=_target(manifest))
+            return 1
     if _is_admin():  # (never write into the user's folder as administrator)
         result, log_to, started = status_files(root, result)
         try:
@@ -196,6 +299,7 @@ def _apply(args: list[str]) -> int:
     else:
         log_to, started = result.parent, result.parent / STARTED_FILE
     log(log_to, f"installing step started (administrator: {_is_admin()})")
+    close_install_folder(root, log_to)
     try:
         started.write_text(str(os.getpid()), encoding="utf-8")
     except OSError:
@@ -214,7 +318,7 @@ def _install(root: Path, zip_path: Path, manifest: Path, signature: Path, result
     log_to = log_to or result.parent
     try:
         version = U.apply(root, zip_path, manifest.read_bytes(), signature.read_bytes())
-    except (U.UpdateError, OSError) as exc:
+    except (U.UpdateError, OSError, ValueError) as exc:
         log(log_to, f"installing step failed: {exc}")
         _write_result(result, False, f"The update couldn't be installed: {exc}", target=_target(manifest))
         return 1
@@ -395,7 +499,9 @@ def _run_as_admin_linux(command: list[str], result: Path) -> int:
     return code
 
 
-APPIMAGE_INSTALL = ('set -e; d=$(mktemp -d); trap \'rm -rf "$d"\' EXIT; cp -- "$1" "$d/new"; '
+# (as root: the tools it names come from the system's own folders, whatever PATH it was given)
+APPIMAGE_INSTALL = ('set -e; PATH=/usr/sbin:/usr/bin:/sbin:/bin; export PATH; '
+                    'd=$(mktemp -d); trap \'rm -rf "$d"\' EXIT; cp -- "$1" "$d/new"; '
                     'echo "$2  $d/new" | sha256sum -c --status; install -m 755 -- "$d/new" "$3"')
 
 
@@ -439,7 +545,10 @@ def _install_updates() -> int:
         print("This copy of PlanetPDF isn't installed in a versions folder: nothing to update.")
         return 2
     current = U.current_version(root) or __version__
-    url = U.configured_url(root, UPDATE_URL)
+    url = U.configured_url(root, UPDATE_URL, even_if_off=True)  # (IT's own update: whatever users' checks are)
+    said = close_install_folder(root)
+    if said:
+        print(said)
     try:
         signed = U.check(url, current)
         if signed is None:

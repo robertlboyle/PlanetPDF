@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import gc
 import shutil
+import tempfile
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -82,6 +84,39 @@ def _check_opened(doc: pymupdf.Document, name: str, password: str | None) -> pym
         doc.close()
         raise NotAPdf(f"{name} has no pages.")
     return doc
+
+
+WHOLE_FILE = dict(garbage=4, deflate=True, clean=True)  # (earlier revisions and unused objects dropped)
+
+
+def write_whole(doc: pymupdf.Document, target: Path, **options) -> None:
+    """``doc`` saved as a whole new file at ``target`` (nothing of an earlier revision kept; its
+    encryption kept unless ``options`` say otherwise): written to a temporary file beside it, then
+    moved into place, so nothing half-written is ever at ``target``."""
+    target = Path(target)
+    tmp = temp_path_beside(target)
+    try:
+        doc.save(str(tmp), **{**WHOLE_FILE, "encryption": pymupdf.PDF_ENCRYPT_KEEP, **options})
+        replace_with_retry(tmp, target)
+    except BaseException:
+        remove_quietly(tmp)
+        raise
+
+
+def incremental_bytes(doc: pymupdf.Document) -> bytes:
+    """The document as its original bytes plus its changes appended (an incremental update),
+    in memory, whether it was opened from a file or from bytes: a signed file's signed revisions
+    stay byte for byte, so its signatures stay valid. (PyMuPDF's own ``write`` refuses incremental
+    output; MuPDF's writer does it.)"""
+    from pymupdf import mupdf
+
+    options = mupdf.PdfWriteOptions()
+    options.do_incremental = 1  # (encryption kept: do_encrypt defaults to PDF_ENCRYPT_KEEP)
+    buffer = mupdf.fz_new_buffer(1 << 16)
+    out = mupdf.FzOutput(buffer)
+    mupdf.pdf_write_document(pymupdf._as_pdf_document(doc), out, options)
+    out.fz_close_output()
+    return bytes(mupdf.fz_buffer_extract(buffer))
 
 
 def _has_digital_signatures(doc: pymupdf.Document) -> bool:
@@ -154,26 +189,55 @@ class Protection:
         )
 
 
-def protect_pdf_file(path: Path, protection) -> None:
-    """Encrypt the (unencrypted) PDF file ``path`` in place with ``protection`` (a
-    password ``Protection`` or a ``cert_encryption.CertificateProtection``): new files made
-    from a protected document stay protected (backlog item, built 2026-10-02)."""
+def save_pdf(doc: pymupdf.Document, target: Path, protection=None, **options) -> None:
+    """``doc`` written to ``target``: a temporary file beside it, then moved into place. With
+    ``protection`` (a password ``Protection`` or a ``cert_encryption.CertificateProtection``) it is
+    encrypted *as it is written*, so no unprotected copy is ever in ``target``'s folder, not even
+    for a moment (security review 2026-11-25: a watcher copied the unprotected file in the 19 ms
+    before it was encrypted in place). New files made from a protected document stay protected
+    (backlog item, built 2026-10-02)."""
     from planetpdf.core.cert_encryption import CertificateProtection, encrypt_bytes
 
-    protection.validate()
-    path = Path(path)
-    tmp = temp_path_beside(path)
+    target = Path(target)
+    options = {"garbage": 3, "deflate": True, **options}
+    tmp = temp_path_beside(target)
     try:
-        if isinstance(protection, CertificateProtection):
-            tmp.write_bytes(encrypt_bytes(path.read_bytes(), protection))
+        if protection is None:
+            doc.save(str(tmp), **options)
         else:
-            with pymupdf.open(path) as doc:
-                if doc.needs_pass:
-                    raise PdfError(f"{path.name} is already password protected.")
-                doc.save(str(tmp), garbage=3, deflate=True, **protection.save_args())
-        replace_with_retry(tmp, path)
+            protection.validate()
+            if isinstance(protection, CertificateProtection):
+                plain = doc.tobytes(**{**options, "encryption": pymupdf.PDF_ENCRYPT_NONE})
+                tmp.write_bytes(encrypt_bytes(plain, protection))  # (the plain bytes only in memory)
+            else:
+                doc.save(str(tmp), **{k: v for k, v in options.items() if k != "encryption"},
+                         **protection.save_args())
+        replace_with_retry(tmp, target)
     finally:
         remove_quietly(tmp)
+
+
+def protect_pdf_file(source: Path, protection, target: Path | None = None) -> None:
+    """Encrypts the unprotected PDF file ``source`` with ``protection`` into ``target`` (default:
+    ``source`` itself). ``source`` should be in a private folder (``private_folder``), never beside
+    a protected result."""
+    source = Path(source)
+    with pymupdf.open(stream=source.read_bytes(), filetype="pdf") as doc:  # (from memory: it may be replaced)
+        if doc.needs_pass:
+            raise PdfError(f"{source.name} is already password protected.")
+        save_pdf(doc, target or source, protection)
+
+
+@contextmanager
+def private_folder():
+    """A new folder only this user can open (inside the user's own temporary folder; mode 0700 on
+    the Mac and Linux), deleted afterwards: the place for unprotected work files, such as a redacted
+    copy being checked before it is encrypted."""
+    folder = Path(tempfile.mkdtemp(prefix="planetpdf-"))
+    try:
+        yield folder
+    finally:
+        shutil.rmtree(folder, ignore_errors=True)
 
 
 REMOVE_PROTECTION = "remove"
@@ -336,7 +400,12 @@ class PdfSession:
                 raise SignaturesWouldBreak(
                     "Changing the password protection rewrites the file, which invalidates its digital signatures."
                 )
-            if self._pending_protection is None and self._doc.can_save_incrementally():
+            if self._pending_protection is None and self._doc.stream is not None:
+                # (put back from a snapshot: undo, or a command that failed; MuPDF only appends to
+                # the file it opened, so the changes are appended here: security review 2026-11-25)
+                if self._save_appended(progress):
+                    return
+            elif self._pending_protection is None and self._doc.can_save_incrementally():
                 report(progress, 0, 0, "Adding the changes to the file (its signatures are kept)…")
                 self._doc.save(
                     str(self._path), incremental=True, encryption=pymupdf.PDF_ENCRYPT_KEEP
@@ -471,8 +540,40 @@ class PdfSession:
 
     def snapshot(self) -> bytes:
         """The whole document as it is now (keeping its encryption), for undo of changes
-        page snapshots can't cover (e.g. flattening the form)."""
+        page snapshots can't cover (e.g. flattening the form). A signed document's snapshot is its
+        file with the changes appended, so putting it back keeps the signatures (and Save can
+        still add to the file)."""
+        if self._has_signatures:
+            try:
+                return incremental_bytes(self._doc)
+            except Exception:  # noqa: BLE001 (MuPDF's own errors too; a full copy then)
+                pass
         return self._doc.tobytes(garbage=0, encryption=pymupdf.PDF_ENCRYPT_KEEP)
+
+    def _save_appended(self, progress: Progress | None) -> bool:
+        """Saves a signed document that was put back from a snapshot by appending its changes to
+        the file (a temporary file, then replaced). False if the file on disk isn't the start of
+        it any more (changed elsewhere), so appending would break the signatures."""
+        report(progress, 0, 0, "Adding the changes to the file (its signatures are kept)…")
+        data = incremental_bytes(self._doc)
+        if not data.startswith(self._path.read_bytes()):
+            return False
+        tmp = temp_path_beside(self._path)
+        try:
+            tmp.write_bytes(data)
+            self._release()
+            replace_with_retry(tmp, self._path)
+        except BaseException:
+            remove_quietly(tmp)
+            if self._doc.is_closed:
+                self._doc = open_pdf_bytes(data, self._path.name, self._password)
+            raise
+        self._reopen(self._path)
+        return True
+
+    def signatures_changed(self) -> None:
+        """Reads again whether the document is signed (after signatures were removed)."""
+        self._has_signatures = _has_digital_signatures(self._doc)
 
     def open_snapshot(self, data: bytes) -> pymupdf.Document:
         """A separate document object from a ``snapshot()`` (e.g. for work in a background
@@ -491,6 +592,7 @@ class PdfSession:
         self._doc.close()
         self._doc = doc
         self._modified = True
+        self._has_signatures = _has_digital_signatures(doc)  # (Sanitize may have removed them)
         self.revision += 1
 
     def _reopen(self, path: Path) -> None:

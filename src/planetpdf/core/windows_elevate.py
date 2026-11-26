@@ -56,6 +56,35 @@ def is_admin() -> bool:
         return False
 
 
+TOKEN_QUERY = 0x0008
+TOKEN_ELEVATION_TYPE = 18  # (TokenElevationType: 1 default, 2 full, 3 limited)
+
+
+def can_elevate() -> bool:
+    """Whether this user can say Yes at Windows' administrator prompt: an administrator, running
+    elevated or not. A standard user (terminal servers) can't, without someone else's password."""
+    if is_admin():
+        return True
+    advapi32 = ctypes.WinDLL("advapi32", use_last_error=True)
+    advapi32.OpenProcessToken.argtypes = [wintypes.HANDLE, wintypes.DWORD, ctypes.POINTER(wintypes.HANDLE)]
+    advapi32.OpenProcessToken.restype = wintypes.BOOL
+    advapi32.GetTokenInformation.argtypes = [wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD,
+                                             ctypes.POINTER(wintypes.DWORD)]
+    advapi32.GetTokenInformation.restype = wintypes.BOOL
+    _kernel32.GetCurrentProcess.restype = wintypes.HANDLE
+    token = wintypes.HANDLE()
+    if not advapi32.OpenProcessToken(_kernel32.GetCurrentProcess(), TOKEN_QUERY, ctypes.byref(token)):
+        return False
+    try:
+        kind, size = wintypes.DWORD(), wintypes.DWORD()
+        if not advapi32.GetTokenInformation(token, TOKEN_ELEVATION_TYPE, ctypes.byref(kind), ctypes.sizeof(kind),
+                                            ctypes.byref(size)):
+            return False
+        return kind.value in (2, 3)
+    finally:
+        _kernel32.CloseHandle(token)
+
+
 def run_elevated(command: list[str]) -> int:
     """Run ``command`` as administrator (Windows asks: UAC) and wait; its exit code."""
     info = _ShellExecuteInfo()
@@ -90,3 +119,41 @@ def wait_for_process(pid: int, timeout_ms: int) -> None:
         _kernel32.WaitForSingleObject(handle, timeout_ms)
     finally:
         _kernel32.CloseHandle(handle)
+
+
+def _folder(call) -> str:
+    buffer = ctypes.create_unicode_buffer(32768)
+    call.argtypes = [wintypes.LPWSTR, wintypes.UINT]
+    call.restype = wintypes.UINT
+    length = call(buffer, len(buffer))
+    if not 0 < length < len(buffer):
+        raise OSError("Windows didn't say where its folder is")
+    return buffer.value
+
+
+def system_dir() -> str:
+    """Windows' System32 folder, asked of Windows itself: never taken from ``SystemRoot`` or
+    another environment variable, which a program running as the user can set (security list
+    2026-11-26, item 10)."""
+    return _folder(_kernel32.GetSystemDirectoryW)
+
+
+def windows_dir() -> str:
+    """Windows' own folder (the computer's, not a terminal-server user's private one)."""
+    return _folder(_kernel32.GetSystemWindowsDirectoryW)
+
+
+def registered_install_dir():
+    """Where the installer put PlanetPDF (its InstallDir under HKLM, Software, Planet Networks,
+    PlanetPDF), or None: the administrator step installs only there (security review 2026-11-25)."""
+    import winreg
+    from pathlib import Path
+
+    for view in (winreg.KEY_WOW64_64KEY, winreg.KEY_WOW64_32KEY):
+        try:
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"Software\Planet Networks\PlanetPDF", 0,
+                                winreg.KEY_READ | view) as key:
+                return Path(winreg.QueryValueEx(key, "InstallDir")[0])
+        except OSError:
+            continue
+    return None

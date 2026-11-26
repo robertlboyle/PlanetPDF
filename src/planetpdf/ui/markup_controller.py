@@ -425,8 +425,9 @@ class MarkupController(QObject):
         return self._window.text_history.suggestions(typed)
 
     def _remember_text(self, text: str) -> None:
-        if self._window.settings.remember_text:
-            self._window.text_history.remember(text)
+        s = self._window.settings
+        if s.remember_text:
+            self._window.text_history.remember(text, allow_private=s.remember_private_numbers)
 
     @property
     def picking(self) -> bool:
@@ -1260,6 +1261,8 @@ class MarkupController(QObject):
             self._drop_back(item_id)
             self.refresh()  # snap the overlay back
             return
+        if not self._redrawable(item):
+            return
         page = self.session.doc[item.page]
         target = from_display(page, _tuple(rect))
         if item.spec.kind is Kind.TEXT:
@@ -1269,8 +1272,31 @@ class MarkupController(QObject):
         if new.kind is Kind.SYMBOL and _resized(item.spec, new):
             new = K.redrawn_symbol(self.session, new)  # (a circle's line keeps its width)
             self.remember_symbol_size(new)  # the next one is this size
+        self._replace(item, new, f"{verb} {item.type_name}")
+
+    def _redrawable(self, item: K.MarkupItem) -> bool:
+        """An item drawn from a picture PlanetPDF keeps with it (a signature, a stamp) can only be
+        moved or resized while that picture is there; a file saved by another program may have
+        kept just its look (security review 2026-11-25: moving one deleted it)."""
+        if not item.spec.kind.uses_appearance or item.spec.source:
+            return True
+        self._drop_back(item.item_id)
+        self.refresh()  # (the overlay goes back)
+        self._window.statusBar().showMessage(
+            f"This {item.type_name.lower()} can't be moved or resized: the file keeps only how it looks, not what "
+            "PlanetPDF needs to draw it again. You can still delete it.", 10000)
+        return False
+
+    def _replace(self, item: K.MarkupItem, new: MarkupSpec, text: str) -> bool:
+        """The move / resize as one undo step. A signed document's question canceled: the item
+        stays where it was, shown again (it was hidden while dragged; security review 2026-11-25)."""
         self._hidden = None  # the command replaces the hidden item with the moved one
-        self._window.push_command(ReplaceMarkupCommand(self._window, item.spec, new, f"{verb} {item.type_name}"))
+        if self._window.push_command(ReplaceMarkupCommand(self._window, item.spec, new, text)):
+            return True
+        K.set_hidden(self.session, item.item_id, False)
+        self._window.view.refresh_page(item.page)
+        self.refresh()
+        return False
 
     def move_to_page(self, item_id: str, page_index: int, rect: QRectF) -> bool:
         """Dropped on another page (Acrobat can't do this): the item moves there, at
@@ -1280,6 +1306,8 @@ class MarkupController(QObject):
             self._drop_back(item_id)
             self.refresh()
             return False
+        if not self._redrawable(item):
+            return False
         spec = item.spec
         page = self.session.doc[page_index]
         target = from_display(page, _tuple(rect))
@@ -1287,9 +1315,7 @@ class MarkupController(QObject):
             new = K.restyled_text(self.session, replace(spec, page=page_index), top_left=(rect.left(), rect.top()))
         else:
             new = K.transformed(replace(spec, page=page_index), target)
-        self._hidden = None  # the command replaces the lifted item
-        self._window.push_command(ReplaceMarkupCommand(self._window, spec, new, f"Move {item.type_name} to Page {page_index + 1}"))
-        return True
+        return self._replace(item, new, f"Move {item.type_name} to Page {page_index + 1}")
 
     def nudge(self, item_id: str, shown: QRectF, dx: float, dy: float) -> bool:
         """Arrow keys: move the selected item a little (``shown`` = its displayed rect)."""
@@ -1484,11 +1510,14 @@ class MarkupController(QObject):
         """With Add Text or a symbol tool on, a press on anything added (text, signatures,
         initials, symbols, pictures, stamps) selects it: then it moves, stretches, gets bigger
         or smaller (A− / A+) and a double-click retypes it, as in Edit PDF (user 2026-11-24).
-        A press anywhere else still adds text or a symbol."""
+        A press anywhere else still adds text or a symbol. Only items this user's PlanetPDF made
+        (``made_here``): a file's own "PlanetPDF" item could be page-sized and take every click
+        (security review 2026-11-25)."""
         if self.suspended or self._one_shot_box is not None or self.tool not in self.GRAB_TOOLS:
             return False
         item = self._item(item_id)
-        return item is not None and item.kind is not None and (item.kind.placed or item.kind in (Kind.STAMP, Kind.SEAL))
+        return (item is not None and item.kind is not None and item.made_here
+                and (item.kind.placed or item.kind in (Kind.STAMP, Kind.SEAL)))
 
     def select(self, item_id: str) -> None:
         self._window.view.set_selected_markup(item_id or None)

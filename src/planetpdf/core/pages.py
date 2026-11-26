@@ -18,7 +18,6 @@ import pymupdf
 
 from planetpdf.core.document import PdfError, PdfSession, open_pdf_bytes
 from planetpdf.core.progress import Progress, report
-from planetpdf.core.storage.files import remove_quietly, replace_with_retry, temp_path_beside
 
 PageMap = list[int | None]
 
@@ -152,9 +151,12 @@ def insert_blank_page(
 
 
 def insert_pdf_pages(
-    session: PdfSession, data: bytes, index: int, *, name: str = "PDF", password: str | None = None
+    session: PdfSession, data: bytes, index: int, *, name: str = "PDF", password: str | None = None,
+    salt: str | None = None,
 ) -> tuple[int, PageMap]:
-    """Insert every page of the PDF in ``data`` before ``index``. Returns (count, map)."""
+    """Insert every page of the PDF in ``data`` before ``index``. Returns (count, map). PlanetPDF's
+    items on the inserted pages get new ids (``markup.renew_ids``; the same ``salt`` gives the same
+    ones, for an undo and redo), so copies of pages never share an id with their originals."""
     _check_insert_index(session, index)
     source = open_pdf_bytes(data, name, password)
     try:
@@ -163,6 +165,10 @@ def insert_pdf_pages(
         session.doc.insert_pdf(source, start_at=index if index < old_count else -1)
     finally:
         source.close()
+    from planetpdf.core.markup import new_id, renew_ids
+
+    renew_ids(session.doc, range(index if index < old_count else old_count, (index if index < old_count else old_count)
+                                 + count), salt or new_id())
     session.mark_modified()
     return count, _insert_mapping(old_count, index, count)
 
@@ -268,10 +274,11 @@ def _safe_name(text: str) -> str:
 
 def split_document(
     session: PdfSession, groups: Sequence[tuple[str, Sequence[int]]], directory: Path, base_name: str,
-    progress: Progress | None = None,
+    progress: Progress | None = None, protection=None,
 ) -> list[Path]:
-    """Write each (label, pages) group as its own PDF in ``directory``. ``progress``:
-    "Writing file x of y"; False from it stops after the files written so far."""
+    """Write each (label, pages) group as its own PDF in ``directory`` (encrypted as written with
+    ``protection``). ``progress``: "Writing file x of y"; False from it stops after the files
+    written so far."""
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)
     width = len(str(len(groups)))
@@ -284,7 +291,7 @@ def split_document(
             break
         suffix = f" - {_safe_name(label)}" if label else ""
         target = directory / f"{_safe_name(base_name)}_{n:0{width}d}{suffix}.pdf"
-        export_pages(session, list(pages), target)
+        export_pages(session, list(pages), target, protection)
         paths.append(target)
     return paths
 
@@ -305,11 +312,11 @@ def pages_as_pdf(session: PdfSession, pages: Sequence[int]) -> bytes:
         out.close()
 
 
-def export_pages(session: PdfSession, pages: Sequence[int], target: Path) -> None:
+def export_pages(session: PdfSession, pages: Sequence[int], target: Path, protection=None) -> None:
     """Write a new PDF containing ``pages`` (in the given order) of the current state,
     including unsaved edits. The open document is not changed.
 
-    The output is never encrypted, even if the source is.
+    The output is encrypted (as it is written) only with ``protection``, whatever the source's.
     """
     if not pages:
         raise PdfError("No pages selected.")
@@ -323,14 +330,10 @@ def export_pages(session: PdfSession, pages: Sequence[int], target: Path) -> Non
     try:
         for p in pages:
             out.insert_pdf(session.doc, from_page=p, to_page=p)
-        tmp = temp_path_beside(target)
-        try:
-            from planetpdf.core.font_embedding import embed_quietly
+        from planetpdf.core.document import save_pdf
+        from planetpdf.core.font_embedding import embed_quietly
 
-            embed_quietly(out)  # (fonts it only names, from this computer)
-            out.save(str(tmp), garbage=3, deflate=True)
-            replace_with_retry(tmp, target)
-        finally:
-            remove_quietly(tmp)
+        embed_quietly(out)  # (fonts it only names, from this computer)
+        save_pdf(out, target, protection, garbage=3, deflate=True)
     finally:
         out.close()

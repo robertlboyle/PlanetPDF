@@ -136,6 +136,12 @@ class FileListDialog(QDialog):
         if not self.files():
             self.error.setText("Add the files first.")
             return
+        folder = self.folder.text().strip() if hasattr(self, "folder") and self.folder.isVisible() else ""
+        if folder:
+            from planetpdf.ui.save_path import refuse_temporary
+
+            if refuse_temporary(self, Path(folder) / "file.pdf"):  # (security review 2026-11-25)
+                return
         self.accept()
 
 
@@ -197,11 +203,11 @@ class BatchUi:
                 return None
             files = dialog.files()
         if target is None:
-            path, _ = QFileDialog.getSaveFileName(w, "Save Portfolio As", str(Path(w.settings.last_directory) / "Portfolio.pdf"),
-                                                  "PDF files (*.pdf)")
-            if not path:
+            from planetpdf.ui.save_path import choose_save_path
+
+            target = choose_save_path(w, "Save Portfolio As", Path(w.settings.last_directory or Path.home()) / "Portfolio.pdf")
+            if not target:
                 return None
-            target = Path(path)
         try:
             run_in_background(w, "PDF Portfolio", f"Creating {target.name}",
                               lambda progress: B.make_portfolio(files, target, progress))

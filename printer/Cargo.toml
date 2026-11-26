@@ -11,7 +11,7 @@
 name = "planetpdf-printer"
 version = "0.1.0"
 edition = "2024"
-license = "LicenseRef-Planet-Networks-internal"
+license = "AGPL-3.0-or-later"
 publish = false
 
 [lib]

@@ -23,7 +23,7 @@ py -3.14 -m venv .venv
 $python = Join-Path $root '.venv\Scripts\python.exe'
 
 # No pip self-upgrade: it is the step most likely to be broken by file locks.
-& $python -m pip install --no-compile -r requirements-dev.txt
+& $python -m pip install --no-compile --require-hashes -r requirements-dev.txt  # (exactly the files pinned: scripts\hash_requirements.py)
 & $python -m pip install --no-compile --no-deps -e .
 & $python -m pip check
 Write-Host 'Done. Run tests with:  .venv\Scripts\python.exe -m pytest'

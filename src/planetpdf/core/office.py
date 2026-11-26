@@ -45,15 +45,32 @@ def available(app: str) -> bool:
     return backend is not None and backend.available(app)
 
 
+def _turned_off() -> str:
+    """Why PlanetPDF doesn't start Office on this computer ("" = it may): an administrator's
+    policy (``core/policy.py``). Said when a conversion is asked for, so the reason is the one shown."""
+    from planetpdf.core import policy
+
+    return policy.reason("office_conversion")
+
+
 def to_pdf(source: Path, target: Path) -> None:
-    """A Word, Excel or PowerPoint file as PDF (Office's own "Save as PDF")."""
+    """A Word, Excel or PowerPoint file as PDF (Office's own "Save as PDF"), made from a copy
+    whose links to outside files are taken out (``office_safety``: security review 2026-11-25)."""
+    from planetpdf.core.document import private_folder
+    from planetpdf.core.office_safety import safe_copy
+
+    if _turned_off():
+        raise PdfError(_turned_off())
     backend = _backend()
     if backend is None:
         raise PdfError("Turning Office files into PDFs needs Microsoft Office (Windows or Mac).")
-    backend.to_pdf(source, target)
+    with private_folder() as folder:
+        backend.to_pdf(safe_copy(Path(source), folder), target)
 
 
 def word_save_as(source: Path, target: Path, file_format: int = WORD_97_2003) -> None:
+    if _turned_off():
+        raise PdfError(_turned_off())
     backend = _backend()
     if backend is None:
         raise PdfError("This needs Microsoft Word (Windows or Mac).")

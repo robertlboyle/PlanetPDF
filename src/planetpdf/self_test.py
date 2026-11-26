@@ -153,6 +153,14 @@ def _signing() -> str:
     return ""
 
 
+def _onnx_telemetry() -> str:
+    """ONNX Runtime's telemetry can be switched off in this build (security review 2026-11-25)."""
+    from planetpdf.core.neural_speech import quiet_onnxruntime
+
+    ort = quiet_onnxruntime()
+    return f"switched off (onnxruntime {ort.__version__})"
+
+
 def run(report_path: Path) -> int:
     from planetpdf import __version__
 
@@ -169,6 +177,7 @@ def run(report_path: Path) -> int:
     report.check("Ghostscript (PDF/A conversion)", _ghostscript)
     if sys.platform == "darwin":
         report.check("Scanner helper (ImageCaptureCore)", _mac_scanner)
+    report.check("Read Out Loud: ONNX Runtime telemetry", _onnx_telemetry)
     report.check("Read Out Loud: Piper voice", _voice("piper"), optional=True)
     report.check("Read Out Loud: Kokoro voice", _voice("kokoro"), optional=True)
     report.lines.append("RESULT: " + ("all passed" if not report.failed else f"{report.failed} failed"))

@@ -3,8 +3,8 @@ file without being asked: the other copy had the changes). Each open file has a 
 every PlanetPDF of this user can see: a QLockFile named by the file's path, held while any
 window of this process has the file open. A lock whose process is gone counts as free.
 
-Every PlanetPDF also listens on a name of its own (``process_server_name``), so a copy that
-finds a file locked can ask the copy holding it to show it (``show_in_holder``).
+Every PlanetPDF can also be reached by its process (``single_instance.process_file``), so a copy
+that finds a file locked can ask the copy holding it to show it (``show_in_holder``).
 
 Off until ``configure(folder)`` (app.py does it; tests don't, so test processes never lock
 the fixtures each other use).
@@ -89,14 +89,8 @@ def release_all() -> None:
     _held.clear()
 
 
-def process_server_name(pid: int | None = None) -> str:
-    from planetpdf.ui.single_instance import server_name
-
-    return f"{server_name()}-pid{pid or os.getpid()}"
-
-
 def show_in_holder(path: Path, pid: int) -> bool:
     """Ask the PlanetPDF that has the file open to show it. True when it answered."""
-    from planetpdf.ui.single_instance import send_to_running
+    from planetpdf.ui.single_instance import send_to_process
 
-    return send_to_running([Path(path)], name=process_server_name(pid))
+    return send_to_process([Path(path)], pid)

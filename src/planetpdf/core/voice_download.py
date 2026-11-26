@@ -71,7 +71,17 @@ def read_manifest(manifest: bytes, signature: bytes, key=None) -> list[VoiceFile
     return files
 
 
+def turned_off() -> str:
+    """Why the voices can't be downloaded on this computer ("" = they can): an administrator's
+    policy (``core/policy.py``)."""
+    from planetpdf.core import policy
+
+    return policy.reason("voice_download")
+
+
 def fetch_manifest(update_url: str, *, key=None, opener=U._open) -> list[VoiceFile]:
+    if turned_off():
+        raise U.UpdateError(turned_off())
     base = voices_url(update_url)
     manifest = U._read(opener, base + MANIFEST)
     signature = U._read(opener, base + SIGNATURE, 4096)

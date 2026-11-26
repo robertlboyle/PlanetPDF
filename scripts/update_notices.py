@@ -41,7 +41,8 @@ PACKAGE_NOTES = {
     "pyside6-essentials": "Used under the LGPL-3.0 (the wheel ships only Qt's commercial license wording); "
                           "the LGPL-3.0 and GPL-3.0 texts are listed under Qt.",
     "shiboken6": "Used under the LGPL-3.0; the LGPL-3.0 and GPL-3.0 texts are listed under Qt.",
-    "pymupdf": "Used under the GNU AGPL-3.0 (PlanetPDF is for internal use at Planet Networks).",
+    "pymupdf": "Used under the GNU AGPL-3.0: PlanetPDF is itself AGPL-3.0-or-later, its complete source at "
+               "https://github.com/robertlboyle/PlanetPDF.",
     "espeakng-loader": "Its eSpeak NG library is GPL-3.0 (listed under eSpeak NG).",
 }
 _MIT_THEWH1TEAGLE = """MIT License
@@ -81,7 +82,7 @@ def runtime_packages() -> list[tuple[str, str]]:
         line = line.split("#", 1)[0].split(";", 1)[0].strip()  # (no comments, no "; sys_platform" markers)
         if "==" in line:
             name, version = line.split("==", 1)
-            pins.append((name.strip(), version.strip()))
+            pins.append((name.strip(), version.split()[0]))  # (the hashes follow it: hash_requirements.py)
     return pins
 
 
@@ -114,6 +115,15 @@ def license_files(name: str) -> list[tuple[str, str]]:
 
 def _text(path: Path) -> str:
     return path.read_text(encoding="utf-8", errors="replace")
+
+
+def _model_hashes(prefix: str) -> str:
+    """The voice files' SHA-256 (PlanetPDF checks them before loading: security review 2026-11-25)."""
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+    from planetpdf.core.neural_speech import MODEL_SHA256
+
+    return "SHA-256: " + "; ".join(f"{name.split('/', 1)[1]} {digest}" for name, digest in MODEL_SHA256.items()
+                                   if name.startswith(prefix)) + "."
 
 
 GHOSTSCRIPT_VERSION = "10.08.0"  # the copy bundled by scripts/build.ps1 (C:\Program Files\gs\gs<version>)
@@ -167,7 +177,8 @@ def bundled() -> list[dict]:
          "files": [("LGPL-3.0.txt", _text(LICENSES / "LGPL-3.0.txt")), ("GPL-3.0.txt", _text(LICENSES / "GPL-3.0.txt"))]},
         {"name": "MuPDF", "version": pymupdf.mupdf_version, "license": "AGPL-3.0-or-later",
          "url": "https://mupdf.com", "part_of": "PyMuPDF",
-         "note": "Used under the AGPL (PlanetPDF is for internal use at Planet Networks); the license text "
+         "note": "Used under the AGPL: PlanetPDF is itself AGPL-3.0-or-later, its complete source at "
+                 "https://github.com/robertlboyle/PlanetPDF; the license text "
                  "is listed under PyMuPDF.", "files": []},
         {"name": "FFmpeg", "version": "(bundled build)", "license": "LGPL-2.1-or-later",
          "url": "https://ffmpeg.org", "part_of": "opencv-python-headless",
@@ -176,7 +187,8 @@ def bundled() -> list[dict]:
         {"name": "Ghostscript (PDF/A, PDF/X, PDF/E, PostScript)", "version": GHOSTSCRIPT_VERSION,
          "license": "AGPL-3.0-or-later", "url": "https://www.ghostscript.com",
          "part_of": "the installed program (ghostscript folder), run as a separate program",
-         "note": "Used under the AGPL (PlanetPDF is for internal use at Planet Networks); unchanged Artifex "
+         "note": "Used under the AGPL: PlanetPDF is itself AGPL-3.0-or-later, its complete source at "
+                 "https://github.com/robertlboyle/PlanetPDF; unchanged Artifex "
                  "build; source code at https://github.com/ArtifexSoftware/ghostpdl-downloads/releases.",
          "files": _ghostscript_license()},
         {"name": "PyInstaller bootloader", "version": metadata.version("pyinstaller"),
@@ -202,15 +214,18 @@ def bundled() -> list[dict]:
          "files": [("Apache-2.0.txt", _text(LICENSES / "Apache-2.0.txt"))]},
         {"name": "Kokoro-82M voice model (kokoro-v1.0.onnx, voices-v1.0.bin)", "version": "1.0", "license": "Apache-2.0",
          "url": "https://github.com/thewh1teagle/kokoro-onnx/releases/tag/model-files-v1.0",
-         "part_of": "models/kokoro (Read Out Loud)", "files": [("Apache-2.0.txt", _text(LICENSES / "Apache-2.0.txt"))]},
+         "part_of": "models/kokoro (Read Out Loud)", "note": _model_hashes("kokoro/"),
+         "files": [("Apache-2.0.txt", _text(LICENSES / "Apache-2.0.txt"))]},
         {"name": "Piper voices: Kristin (en_US-kristin-medium), Joe (en_US-joe-medium)", "version": "medium",
          "license": "Public domain (Kristin, LibriVox recordings) / CC0-1.0 (Joe)",
          "url": "https://huggingface.co/rhasspy/piper-voices", "part_of": "models/piper (Read Out Loud)",
-         "note": "Chosen because their licenses allow business use; several popular Piper voices are non-commercial only.",
+         "note": "Chosen because their licenses allow business use; several popular Piper voices are non-commercial only. "
+                 "From commit 5ec43b186ef915a195d3ddbcfd9916e76c503c3f. " + _model_hashes("piper/"),
          "files": []},
         {"name": "eSpeak NG (pronunciation, inside piper-tts and espeakng-loader)", "version": "", "license": "GPL-3.0-or-later",
          "url": "https://github.com/espeak-ng/espeak-ng", "part_of": "Read Out Loud",
-         "note": "Used under the GPL (PlanetPDF is for internal use at Planet Networks).",
+         "note": "Used under the GPL-3.0, compatible with PlanetPDF's own AGPL-3.0-or-later; PlanetPDF's "
+                 "complete source is at https://github.com/robertlboyle/PlanetPDF.",
          "files": [("GPL-3.0.txt", _text(LICENSES / "GPL-3.0.txt"))]},
     ]
     # the optional AI Text Reading add-on (its own installer: scripts/build_ai_addon.ps1; 2026-10-21)
@@ -272,7 +287,9 @@ def main() -> None:
         "PlanetPDF - third-party software notices",
         RULE,
         "",
-        "PlanetPDF is an internal application of Planet Networks. It includes the",
+        "PlanetPDF is free software from Planet Networks, under the GNU Affero",
+        "General Public License, version 3 or later (AGPL-3.0-or-later); its",
+        "complete source is at https://github.com/robertlboyle/PlanetPDF. It includes the",
         "third-party software listed below, each under its own license. Full license",
         "texts follow the summary. Generated by scripts/update_notices.py (pip-licenses",
         "for the Python packages); do not edit by hand.",

@@ -330,7 +330,8 @@ def test_redacted_output_can_be_protected_and_is_checked_before_encryption(pdf_c
 def test_report_flags_unmarked_occurrences_as_warning(text_session, tmp_path):
     # Mark the SSN on page 1 only; pages 2-3 still have it.
     _mark_hits(text_session, PRESETS["ssn"].pattern, "SSN", pages=[0])
-    result = redact_to_file(text_session, tmp_path / "out.pdf", RedactionOptions(), NO_SANITIZE)
+    # (the fixture's subject holds the SSN too: kept, that's a failure since 2026-11-25)
+    result = redact_to_file(text_session, tmp_path / "out.pdf", RedactionOptions(), META_ONLY)
     assert result.report.passed  # not a failure...
     warns = [c for c in result.report.warnings if "wasn't marked" in c.title]
     assert warns and "[2, 3]" in warns[0].detail  # ...but clearly reported
@@ -364,7 +365,7 @@ def test_curved_shapes_partly_under_a_box_fail_unless_removed(tmp_path, touching
                                 NO_SANITIZE)
     finally:
         session.close()
-    curved = [c for c in result.report.failures if "curved shape" in c.title]
+    curved = [c for c in result.report.failures if "curved or slanted shape" in c.title]
     assert bool(curved) is fails
     assert result.report.passed is not fails
 
@@ -377,3 +378,10 @@ def test_an_unreadable_second_parser_is_a_failure(text_session, tmp_path, monkey
     result = redact_to_file(text_session, tmp_path / "out.pdf", RedactionOptions(), META_ONLY)
     assert not result.report.passed
     assert any("second parser" in c.title for c in result.report.failures)
+
+
+def test_unmarked_occurrences_dont_excuse_the_term_in_the_files_information(text_session, tmp_path):
+    _mark_hits(text_session, PRESETS["ssn"].pattern, "SSN", pages=[0])
+    result = redact_to_file(text_session, tmp_path / "out.pdf", RedactionOptions(), NO_SANITIZE)
+    assert any("can still be extracted" in c.title and "document information" in c.detail
+               for c in result.report.failures)

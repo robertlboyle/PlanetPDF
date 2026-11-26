@@ -1,7 +1,10 @@
 """Serving PlanetPDF's local API (``core/api.py``) over a QLocalServer: a named pipe on Windows,
 a socket file on the Mac and Linux, both open to this user only (UserAccessOption), never a
-network port. Named per user and Windows session, so on a terminal server each person has their
-own. Where it is goes into ``api.json`` in the local app data folder for programs to find.
+network port. Its name is made at random for each run (security list 2026-11-26, item 2: a name
+built from the user's name could be taken first by another user of the same computer, who then
+received what programs sent). Where it is goes into ``api.json`` in the user's local app data
+folder for programs to find, with a key: a program asks the API to prove it read that file
+(``planetpdf.prove``) before it says anything else.
 
 Requests run in worker threads (a long export doesn't hold up the window or other requests);
 replies and progress are written from the GUI thread, and the signing question is asked there.
@@ -20,14 +23,15 @@ from PySide6.QtCore import QObject, Qt, Signal, Slot
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 
 from planetpdf.core import api
+from planetpdf.core import local_proof as P
 
 READ_LIMIT = 4 * 1024 * 1024  # a request line longer than this is refused
+LISTEN_TRIES = 3
+PROBE_MS = 1500
 
 
 def server_name() -> str:
-    from planetpdf.ui.single_instance import server_name as instance_name
-
-    return instance_name().replace("PlanetPDF-", "PlanetPDF-API-", 1)
+    return P.new_name("PlanetPDF-API-")
 
 
 def info_path() -> Path:
@@ -75,30 +79,25 @@ class ApiServer(QObject):
         self.server = QLocalServer(self)
         self.server.setSocketOptions(QLocalServer.SocketOption.UserAccessOption)
         self.server.newConnection.connect(self._connection)
-        self.name = server_name()
-        self.listening = self.server.listen(self.name)
-        if not self.listening and QLocalSocket is not None:
-            probe = QLocalSocket()
-            probe.connectToServer(self.name)
-            if not probe.waitForConnected(300):  # (left behind by a crash: take it over)
-                QLocalServer.removeServer(self.name)
-                self.listening = self.server.listen(self.name)
-            probe.abort()
+        self.key = self.service.pipe_key = P.new_key()
+        self.name = ""
+        self.listening = False
         self._buffers: dict[QLocalSocket, bytearray] = {}
         self._connections: dict[QLocalSocket, api.Connection] = {}
+        if served_elsewhere():  # (one API per user: PlanetPDF's, or a planetpdf serve)
+            return
+        for _ in range(LISTEN_TRIES):  # (a random name is free; another try if it somehow isn't)
+            self.name = server_name()
+            if self.server.listen(self.name):
+                self.listening = True
+                break
         if self.listening:
             self._write_info()
 
     # --- where programs find it ---
     def _write_info(self) -> None:
-        path = info_path()
-        try:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(json.dumps({"address": self.server.fullServerName(), "protocol": api.PROTOCOL,
-                                        "version": api.PROTOCOL_VERSION, "pid": os.getpid()}, indent=2),
-                            encoding="utf-8")
-        except OSError:
-            pass
+        P.write_private(info_path(), {"address": self.server.fullServerName(), "protocol": api.PROTOCOL,
+                                      "version": api.PROTOCOL_VERSION, "pid": os.getpid(), "key": self.key})
 
     def close(self) -> None:
         if self.listening:
@@ -116,6 +115,8 @@ class ApiServer(QObject):
         return self.server.fullServerName()
 
     # --- connections ---
+    # (the sockets' signals go to methods of this object, never to functions that hold it:
+    # see ui/single_instance.py)
     def _connection(self) -> None:
         while self.server.hasPendingConnections():
             socket = self.server.nextPendingConnection()
@@ -123,8 +124,14 @@ class ApiServer(QObject):
             from planetpdf.ui.peer_process import peer_program
 
             self._connections[socket] = api.Connection(program=peer_program(socket))
-            socket.readyRead.connect(lambda s=socket: self._read(s))
-            socket.disconnected.connect(lambda s=socket: self._gone(s))
+            socket.readyRead.connect(self._ready)
+            socket.disconnected.connect(self._dropped)
+
+    def _ready(self) -> None:
+        self._read(self.sender())
+
+    def _dropped(self) -> None:
+        self._gone(self.sender())
 
     def _gone(self, socket: QLocalSocket) -> None:
         conn = self._connections.pop(socket, None)
@@ -179,6 +186,35 @@ class ApiServer(QObject):
         return self.gui.run(lambda: ask_to_sign(who, description, remember=True))
 
 
+def served_elsewhere() -> bool:
+    """Whether another process of this user already serves the API (what ``api.json`` names
+    answers and proves it holds that file's key)."""
+    info = P.read_private(info_path())
+    if info is None or info.get("pid") == os.getpid():
+        return False
+    address, key = info.get("address"), info.get("key")
+    if not isinstance(address, str) or not isinstance(key, str):
+        return False
+    from planetpdf.ui.single_instance import _connect, _read_line
+
+    socket = _connect(address)
+    if socket is None:
+        return False
+    try:
+        nonce = P.new_nonce()
+        request = {"jsonrpc": "2.0", "id": 1, "method": "planetpdf.prove", "params": {"nonce": nonce}}
+        socket.write((json.dumps(request) + "\n").encode("utf-8"))
+        socket.flush()
+        line = _read_line(socket, PROBE_MS)
+        try:
+            result = json.loads(line).get("result", {}) if line else {}
+        except (ValueError, AttributeError):
+            result = {}
+        return isinstance(result, dict) and P.proves(key, P.SERVER, nonce, result.get("proof"))
+    finally:
+        socket.abort()
+
+
 def window_methods(server_gui: _Gui) -> dict:
     """What the PlanetPDF window adds to the API: open files in it, and which document is open."""
 
@@ -220,12 +256,15 @@ def window_methods(server_gui: _Gui) -> dict:
 
 
 def attach(window, profile_root: Path) -> ApiServer | None:
-    """Start the API for the running program (unless Preferences turned it off)."""
-    if not getattr(window.settings, "api_enabled", True):
+    """Start the API for the running program, when Preferences turned it on (off by default:
+    security review 2026-11-25). Already running: that one."""
+    if not getattr(window.settings, "api_enabled", False):
         return None
     from PySide6.QtWidgets import QApplication
 
     app = QApplication.instance()
+    if getattr(app, "planetpdf_api", None) is not None:
+        return app.planetpdf_api
     server = ApiServer(profile_root, parent=app)
     server.service.extra.update(window_methods(server.gui))
     app.planetpdf_api = server  # (plugins_ui starts plugins with it)

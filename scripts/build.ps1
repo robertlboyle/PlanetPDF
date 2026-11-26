@@ -3,6 +3,7 @@ Build PlanetPDF and its installer (packaging, 2026-10-04).
 
     powershell -ExecutionPolicy Bypass -File scripts\build.ps1            # build + installer + update files
     powershell -ExecutionPolicy Bypass -File scripts\build.ps1 -NoUpdate  # without the signed update files
+    powershell -ExecutionPolicy Bypass -File scripts\build.ps1 -SkipAdvisoryCheck  # offline: a trial build, not a release
 
 Steps: third-party notices -> PyInstaller (the program) + cargo (the native launcher) -> staging folder laid out
 as installed (launcher, versions\<version> with Ghostscript) -> the built program's own
@@ -14,7 +15,9 @@ Needs: .venv with requirements-dev.txt, Inno Setup 6, Tesseract (tessdata eng + 
 Ghostscript 10.08.0, models\ (scripts\download_voices.py), and for the update files the
 private key from scripts\release_update.py keygen.
 #>
-param([switch]$NoUpdate, [switch]$SkipCompile)  # -SkipCompile: reuse the last staging (steps 5-7 only)
+# -SkipCompile: reuse the last staging (steps 5-7 only). -SkipAdvisoryCheck: don't ask the advisory
+# databases first (a trial build without a network; never for a release).
+param([switch]$NoUpdate, [switch]$SkipCompile, [switch]$SkipAdvisoryCheck)
 $ErrorActionPreference = "Stop"
 $root = Split-Path $PSScriptRoot -Parent
 Set-Location $root
@@ -34,6 +37,26 @@ $cargo = @((Get-Command cargo -ErrorAction SilentlyContinue).Source, "$env:USERP
 if (-not $cargo -and -not $SkipCompile) { throw "Rust isn't installed (rustup, stable MSVC; for the launcher)." }
 if (-not (Test-Path "$gsHome\bin\gswin64c.exe")) { throw "Ghostscript 10.08.0 isn't in $gsHome." }
 if (-not (Test-Path "models\kokoro") -or -not (Test-Path "models\piper")) { throw "models\ is missing: run scripts\download_voices.py." }
+# Only the pinned voice files go into the installer (security review 2026-11-25)
+& ".venv\Scripts\python.exe" scripts\download_voices.py --check | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "models\ doesn't hold the pinned voice files: run scripts\download_voices.py." }
+# Ghostscript's folder and the OCR language files are the pinned ones too (security list 2026-11-26,
+# item 9: they went into the installer as found on this computer, unchecked)
+$tessdata = if ($env:PLANETPDF_TESSDATA) { $env:PLANETPDF_TESSDATA } else { Join-Path $env:ProgramFiles "Tesseract-OCR\tessdata" }
+& $python scripts\check_build_parts.py --ghostscript $gsHome --tessdata $tessdata
+if ($LASTEXITCODE -ne 0) { throw "Ghostscript or the OCR language files on this computer aren't the pinned ones (see above)." }
+# A build takes exactly the pinned files, never "the latest" by itself. So each build first asks the
+# public advisory databases whether any pinned part has a known problem with a published fix, and
+# stops when one does: that pin is then raised on purpose (requirements.txt, hash_requirements.py,
+# the tests), and the build run again (user 2026-11-26; docs\BUILD-SETUP.md).
+if ($SkipAdvisoryCheck) {
+    Write-Host "The advisory check was skipped (-SkipAdvisoryCheck): a trial build, not one to release." -ForegroundColor Yellow
+} else {
+    Write-Host "Asking the advisory databases about the pinned parts (about a minute)..."
+    & $python scripts\check_advisories.py
+    if ($LASTEXITCODE -eq 1) { throw "A pinned part has a known security problem (listed above): raise its pin first (docs\BUILD-SETUP.md)." }
+    if ($LASTEXITCODE -ne 0) { throw "The advisory databases couldn't be asked (above). Build again when online, or pass -SkipAdvisoryCheck for a trial build that won't be released." }
+}
 Write-Host "Building PlanetPDF $version"
 $app = Join-Path $stage "app"
 $program = Join-Path $stage "versions\$version"
@@ -87,6 +110,12 @@ New-Item -ItemType Directory -Force $printer | Out-Null
 foreach ($part in "planetpdf-print-service.exe", "planetpdf-printer-setup.exe") {
     Copy-Item (Join-Path $work "printer-target\release\$part") $printer
 }
+# copies the update carries, which it puts in the install folder (core\update.py update_root_files;
+# security review 2026-11-25: updates replaced only the program, never the print service or launchers)
+$rootFiles = Join-Path $program "install-root"
+New-Item -ItemType Directory -Force (Join-Path $rootFiles "printer") | Out-Null
+Copy-Item (Join-Path $app "PlanetPDF.exe"), (Join-Path $app "PlanetPDF.com") $rootFiles
+Copy-Item (Join-Path $printer "*") (Join-Path $rootFiles "printer")
 Copy-Item "src\planetpdf\resources\icons\planetpdf.ico" $app
 Set-Content -Encoding ascii (Join-Path $app "current.txt") $version
 Copy-Item -Recurse "$work\dist\PlanetPDF\*" $program

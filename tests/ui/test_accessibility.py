@@ -289,7 +289,9 @@ def test_status_messages_and_progress_are_spoken(win, qapp, monkeypatch):
     A.ANNOUNCED.clear()
     win.statusBar().showMessage("Saved report.pdf", 3000)
     qapp.processEvents()
-    assert A.ANNOUNCED[-1] == "Saved report.pdf"
+    # (not "the last thing said": the page's own announcement, 400 ms after the file opened, can
+    # come in the same moment when the computer is busy)
+    assert "Saved report.pdf" in A.ANNOUNCED
 
     clock = [100.0]
     monkeypatch.setattr(A.time, "monotonic", lambda: clock[0])

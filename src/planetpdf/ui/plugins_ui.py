@@ -78,7 +78,7 @@ class PluginMenus:
         _client, token = server.service.clients.register(plugin.name, plugin.publisher, plugin=plugin.id,
                                                         permissions=plugin.permissions)
         try:
-            process = plugins.start(plugin, item, address=server.address, token=token,
+            process = plugins.start(plugin, item, address=server.address, token=token, key=server.key,
                                     log_folder=self.w.profile.root / "logs" / "plugins",
                                     document=session.path if session is not None else None,
                                     page=self.w.view.current_page + 1 if session is not None else None)

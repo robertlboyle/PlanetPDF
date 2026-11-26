@@ -43,6 +43,12 @@ def recovery_dir() -> Path:
     return Path(QStandardPaths.writableLocation(QStandardPaths.StandardLocation.AppLocalDataLocation)) / "recovery"
 
 
+def instance_dir() -> Path:
+    """Where this user's running PlanetPDFs say how to reach them (``ui/single_instance.py``): a
+    lock and small address files, local and per user, closed to other users."""
+    return Path(QStandardPaths.writableLocation(QStandardPaths.StandardLocation.AppLocalDataLocation)) / "instance"
+
+
 def open_files_dir() -> Path:
     """The locks of the files open in PlanetPDF (``ui/file_locks.py``: local, per user)."""
     return Path(QStandardPaths.writableLocation(QStandardPaths.StandardLocation.AppLocalDataLocation)) / "open-files"

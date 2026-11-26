@@ -373,19 +373,61 @@ def needs_admin(root: Path) -> bool:
     return not (os.access(root.parent, os.W_OK) and os.access(root, os.W_OK))
 
 
-def configured_url(root: Path | None, default: str) -> str:
-    """``PLANETPDF_UPDATE_URL`` (tests set it empty: no test may reach the real server),
-    then ``update.json`` next to the launcher (set by IT), then the built-in address."""
-    if URL_ENV_VAR in os.environ:
-        return os.environ[URL_ENV_VAR].strip()
+def user_may_install(root: Path) -> bool:
+    """Whether this user can install an update of the copy at ``root``: one in a folder they can
+    write, or as an administrator (who can approve the prompt). A standard user on a per-machine
+    install, as on a terminal server, can't: PlanetPDF then only says a new version is out and
+    doesn't download it (security review 2026-11-25; the ethos: downloads the user asks for)."""
+    if sys.platform == "win32":
+        from planetpdf.core import windows_elevate
+
+        return windows_elevate.can_elevate()
+    if not needs_admin(root):
+        return True
+    import grp
+
+    try:
+        names = {grp.getgrgid(gid).gr_name for gid in os.getgroups()}
+    except (KeyError, OSError):
+        names = set()
+    return bool(names & {"admin", "sudo", "wheel"})
+
+
+def _config(root: Path | None) -> dict:
+    """``update.json`` next to the launcher (set by IT), or nothing."""
     if root is not None:
         try:
-            data = json.loads((root / CONFIG_FILE).read_text(encoding="utf-8"))
-            if isinstance(data, dict) and str(data.get("url", "")).strip():
-                return str(data["url"]).strip()
+            read = json.loads((root / CONFIG_FILE).read_text(encoding="utf-8"))
+            return read if isinstance(read, dict) else {}
         except (OSError, ValueError):
             pass
-    return default
+    return {}
+
+
+def checks_off(root: Path | None) -> str:
+    """Why this PlanetPDF doesn't check for updates ("" = it may): IT turned checks off for
+    everyone on the computer, in ``update.json`` or with a policy."""
+    from planetpdf.core import policy
+
+    if _config(root).get("check") is False or not policy.current().allows("updates"):
+        return "Updates of PlanetPDF on this computer are handled by your administrator."
+    return ""
+
+
+def configured_url(root: Path | None, default: str, *, even_if_off: bool = False) -> str:
+    """``PLANETPDF_UPDATE_URL`` (tests set it empty: no test may reach the real server),
+    then ``update.json`` next to the launcher (set by IT), then the built-in address.
+
+    "" = this PlanetPDF doesn't check: IT turned checks off for everyone on the computer, with
+    ``{"check": false}`` in ``update.json`` or with a policy (``core/policy.py``, "updates" off).
+    ``even_if_off``: the address all the same, for IT's own update (``--install-updates``, a
+    scheduled task) and for the voices' download, which has its own switch; turning checks off
+    is about what users' PlanetPDF does by itself."""
+    if URL_ENV_VAR in os.environ:
+        return os.environ[URL_ENV_VAR].strip()
+    if not even_if_off and checks_off(root):
+        return ""
+    return str(_config(root).get("url", "")).strip() or default
 
 
 def current_version(root: Path) -> str | None:
@@ -486,8 +528,135 @@ def _apply_checked(root: Path, zip_path: Path, release: Release, progress=None) 
     tmp = root / (CURRENT_FILE + ".new")
     tmp.write_text(release.version + "\n", encoding="utf-8")
     os.replace(tmp, root / CURRENT_FILE)
+    update_root_files(root, target / ROOT_FILES)
     remove_old_versions(root, keep={release.version})
     return release.version
+
+
+# --- what lives beside versions/: the launchers and the print service (security review 2026-11-25:
+# updates replaced only the program, so installs kept their first print service and launcher) ---
+
+ROOT_FILES = "install-root"  # (in a Windows build's version folder: copies of the install folder's own programs)
+PRINT_SERVICE = "PlanetPDFPrint"
+LAUNCHERS = ("PlanetPDF.exe", "PlanetPDF.com")
+
+
+def _sc(*args: str) -> str:
+    """Windows' service control program, by its full path (this runs as administrator: never a
+    program found on the PATH)."""
+    import subprocess
+
+    from planetpdf.core import windows_elevate
+
+    sc = Path(windows_elevate.system_dir()) / "sc.exe"  # (asked of Windows, not read from SystemRoot)
+    done = subprocess.run([str(sc), *args], capture_output=True, text=True, timeout=60,
+                          creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    return done.stdout
+
+
+def _service_state() -> str:
+    """"RUNNING", "STOPPED", …, or "" when the print service isn't installed."""
+    import re
+
+    found = re.search(r"STATE\s*:\s*\d+\s+(\w+)", _sc("query", PRINT_SERVICE))
+    return found.group(1) if found else ""
+
+
+def _stop_print_service() -> bool:
+    """Stops the print service; True if it was running (to start it again)."""
+    import time
+
+    if _service_state() != "RUNNING":
+        return False
+    _sc("stop", PRINT_SERVICE)
+    for _ in range(60):
+        if _service_state() in ("STOPPED", ""):
+            break
+        time.sleep(0.5)
+    return True
+
+
+def _replace_file(new: Path, old: Path) -> None:
+    """``old`` becomes ``new`` (a running program can be renamed on Windows, not overwritten: the
+    old one is set aside as ``.old`` and removed when it can be)."""
+    tmp = old.with_name(old.name + ".new")
+    shutil.copy2(new, tmp)
+    aside = old.with_name(old.name + ".old")
+    if old.exists():
+        aside.unlink(missing_ok=True)
+        os.replace(old, aside)
+    os.replace(tmp, old)
+    try:
+        aside.unlink(missing_ok=True)
+    except OSError:
+        pass  # (still running: removed by the next update)
+
+
+def _same(a: Path, b: Path) -> bool:
+    return b.is_file() and a.stat().st_size == b.stat().st_size and a.read_bytes() == b.read_bytes()
+
+
+def _stale_parts(root: Path, source: Path) -> tuple[list[Path], list[str]]:
+    """(the print service's files, the launchers' names) in ``root`` that differ from ``source``."""
+    printer_new, printer = source / "printer", root / "printer"
+    parts = []
+    if printer_new.is_dir() and printer.is_dir():
+        parts = [p for p in sorted(printer_new.iterdir()) if p.is_file() and not _same(p, printer / p.name)]
+    launchers = [name for name in LAUNCHERS
+                 if (source / name).is_file() and (root / name).is_file() and not _same(source / name, root / name)]
+    return parts, launchers
+
+
+def stale_root_files(root: Path, source: Path | None = None) -> list[str]:
+    """Windows: which of the install folder's own programs (the launchers, the PlanetPDF printer's
+    service) aren't the ones this version came with (``source``: its ``install-root`` folder).
+    Empty when they are, or when this isn't such an install.
+
+    Security list 2026-11-26, item 6: an update is installed by the version being replaced, and
+    versions up to 1.0.6 replaced only the program, so an install updated from one of them kept
+    its old print service and launcher. PlanetPDF says so when it starts (``ui/updates.py``) and
+    an administrator can bring them up to date in one step (``update_helper`` ``--refresh-install``)."""
+    if sys.platform != "win32" or root is None or is_app_bundle(root):
+        return []
+    if source is None:
+        version = current_version(root)
+        source = root / VERSIONS / str(version) / ROOT_FILES
+    if not source.is_dir():
+        return []
+    parts, launchers = _stale_parts(root, source)
+    return [f"printer\\{p.name}" for p in parts] + launchers
+
+
+# (sc.exe's words for: start it again 5 seconds after it ends by itself, then after 30; a third
+# time within a day, leave it; as planetpdf-printer-setup sets for new installs)
+SERVICE_RECOVERY = ("reset=", "86400", "actions=", "restart/5000/restart/30000//1000")
+
+
+def update_root_files(root: Path, source: Path) -> list[str]:
+    """Windows: the install folder's launchers and print service from ``source`` (the new
+    version's ``install-root``), where they differ. The print service is stopped while its files
+    are replaced and started again if it was running. Returns what changed (for the log)."""
+    if sys.platform != "win32" or not source.is_dir():
+        return []
+    changed = []
+    for leftover in [*root.glob("*.old"), *(root / "printer").glob("*.old")]:
+        try:
+            leftover.unlink()
+        except OSError:
+            pass
+    parts, launchers = _stale_parts(root, source)
+    if parts:
+        was_running = _stop_print_service()
+        for part in parts:
+            _replace_file(part, root / "printer" / part.name)
+            changed.append(f"printer\\{part.name}")
+        _sc("failure", PRINT_SERVICE, *SERVICE_RECOVERY)  # (Windows restarts it if it ever ends by itself)
+        if was_running:
+            _sc("start", PRINT_SERVICE)
+    for name in launchers:
+        _replace_file(source / name, root / name)
+        changed.append(name)
+    return changed
 
 
 def remove_old_versions(root: Path, keep: set[str]) -> list[str]:
@@ -518,7 +687,7 @@ def _apply_app(app: Path, zip_path: Path, release: Release, progress=None) -> st
     staging.mkdir()
     try:
         report(progress, 0, 3, "Unpacking")
-        unpacked = subprocess.run(["ditto", "-x", "-k", str(zip_path), str(staging)], capture_output=True, text=True)
+        unpacked = subprocess.run([DITTO, "-x", "-k", str(zip_path), str(staging)], capture_output=True, text=True)
         if unpacked.returncode != 0:
             raise UpdateError(f"The update couldn't be unpacked ({unpacked.stderr.strip() or unpacked.returncode}).")
         new = staging / APP_BUNDLE
@@ -526,7 +695,7 @@ def _apply_app(app: Path, zip_path: Path, release: Release, progress=None) -> st
             raise UpdateError(f"The update has no {APP_BUNDLE}, so it wasn't installed.")
         report(progress, 1, 3, "Checking the app's signature")
         team = _team_id(app)
-        checked = subprocess.run(["codesign", "--verify", "--deep", "--strict", str(new)], capture_output=True, text=True)
+        checked = subprocess.run([CODESIGN, "--verify", "--deep", "--strict", str(new)], capture_output=True, text=True)
         if checked.returncode != 0:
             raise UpdateError(f"The new app's code signature isn't valid ({checked.stderr.strip()}), so it wasn't installed.")
         if team and _team_id(new) != team:
@@ -560,6 +729,19 @@ def _apply_appimage(image: Path, new: Path, release: Release, progress=None) -> 
 
 
 PACKAGE_COMMANDS = {"deb": ["dpkg", "-i"], "rpm": ["rpm", "-U", "--replacepkgs"]}
+# The installing step runs as root or administrator: the system's tools are started from the
+# system's own folders, never from wherever a search path leads (security list 2026-11-26, item 10)
+SYSTEM_FOLDERS = ("/usr/bin", "/bin", "/usr/sbin", "/sbin")
+DITTO, CODESIGN = "/usr/bin/ditto", "/usr/bin/codesign"  # (macOS' own)
+
+
+def system_tool(name: str) -> str:
+    """The full path of one of the system's own tools. ``UpdateError`` when it has none."""
+    for folder in SYSTEM_FOLDERS:
+        candidate = Path(folder) / name
+        if candidate.is_file() and os.access(candidate, os.X_OK):
+            return str(candidate)
+    raise UpdateError(f"This computer has no {name} to install the package with.")
 
 
 def _apply_package(kind: str, package: Path, release: Release, progress=None) -> str:
@@ -567,11 +749,12 @@ def _apply_package(kind: str, package: Path, release: Release, progress=None) ->
     import subprocess
 
     report(progress, 0, 1, "Installing the package")
-    command = [*PACKAGE_COMMANDS[kind], str(package)]
+    tool, *options = PACKAGE_COMMANDS[kind]
+    command = [system_tool(tool), *options, str(package)]
     done = subprocess.run(command, capture_output=True, text=True)
     if done.returncode != 0:
         detail = (done.stderr or done.stdout).strip().splitlines()
-        raise UpdateError(f"{command[0]} couldn't install it ({detail[-1] if detail else done.returncode}).")
+        raise UpdateError(f"{tool} couldn't install it ({detail[-1] if detail else done.returncode}).")
     report(progress, 1, 1, "Installing the package")
     return release.version
 
@@ -580,6 +763,6 @@ def _team_id(app: Path) -> str | None:
     """The Apple Developer Team ID that signed the app (None: ad-hoc or unsigned)."""
     import subprocess
 
-    info = subprocess.run(["codesign", "-dv", str(app)], capture_output=True, text=True)
+    info = subprocess.run([CODESIGN, "-dv", str(app)], capture_output=True, text=True)
     match = re.search(r"^TeamIdentifier=(\S+)$", info.stderr, re.MULTILINE)
     return match.group(1) if match and match.group(1) != "not" else None

@@ -28,6 +28,12 @@ uses the computer, so it needs an administrator's OK.</p>
   seconds; click <b>Next tip</b> to see the next one at once.</li>
 </ol>
 <p>PlanetPDF appears in the Start menu and, unless you untick it, on the desktop.</p>
+<p><b>Its folder is protected.</b> Wherever you install it, Setup lets only administrators (and
+Windows itself) change PlanetPDF's folder; everyone else can open and run what is in it. On a
+computer several people use, this keeps one person from replacing a program the others run. If
+Setup can't do this (a drive that doesn't keep Windows permissions), it says so at the end and
+leaves out the PlanetPDF printer, whose service runs with system rights: install PlanetPDF on a
+drive that does, such as in Program Files.</p>
 
 <h3 id="install-components">Components: reading voices and the PlanetPDF printer</h3>
 <!-- index: components; natural voices; Kokoro; Piper; voices component; PlanetPDF printer component; compact installation; full installation -->
@@ -352,8 +358,10 @@ a copy in a temporary folder, which Windows or the e-mail program empties withou
 file, as soon as its window closes). PlanetPDF won't save there: when you open such a file the status
 bar says so, and <b>Save</b> asks <b>Choose Where to Keep This File</b> and opens <b>Save As</b> in a
 lasting folder (the last one you used, or Documents). Choosing a temporary folder in Save As is
-refused, and you are asked again. Until it is saved somewhere lasting, auto-save keeps a recovery
-copy of your changes.</p>
+refused, and you are asked again. The same goes for every new file PlanetPDF saves: a redacted, signed,
+sanitized, or smaller copy, an export, a combined or created PDF, a portfolio, a report, or a printout
+starts in a lasting folder and is never saved in a temporary one. Until it is saved somewhere lasting,
+auto-save keeps a recovery copy of your changes.</p>
 
 <h3 id="saving-signed">Saving a signed document</h3>
 <!-- index: signed document; digital signature; Signatures Will Be Invalidated -->
@@ -410,9 +418,15 @@ Documents</b>, <b>Auto-save for recovery every</b> (0 = Off). See
 <ol>
   <li>Choose <b>Help ▸ Check for Updates…</b>. PlanetPDF asks the update server for the latest
   version and says if you already have it.</li>
-  <li>If there's a newer version, it downloads in the background (counted in MB), then
-  PlanetPDF asks what to do: <b>Restart Now</b> (closes PlanetPDF, asking about unsaved work,
-  installs, and starts again), <b>When I Close PlanetPDF</b>, or <b>Skip This Version</b>.</li>
+  <li>If there's a newer version, PlanetPDF asks whether to download it (<b>Download</b>,
+  <b>Not Now</b>, or <b>Skip This Version</b>); nothing is downloaded until you say so. The
+  download is counted in MB. Then PlanetPDF asks what to do: <b>Restart Now</b> (closes
+  PlanetPDF, asking about unsaved work, installs, and starts again), <b>When I Close
+  PlanetPDF</b>, <b>Not Now</b>, or <b>Skip This Version</b>. Closing the question is the same as
+  <b>Not Now</b>: nothing is installed, and you're asked again at the next check.</li>
+  <li>Where you can't install updates yourself (an account without administrator rights, as on a
+  terminal server), PlanetPDF only says once that a new version is out, and doesn't download
+  it.</li>
   <li>On Windows, installing needs one administrator OK (the Windows prompt). On a Mac, you're
   asked for an administrator's password only when the app's folder needs it.</li>
 </ol>
@@ -431,7 +445,9 @@ other people signed in to the same terminal server.</p>
 </ul>
 <p class="note"><b>For IT:</b> where people can't approve the administrator prompt (a terminal
 server, for example), run <code>PlanetPDF.exe --install-updates</code> as a scheduled task with
-administrator rights: it checks, downloads, and installs without asking.</p>
+administrator rights: it checks, downloads, and installs without asking. IT can also turn update
+checks off for everyone on a computer; see <a href="administrators.html#it-updates">Updates where
+users can't install them</a>.</p>
 
 <h2 id="profile-folder">Where your settings live</h2>
 <!-- index: profile folder; settings folder; settings.json; roaming profile; signatures folder; stamps folder; Open Profile Folder -->

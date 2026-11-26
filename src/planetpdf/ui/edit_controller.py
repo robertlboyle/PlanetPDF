@@ -77,6 +77,7 @@ class CopiedObjects:
     page: int  # where they came from (unrotated positions on it)
     text: str  # also put on the clipboard as text for other programs
     count: int
+    left_out: int = 0  # selected objects that couldn't be copied (Cut then removes nothing)
 
 
 def _qrect(r) -> QRectF:
@@ -722,15 +723,20 @@ class EditController(QObject):
         fields = []
         for name in dict.fromkeys(names):
             try:
-                fields.append(D.field_spec(self.session, name))
+                spec = D.field_spec(self.session, name)
             except PdfError:
-                pass
+                continue
+            # (a password field's value isn't copied: only the field)
+            fields.append(replace(spec, value=None) if spec.password else spec)
         content = E.copy_group(self.session, lines, images, shapes)
         if not (content or marks or fields):
             return None
         pages = [x.page for x in (*lines, *images, *shapes)] + [s.page for s in marks] + [f.page for f in fields]
         text = "\n".join(t for t in [content.text] + [s.text or "" for s in marks] if t)
-        return CopiedObjects(content, tuple(marks), tuple(fields), min(pages), text, len(ids) or 1)
+        copied = len(lines) + len(images) + sum(1 for i in ids if i.startswith("vec:") and self._drawing(i)) \
+            + len(marks) + sum(1 for i in ids if i.startswith("fld:") or i in getattr(self, "_radio_groups", {}))
+        return CopiedObjects(content, tuple(marks), tuple(fields), min(pages), text, len(ids) or 1,
+                             left_out=max(0, len(ids) - copied))
 
     def paste_copied(self, copied: CopiedObjects, target: int, dx: float, dy: float) -> bool:
         """Put copied objects on page ``target``, moved by (dx, dy) (unrotated points): one undo

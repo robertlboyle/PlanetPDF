@@ -39,3 +39,36 @@ def test_a_damaged_file_starts_an_empty_list(tmp_path):
     path = tmp_path / TH.FILENAME
     path.write_text("{not json", encoding="utf-8")
     assert TH.TextHistory.load(path).entries == []
+
+
+
+def test_private_numbers_are_never_remembered(tmp_path):
+    """Security review 2026-11-25: typed text was kept as it was, numbers and all."""
+    import json
+
+    from planetpdf.core.storage.text_history import TextHistory
+
+    history = TextHistory(tmp_path / "text-history.json")
+    for text in ("SSN 123-45-6789", "4111 1111 1111 1111", "Account 0012345678901"):
+        assert not history.remember(text)
+    for text in ("Robert Boyle", "Call 555-867-5309", "11/26/2026", "Invoice 1234"):
+        assert history.remember(text)
+    saved = json.loads((tmp_path / "text-history.json").read_text(encoding="utf-8"))["entries"]
+    assert sorted(saved) == sorted(["Robert Boyle", "Call 555-867-5309", "11/26/2026", "Invoice 1234"])
+    (tmp_path / "text-history.json").write_text(json.dumps({"version": 1, "entries": ["123-45-6789", "Kept"]}),
+                                                encoding="utf-8")
+    assert TextHistory.load(tmp_path / "text-history.json").entries == ["Kept"]  # (an older file's, dropped)
+
+
+def test_private_numbers_are_remembered_only_when_the_user_says_so(tmp_path):
+    """User 2026-11-26: "allow it to be configured to store cc numbers, ssn, etc. as an option. By
+    default, that can be off"."""
+    from planetpdf.core.storage.text_history import TextHistory
+
+    path = tmp_path / "text-history.json"
+    history = TextHistory(path)
+    assert history.remember("SSN 123-45-6789", allow_private=True)
+    assert history.remember("Robert Boyle")
+    assert TextHistory.load(path, keep_private=True).entries == ["Robert Boyle", "SSN 123-45-6789"]
+    assert TextHistory.load(path).entries == ["Robert Boyle"]  # (the option off: not offered)
+    assert history.forget_private() == 1 and history.entries == ["Robert Boyle"]

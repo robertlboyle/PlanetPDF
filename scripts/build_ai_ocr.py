@@ -23,7 +23,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
-from planetpdf.core.ai_ocr import MODEL_REVISION  # noqa: E402
+from planetpdf.core.ai_ocr import MODEL_REVISION, check_model_code  # noqa: E402
 
 PYTHON_VERSION = "3.12.10"  # (the model card tested Python 3.12)
 PYTHON_URL = f"https://www.python.org/ftp/python/{PYTHON_VERSION}/python-{PYTHON_VERSION}-embed-amd64.zip"
@@ -103,6 +103,7 @@ def main() -> int:
     for n, (name, size) in enumerate(files, start=1):
         print(f"  file {n} of {len(files)}: {name}", flush=True)
         download(f"https://huggingface.co/{MODEL}/resolve/{MODEL_REVISION}/{name}", model_dir / name, size)
+    check_model_code(model_dir)  # (the reviewed code, byte for byte: security review 2026-11-25)
 
     step(5, "manifest")
     total = sum(p.stat().st_size for p in out.rglob("*") if p.is_file())

@@ -28,6 +28,15 @@ class SanitizeDialog(QDialog):
         )
         intro.setWordWrap(True)
         layout.addWidget(intro)
+        if signed and sanitize_only:  # (security review 2026-11-25)
+            warn = QLabel(
+                "⚠ This document is digitally signed. A signed file is saved by adding the changes to "
+                "the end, so everything removed would still be in its earlier, signed version. "
+                "Removing hidden information therefore also removes the signatures, and the result is "
+                "saved as a whole new file.", self)
+            warn.setWordWrap(True)
+            warn.setStyleSheet("color: #b35900;")
+            layout.addWidget(warn)
         if signed and not sanitize_only:
             warn = QLabel("⚠ This document is digitally signed. The redacted copy will not keep the signatures.", self)
             warn.setWordWrap(True)
@@ -49,7 +58,18 @@ class SanitizeDialog(QDialog):
             layout.addWidget(hint)
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Cancel, self)
-        self.ok = buttons.addButton("Sanitize" if sanitize_only else "Choose File and Apply…", QDialogButtonBox.ButtonRole.AcceptRole)
+        # "copy": a sanitized copy (signed documents: the default, the signed file stays as it is);
+        # "here": this document (signed: its signatures removed)
+        self.choice = "here"
+        if signed and sanitize_only:
+            self.ok = buttons.addButton("Save Sanitized Copy…", QDialogButtonBox.ButtonRole.AcceptRole)
+            here = buttons.addButton("Remove Signatures and Sanitize", QDialogButtonBox.ButtonRole.AcceptRole)
+            self.ok.clicked.connect(lambda: setattr(self, "choice", "copy"))
+            here.clicked.connect(lambda: setattr(self, "choice", "here"))
+            self.ok.setDefault(True)
+        else:
+            self.ok = buttons.addButton("Sanitize" if sanitize_only else "Choose File and Apply…",
+                                        QDialogButtonBox.ButtonRole.AcceptRole)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)

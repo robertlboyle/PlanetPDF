@@ -51,8 +51,9 @@ class ScriptingPage(QWidget):
         column = QVBoxLayout(box)
         self.api_enabled = QCheckBox("Let other programs and plugins use PlanetPDF (its local API)", box)
         self.api_enabled.setChecked(window.settings.api_enabled)
-        self.api_enabled.setToolTip("Only programs on this computer, running as you. Signing always asks you first. "
-                                    "Takes effect the next time PlanetPDF starts.")
+        self.api_enabled.setToolTip("Off until you turn it on. Only programs on this computer, running as you, and "
+                                    "each one is asked about first; signing always asks you. Takes effect the next "
+                                    "time PlanetPDF starts (turning a plugin on starts it at once).")
         column.addWidget(self.api_enabled)
         note = QLabel("Scripts can also run <b>planetpdf help</b> in a command prompt. Programs may use every "
                       "function; <b>signing always asks you</b>.", box)
@@ -182,8 +183,11 @@ class ScriptingPage(QWidget):
                                     plugin.problem or asks])
             item.setData(0, Qt.ItemDataRole.UserRole, plugin.id)
             item.setToolTip(0, f"{plugin.description}\n{plugin.folder}".strip())
-            if plugin.problem:
+            if plugin.problem or self.plugins_off():
                 item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEnabled)
+                if not plugin.problem:
+                    item.setText(1, "turned off by your administrator")
+                    item.setToolTip(0, self.plugins_off())
             else:
                 item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
                 on = plugins.is_enabled(plugin, enabled)
@@ -194,17 +198,37 @@ class ScriptingPage(QWidget):
         self.plugin_list.resizeColumnToContents(0)
         self.plugin_list.blockSignals(False)
 
+    def plugins_off(self) -> str:
+        """Why no plugin can be turned on here ("" = they can): an administrator turned plugins,
+        or the local API they work through, off for everyone on this computer (core/policy.py)."""
+        if plugins.turned_off():
+            return plugins.turned_off()
+        s = self.w.settings
+        if s.locked("api_enabled") and not s.api_enabled:
+            return "Plugins work through the local API, which is turned off on this computer by your administrator."
+        return ""
+
     def _plugin_ticked(self, item: QTreeWidgetItem, _column: int) -> None:
         pid = item.data(0, Qt.ItemDataRole.UserRole)
         plugin = next((p for p in plugins.discover(self.w.profile.root) if p.id == pid), None)
         if plugin is None:
             return
         enabled = dict(self.w.settings.plugins_enabled)
+        if item.checkState(0) == Qt.CheckState.Checked and self.plugins_off():
+            QMessageBox.information(self, "Plugins", self.plugins_off())
+            self._fill_plugins()
+            return
         if item.checkState(0) == Qt.CheckState.Checked:
             if not self.confirm_plugin(plugin):
                 self._fill_plugins()
                 return
             enabled[plugin.id] = plugin.fingerprint()
+            if not self.api_enabled.isChecked():  # (plugins work through the local API, off by default)
+                from planetpdf.ui import api_server
+
+                self.api_enabled.setChecked(True)
+                self.w.settings.api_enabled = True
+                api_server.attach(self.w, self.w.profile.root)
         else:
             enabled.pop(plugin.id, None)
         self.w.settings.plugins_enabled = enabled

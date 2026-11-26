@@ -33,6 +33,14 @@ if TYPE_CHECKING:
     from planetpdf.ui.main_window import MainWindow
 
 
+SCAN_PREFIX = "planetpdf-scan-"
+
+
+def _forget_scans(folder: Path) -> None:
+    """Deletes a folder of scanned pages (only one PlanetPDF made for a scan)."""
+    if folder.name.startswith(SCAN_PREFIX):
+        shutil.rmtree(folder, ignore_errors=True)
+
 class ExtrasUi:
     def __init__(self, window: MainWindow) -> None:
         self.w = window
@@ -56,8 +64,19 @@ class ExtrasUi:
         if not windows_scanner.scanners():
             w.show_message("Scanner", "No scanner was found. Check that it's on, connected, and installed in Windows.")
             return []
-        folder = Path(tempfile.mkdtemp(prefix="planetpdf-scan-"))
+        folder = Path(tempfile.mkdtemp(prefix=SCAN_PREFIX))
         pages: list[Path] = []
+        try:
+            self._scan_windows(folder, pages)
+        except BaseException:
+            _forget_scans(folder)
+            raise
+        if not pages:
+            _forget_scans(folder)
+        return pages
+
+    def _scan_windows(self, folder: Path, pages: list[Path]) -> None:
+        w = self.w
         while True:
             try:
                 page = self.scan_one(folder)
@@ -69,7 +88,6 @@ class ExtrasUi:
             pages.append(page)
             if not w.ask("Scanner", f"{len(pages)} page{'s' if len(pages) != 1 else ''} scanned.\n\nScan another page?"):
                 break
-        return pages
 
     def scan_one(self, folder: Path) -> Path | None:  # (tests replace this)
         from planetpdf.core import windows_scanner
@@ -94,16 +112,26 @@ class ExtrasUi:
         """Scan with a Mac (ImageCaptureCore: USB, network, shared) or network (AirScan) scanner:
         the glass gives a page at a time ("Scan another page?"), the feeder all its pages at once
         ("Scan more pages?")."""
+        choice = self.choose_scanner()
+        if choice is None:
+            return []
+        folder = Path(tempfile.mkdtemp(prefix=SCAN_PREFIX))
+        pages: list[Path] = []
+        try:
+            self._scan_network(choice, folder, pages)
+        except BaseException:
+            _forget_scans(folder)
+            raise
+        if not pages:
+            _forget_scans(folder)
+        return pages
+
+    def _scan_network(self, choice, folder: Path, pages: list[Path]) -> None:
         from planetpdf.core import escl_scanner
         from planetpdf.ui.dialogs.scan import scan
         from planetpdf.ui.tasks import TaskCanceled, run_in_background
 
-        choice = self.choose_scanner()
-        if choice is None:
-            return []
         w = self.w
-        folder = Path(tempfile.mkdtemp(prefix="planetpdf-scan-"))
-        pages: list[Path] = []
         while True:
             try:
                 pages += run_in_background(
@@ -119,16 +147,22 @@ class ExtrasUi:
             more = "Scan another page?" if choice.source == "glass" else "Scan more pages from the feeder?"
             if not w.ask("Scanner", f"{len(pages)} page{'s' if len(pages) != 1 else ''} scanned.\n\n{more}"):
                 break
-        return pages
 
     def _scans_as_pdf(self, pages: list[Path]) -> bytes | None:
+        """The scanned pages as one PDF; the scans themselves are deleted, whatever happens
+        (security review 2026-11-25: they stayed in the temporary folder)."""
         from planetpdf.core.combine import CombineOptions, combine_files
 
         if not pages:
             return None
-        out = pages[0].parent / "scanned.pdf"
-        combine_files(pages, out, CombineOptions(image_page="letter" if self.w.settings.scan_letter_pages else "image"))
-        return out.read_bytes()
+        try:
+            out = pages[0].parent / "scanned.pdf"
+            combine_files(pages, out, CombineOptions(image_page="letter" if self.w.settings.scan_letter_pages
+                                                     else "image"))
+            return out.read_bytes()
+        finally:
+            for folder in {page.parent for page in pages}:
+                _forget_scans(folder)
 
     def create_from_scanner(self) -> bool:
         data = self._scans_as_pdf(self.scan_pages())
@@ -161,6 +195,15 @@ class ExtrasUi:
                                         QLineEdit.EchoMode.Normal, self.w.settings.last_web_address)
         return text.strip() if ok and text.strip() else None
 
+    def web_capture_off(self) -> bool:
+        """Said before asking for an address: an administrator turned this off (core/policy.py)."""
+        from planetpdf.core import policy
+
+        if not policy.reason("web_capture"):
+            return False
+        self.w.show_message("PDF from Web Page", policy.reason("web_capture"))
+        return True
+
     def _capture(self, address: str) -> bytes | None:
         from planetpdf.core.web_capture import WebCaptureCanceled, web_page_to_pdf
         from planetpdf.ui.tasks import TaskCanceled, run_in_background
@@ -182,6 +225,8 @@ class ExtrasUi:
         return data
 
     def create_from_web(self, address: str | None = None) -> bool:
+        if self.web_capture_off():
+            return False
         address = address or self.ask_address()
         if not address:
             return False
@@ -195,6 +240,8 @@ class ExtrasUi:
     def insert_from_web(self, address: str | None = None) -> bool:
         from planetpdf.ui.commands import InsertPdfPagesCommand
 
+        if self.web_capture_off():
+            return False
         address = address or self.ask_address()
         if not address:
             return False
@@ -352,8 +399,9 @@ class ExtrasUi:
     def suggest_natural_voices(self) -> bool:
         """Read Out Loud without Kokoro: suggest downloading it, once per run. True when downloaded."""
         from planetpdf.core import neural_speech as NS
+        from planetpdf.core import voice_download as V
 
-        if NS.kokoro_available() or ExtrasUi._suggested or NS.USER_MODELS is None:
+        if NS.kokoro_available() or ExtrasUi._suggested or NS.USER_MODELS is None or V.turned_off():
             return False
         ExtrasUi._suggested = True
         if not self.ask_download():
@@ -382,7 +430,10 @@ class ExtrasUi:
         from planetpdf.ui.tasks import TaskCanceled, run_in_background
 
         w = self.w
-        url = U.configured_url(U.install_root(), UPDATE_URL)
+        if V.turned_off():
+            w.show_message("Natural Voices", f"{V.turned_off()} Read Out Loud uses the {fallback_voices()}.")
+            return False
+        url = U.configured_url(U.install_root(), UPDATE_URL, even_if_off=True)  # (its own switch, not the updates')
         if not url:
             w.show_message("Natural Voices", f"No update server is set, so the natural voices can't be downloaded. "
                                              f"Read Out Loud uses the {fallback_voices()}.")

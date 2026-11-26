@@ -23,7 +23,7 @@ from PySide6.QtWidgets import (
 )
 
 from planetpdf.core import compliance as P
-from planetpdf.ui import fa
+from planetpdf.ui import fa, plain
 from planetpdf.ui.tasks import TaskCanceled, page_progress_text, run_in_background
 
 if TYPE_CHECKING:
@@ -54,7 +54,7 @@ class ComplianceDialog(QDialog):
         self.analyze.clicked.connect(self.run)
         row.addWidget(self.analyze)
         layout.addLayout(row)
-        self.claimed = QLabel(self)
+        self.claimed = plain.plain(QLabel(self))  # (what the file says it meets: the file's own words)
         self.summary = QLabel(self)
         self.summary.setStyleSheet("font-weight: 600;")
         self.summary.setWordWrap(True)
@@ -219,6 +219,9 @@ class ComplianceDialog(QDialog):
         session = self.w.session
         name = self.fixed_path.name if self.fixed_path is not None else session.path.name
         suggested = session.path.with_name(f"{Path(name).stem} compliance.txt")
-        path, _ = QFileDialog.getSaveFileName(self, "Save Compliance Report", str(suggested), "Text files (*.txt)")
+        from planetpdf.ui.save_path import choose_save_path
+
+        path = choose_save_path(self, "Save Compliance Report", suggested, "Text files (*.txt)", suffix=".txt",
+                                last_directory=self.w.settings.last_directory)
         if path:
             Path(path).write_text(self.result.as_text(name), encoding="utf-8")

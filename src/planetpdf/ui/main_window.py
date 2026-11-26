@@ -54,7 +54,6 @@ from planetpdf.core.document import (
     SignaturesWouldBreak,
     WrongPassword,
     open_pdf_bytes,
-    protect_pdf_file,
 )
 from planetpdf.core.signing.providers.pkcs12 import FileTrustStore
 from planetpdf.core.signing.visual import SignatureLibrary
@@ -63,7 +62,8 @@ from planetpdf.core.storage.profile import Profile
 from planetpdf.core.storage.settings import Settings, load_settings, save_settings
 from planetpdf.core.redaction import marks as M
 from planetpdf.core.redaction.apply import redact_copy
-from planetpdf.ui import accessibility, keyboard_nav
+from planetpdf.ui import accessibility, keyboard_nav, plain
+from planetpdf.ui.save_path import choose_save_path, plain_file_name, refuse_temporary, safe_start
 from planetpdf.ui.commands import (
     OcrTextCommand,
     AddMarksCommand,
@@ -153,6 +153,9 @@ class MainWindow(QMainWindow):
         self._restore_layout = restore_layout
         self.setWindowIcon(app_icon())
         self.profile = Profile(Path(profile_dir)).ensure()
+        from planetpdf.core import markup as _markup
+
+        _markup.set_item_key(self.profile.item_key())  # (which items this user's PlanetPDF made)
         self._config_dir = self.profile.settings_dir
         self._recovery_dir = recovery_dir
         if origin is not None:  # (another window of the same PlanetPDF)
@@ -166,7 +169,8 @@ class MainWindow(QMainWindow):
             self.settings = load_settings(self._config_dir)
             self.stamp_library = StampLibrary.load(self.profile.stamps_dir)
             self.signature_library = SignatureLibrary.load(self.profile.signatures_dir)
-            self.text_history = TextHistory.load(self.profile.text_history_path)  # (Add Text's suggestions)
+            self.text_history = TextHistory.load(self.profile.text_history_path,  # (Add Text's suggestions)
+                                                 keep_private=self.settings.remember_private_numbers)
         self.trust_store = FileTrustStore(self.profile.trusted_certs_dir)
         # The theme before any widget exists: applied later, Qt re-styles every widget
         # already built (1.2 s of a 4 s start, user 2026-10-07). set_theme() below then
@@ -177,6 +181,7 @@ class MainWindow(QMainWindow):
         apply_text_size(self.settings.text_size)  # (larger text, Preferences ▸ Appearance)
         accessibility.install()
         keyboard_nav.install()  # (arrow keys in toolbars, the focus ring)  # every control a screen reader can name, dialogs too
+        plain.install()  # (text from documents never shown as rich text: security review 2026-11-25)
         # The open documents, a tab each (ui/documents.py); ``session`` / ``undo_stack``
         # are the current one's. Undo / Redo and Undo History follow the current tab
         # through the undo group.
@@ -1702,8 +1707,9 @@ class MainWindow(QMainWindow):
 
     # --- helpers used by controllers ------------------------------------------------
 
-    def push_command(self, command: QUndoCommand) -> None:
-        self._push(command)
+    def push_command(self, command: QUndoCommand) -> bool:
+        """Pushes ``command`` (False: a signed document's question was answered Cancel)."""
+        return self._push(command)
 
     def check_for_updates(self) -> None:
         """Help ▸ Check for Updates (user 2026-10-04; ui/updates.py)."""
@@ -1882,32 +1888,76 @@ class MainWindow(QMainWindow):
         (Save keeps it). Redaction output is sanitized separately, on its copy."""
         if self.session is None:
             return False
+        from planetpdf.core.redaction.ocg import LayerError
         from planetpdf.core.redaction.sanitize import sanitize
 
+        signed = self.session.has_digital_signatures
+        choice = "here"
         if options is None:
-            dialog = SanitizeDialog(0, 0, self.session.has_digital_signatures, self, sanitize_only=True)
+            dialog = SanitizeDialog(0, 0, signed, self, sanitize_only=True)
             if dialog.exec() != SanitizeDialog.DialogCode.Accepted:
                 return False
-            options = dialog.options()
+            options, choice = dialog.options(), dialog.choice
         if not options.any():
             return False
+        if signed and choice == "copy":
+            return self.save_sanitized_copy(options)
         result = {}
 
         def apply(session) -> None:
-            result["removed"] = sanitize(session.doc, options).removed
+            # (a signed file: its signatures go too, so Save writes a whole new file rather than
+            # adding to the signed one, which would keep all of this: security review 2026-11-25)
+            result["removed"] = sanitize(session.doc, options, remove_signatures=signed).removed
+            session.signatures_changed()
 
         try:
             command = DocumentSnapshotCommand.applied(self, apply, "Sanitize Document")
+        except LayerError as exc:
+            self.show_message("Sanitize Document", f"Nothing was changed. {exc}\n\nPlanetPDF stopped rather than "
+                              "show what the hidden layers hold. To remove everything else, untick Hidden layers.")
+            return False
         except Exception as exc:
             self.report_error("Sanitize Document", exc)
             return False
-        self._push(command)
-        from planetpdf.core.redaction.sanitize import LABELS
+        self.undo_stack.push(command)  # (the signatures question was answered in the dialog)
+        from planetpdf.core.redaction.sanitize import REMOVED_LABELS
 
-        removed = [f"{LABELS.get(k, (k,))[0]}: {v}" for k, v in result.get("removed", {}).items() if v]
+        removed = [f"{REMOVED_LABELS.get(k, (k,))[0]}: {v}" for k, v in result.get("removed", {}).items() if v]
         self.statusBar().showMessage(
             "Sanitized. " + ("; ".join(removed) if removed else "Nothing hidden was found.") + " Undo puts it back.", 10000
         )
+        return True
+
+    def save_sanitized_copy(self, options) -> bool:
+        """A signed document's sanitized copy, as a whole new file without the signatures (the
+        signed file stays as it is; its password is kept)."""
+        from planetpdf.core.document import write_whole
+        from planetpdf.core.redaction.ocg import LayerError
+        from planetpdf.core.redaction.sanitize import REMOVED_LABELS, sanitize
+
+        session = self.session
+        target = choose_save_path(self, "Save Sanitized Copy As", session.path.with_name(f"{session.path.stem}_sanitized.pdf"))
+        if target is None:
+            return False
+        if target.resolve() == session.path.resolve():
+            self.show_message("Save Sanitized Copy", "Choose another name: the signed file stays as it is.")
+            return False
+        copy = session.work_copy()
+        try:
+            removed = sanitize(copy.doc, options, remove_signatures=True).removed
+            write_whole(copy.doc, target)
+        except LayerError as exc:
+            self.show_message("Save Sanitized Copy", f"No copy was saved. {exc}\n\nPlanetPDF stopped rather than "
+                              "show what the hidden layers hold. To remove everything else, untick Hidden layers.")
+            return False
+        except Exception as exc:
+            self.report_error("Save Sanitized Copy", exc)
+            return False
+        finally:
+            copy.close()
+        self.settings.last_directory = str(target.parent)
+        done = [f"{REMOVED_LABELS.get(k, (k,))[0]}: {v}" for k, v in removed.items() if v]
+        self.statusBar().showMessage(f"Saved a sanitized copy, {target.name}. " + "; ".join(done), 10000)
         return True
 
     def _on_mark_clicked(self, mark_id: str, additive: bool) -> None:
@@ -2098,8 +2148,10 @@ class MainWindow(QMainWindow):
 
     def save_attachment(self, name: str, data: bytes) -> Path | None:
         """Double-click an attached file: save a copy of it (never opened: it could run code)."""
-        start = Path(self.settings.last_directory or Path.home()) / (name or "attachment")
-        path, _ = QFileDialog.getSaveFileName(self, "Save Attachment", str(start), "All files (*)")
+        # (the name is the document's: only its last part, never a folder or a server share it
+        # names; security review 2026-11-25)
+        start = Path(self.settings.last_directory or Path.home()) / plain_file_name(name)
+        path = choose_save_path(self, "Save Attachment", start, "All files (*)", suffix=None)
         if not path:
             return None
         try:
@@ -2313,7 +2365,11 @@ class MainWindow(QMainWindow):
         except (PdfError, PageRangeError) as exc:
             self.show_message("Split Document", str(exc))
             return
-        folder = QFileDialog.getExistingDirectory(self, "Save the Parts In", str(self.session.path.parent))
+        start = self.session.path.parent
+        while True:
+            folder = QFileDialog.getExistingDirectory(self, "Save the Parts In", str(safe_start(start / "x").parent))
+            if not folder or not refuse_temporary(self, Path(folder) / "part.pdf"):
+                break
         if not folder:
             return
         self.split_to(groups, Path(folder))
@@ -2327,11 +2383,8 @@ class MainWindow(QMainWindow):
             return []
         copy = self.session.work_copy()  # (unsaved changes included)
 
-        def work(progress):
-            written[:] = P.split_document(copy, groups, folder, copy.path.stem, progress)
-            for n, path in enumerate(written if protection is not None else []):
-                progress(n, len(written), "Protecting file")
-                protect_pdf_file(path, protection)
+        def work(progress):  # (each file encrypted as it's written: security review 2026-11-25)
+            written[:] = P.split_document(copy, groups, folder, copy.path.stem, progress, protection)
             return written
 
         try:
@@ -2365,9 +2418,9 @@ class MainWindow(QMainWindow):
             self.compress_document(dialog.options(), size)
             return
         default = self.session.path.with_name(f"{self.session.path.stem}_smaller.pdf")
-        path, _ = QFileDialog.getSaveFileName(self, "Save Smaller Copy As", str(default), PDF_FILTER)
+        path = choose_save_path(self, "Save Smaller Copy As", default)
         if path:
-            self.reduce_size_to(Path(path), dialog.options())
+            self.reduce_size_to(path, dialog.options())
 
     def compress_document(self, options, before: int = 0) -> bool:
         """Compress this document in place: done on a copy in the background, then
@@ -2432,13 +2485,9 @@ class MainWindow(QMainWindow):
         snapshot = self.session.doc.tobytes(encryption=pymupdf.PDF_ENCRYPT_NONE)
         before = self.session.path.stat().st_size if self.session.path.exists() else len(snapshot)
 
-        def work(progress):
-            result = reduce_size(pymupdf.open(stream=snapshot, filetype="pdf"), target, options, before, progress)
-            if protection is not None:
-                progress(0, 0, "Protecting it with a password…")
-                protect_pdf_file(target, protection)
-                result.after = target.stat().st_size
-            return result
+        def work(progress):  # (encrypted as it's written: security review 2026-11-25)
+            return reduce_size(pymupdf.open(stream=snapshot, filetype="pdf"), target, options, before, progress,
+                               protection)
 
         try:
             result = run_in_background(
@@ -2471,12 +2520,9 @@ class MainWindow(QMainWindow):
         files, options = dialog.files(), dialog.options()
         self.remember_source_folder(files[0])
         default = self.new_pdf_folder(files[0]) / ("Scans.pdf" if images_only else "Combined.pdf")
-        path, _ = QFileDialog.getSaveFileName(self, "Save New PDF As", str(default), PDF_FILTER)
-        if not path:
+        target = choose_save_path(self, "Save New PDF As", default)
+        if not target:
             return
-        target = Path(path)
-        if target.suffix.lower() != ".pdf":
-            target = target.with_name(target.name + ".pdf")
         if self.combine_files(files, target, options) and dialog.ocr.isChecked():
             self.run_ocr(list(range(self.session.page_count)), self.settings.ocr_language, self.settings.ocr_dpi)
 
@@ -2579,10 +2625,9 @@ class MainWindow(QMainWindow):
         if target is None:
             suffix = {"pdfa": "_pdfa", "pdfx": "_pdfx", "pdfe": "_pdfe"}[standard]
             suggested = self.session.path.with_name(f"{self.session.path.stem}{suffix}.pdf")
-            path, _ = QFileDialog.getSaveFileName(self, f"Save as {name}", str(suggested), PDF_FILTER)
-            if not path:
+            target = choose_save_path(self, f"Save as {name}", suggested)
+            if not target:
                 return None
-            target = Path(path)
         if target.resolve() == self.session.path:
             self.show_message(name, "Choose a new file name: the converted copy can't replace the open document.")
             return None
@@ -2675,13 +2720,10 @@ class MainWindow(QMainWindow):
         source = self.session.path
         if target is None:
             suggested = source.with_name(f"{source.stem}_{'certified' if certify else 'signed'}.pdf")
-            path, _ = QFileDialog.getSaveFileName(self, "Save Certified Document As" if certify else
-                                                  "Save Signed Document As", str(suggested), PDF_FILTER)
-            if not path:
+            target = choose_save_path(self, "Save Certified Document As" if certify else "Save Signed Document As",
+                                      suggested)
+            if not target:
                 return False
-            target = Path(path)
-            if target.suffix.lower() != ".pdf":
-                target = target.with_name(target.name + ".pdf")
         s = self.settings
         image = None
         if show_image and self.signature_library.default("signature") is not None:
@@ -2741,12 +2783,10 @@ class MainWindow(QMainWindow):
         sanitize_options = dialog.options()
 
         suggested = self.session.path.with_name(f"{self.session.path.stem}_redacted.pdf")
-        path, _ = QFileDialog.getSaveFileName(self, "Save Redacted Copy As", str(suggested), PDF_FILTER)
-        if not path:
+        # (offered in Documents when the source is in a temporary folder; security review 2026-11-25)
+        target = choose_save_path(self, "Save Redacted Copy As", suggested)
+        if not target:
             return
-        target = Path(path)
-        if target.suffix.lower() != ".pdf":
-            target = target.with_name(target.name + ".pdf")
         overwrite = target.resolve() == self.session.path
         if overwrite:
             answer = QMessageBox.warning(
@@ -2932,10 +2972,15 @@ class MainWindow(QMainWindow):
         pages = self.target_pages()
         return pages[-1] + 1 if pages else (self.session.page_count if self.session else 0)
 
-    def _push(self, command: QUndoCommand) -> None:
+    def _push(self, command: QUndoCommand) -> bool:
         if not self._confirm_signature_change():
-            return
+            # A command already done (``applied``) is taken back, so the document isn't left
+            # changed with nothing to undo (security review 2026-11-25).
+            if getattr(command, "_first", False) or getattr(command, "_after", None) is not None:
+                command.undo()
+            return False
         self.undo_stack.push(command)
+        return True
 
     def _confirm_signature_change(self) -> bool:
         if self.session is None:
@@ -3134,10 +3179,9 @@ class MainWindow(QMainWindow):
 
         suffix = {ExportFormat.PDF: "_pages", ExportFormat.IMAGE_PDF: "_images"}.get(fmt, "")
         suggested = self.session.path.with_name(f"{self.session.path.stem}{suffix}{fmt.extension}")
-        path, _ = QFileDialog.getSaveFileName(self, "Export", str(suggested), FILE_FILTERS[fmt])
-        if not path:
+        target = choose_save_path(self, "Export", suggested, FILE_FILTERS[fmt], suffix=None)
+        if not target:
             return
-        target = Path(path)
         if target.suffix.lower() not in (fmt.extension, ".jpeg", ".tiff"):
             target = target.with_name(target.name + fmt.extension)
         self.export_to(fmt, pages, target, options)
@@ -3155,14 +3199,13 @@ class MainWindow(QMainWindow):
         def work(progress):
             doc = pymupdf.open(stream=snapshot, filetype="pdf")
             try:
-                files = export(doc, pages, target, fmt, options, progress, notes)
+                if protection is not None:  # (encrypted as it's written: security review 2026-11-25)
+                    from planetpdf.core.export import export_image_pdf
+
+                    return [export_image_pdf(doc, pages, target, options, progress, protection)]
+                return export(doc, pages, target, fmt, options, progress, notes)
             finally:
                 doc.close()
-            if protection is not None:
-                progress(0, 0, "Protecting it with a password…")
-                for path in files:
-                    protect_pdf_file(path, protection)
-            return files
 
         # Word: core reports stages (Copying / OCR / Reading / Writing page x of y), shown
         # under the label; the other formats count the pages exported
@@ -3260,9 +3303,7 @@ class MainWindow(QMainWindow):
         if protection is False:
             return False
         try:
-            P.export_pages(self.session, pages, target)
-            if protection is not None:
-                protect_pdf_file(target, protection)
+            P.export_pages(self.session, pages, target, protection)  # (encrypted as it's written)
         except (PdfError, OSError, RuntimeError) as exc:
             QMessageBox.critical(self, "Export Failed", f"The pages could not be exported:\n\n{exc}")
             return False
@@ -3387,34 +3428,12 @@ class MainWindow(QMainWindow):
     def save_as_dialog(self) -> bool:
         if self.session is None:
             return False
-        from planetpdf.core.temp_folders import lasting_folder, temporary_reason
-
-        start = self.session.path
-        if temporary_reason(start) is not None:  # (offer a lasting folder instead)
-            start = lasting_folder(self.settings.last_directory) / start.name
-        while True:
-            path, _ = QFileDialog.getSaveFileName(self, "Save As", str(start), PDF_FILTER)
-            if not path:
-                return False
-            target = Path(path)
-            if target.suffix.lower() != ".pdf":
-                target = target.with_name(target.name + ".pdf")
-            if not self.refuse_temporary(target):
-                return self.save_as(target)
-            start = lasting_folder(self.settings.last_directory) / target.name
+        target = choose_save_path(self, "Save As", self.session.path)  # (never in a temporary folder)
+        return self.save_as(target) if target else False
 
     def refuse_temporary(self, target: Path) -> bool:
         """True (after saying so) when ``target`` is in a folder that gets emptied by itself."""
-        from planetpdf.core.temp_folders import temporary_reason
-
-        reason = temporary_reason(target)
-        if reason is None:
-            return False
-        QMessageBox.warning(
-            self, "Temporary Folder",
-            f"That folder is {reason}. Files saved there are deleted without asking, so "
-            "PlanetPDF won't save your document there.\n\nPlease choose another folder, such as Documents.")
-        return True
+        return refuse_temporary(self, target)
 
     def save_as(self, target: Path) -> bool:
         if self.session is None:
@@ -3654,12 +3673,9 @@ class MainWindow(QMainWindow):
     def _save_new_pdf(self, data: bytes, default_name: str, source: Path | None = None) -> bool:
         """Ask where to save a newly created PDF, write it and open it."""
         default = self.new_pdf_folder(source) / default_name
-        path, _ = QFileDialog.getSaveFileName(self, "Save New PDF As", str(default), PDF_FILTER)
-        if not path:
+        target = choose_save_path(self, "Save New PDF As", default)
+        if not target:
             return False
-        target = Path(path)
-        if target.suffix.lower() != ".pdf":
-            target = target.with_name(target.name + ".pdf")
         try:
             target.write_bytes(data)
         except OSError as exc:

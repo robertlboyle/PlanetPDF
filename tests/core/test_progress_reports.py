@@ -150,7 +150,7 @@ def test_redaction_counts_marks_pages_and_checks(marked, tmp_path):
         f"Reading the text under redaction mark {marks} of {marks}"
     assert rec.having("Applying redactions: marked page") == [
         f"Applying redactions: marked page {n} of {pages}" for n in range(1, pages + 1)]
-    assert rec.having("Removing hidden information (8 kinds")
+    assert rec.having(f"Removing hidden information ({len(SanitizeOptions.__dataclass_fields__)} kinds")
     assert rec.having("Writing the new file")
     assert rec.having("Verifying: reading page")[-1] == f"Verifying: reading page {marked.page_count} of {marked.page_count}"
     assert rec.having("Verifying: searching for removed text")

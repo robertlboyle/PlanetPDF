@@ -34,7 +34,7 @@ def is_command(argv: list[str]) -> bool:
     if len(argv) < 2:
         return False
     first = argv[1]
-    if first in ("help", "commands", "serve", "--help", "-h", "--version"):
+    if first in ("help", "commands", "serve", "policy", "--help", "-h", "--version"):
         return True
     from planetpdf.core.commands import COMMANDS
 
@@ -104,6 +104,8 @@ def build_parser() -> argparse.ArgumentParser:
                 _add(p, param)
     p = sub.add_parser("commands", help="List the commands", parents=[common])
     sub.add_parser("serve", help="Serve PlanetPDF's local API without a window, for other programs (Ctrl+C stops it)")
+    sub.add_parser("policy", help="Show what your administrator set for everyone on this computer (policy.json)",
+                   parents=[common])
     p = sub.add_parser("help", help="Show a command's options")
     p.add_argument("topic", nargs="?")
     return parser
@@ -205,6 +207,34 @@ def _approve(description: str) -> bool:
     return ask_to_sign("A command-line script", description)
 
 
+def _show_policy(as_json: bool) -> int:
+    """``planetpdf policy``: what an administrator set for this computer, and anything in the
+    policy file PlanetPDF didn't take (exit code 4 then)."""
+    from planetpdf.core import policy
+
+    data = policy.describe()
+    if as_json:
+        print(json.dumps(data, indent=2))
+    else:
+        if data["in_force"]:
+            print(f"Policy in force: {data['file']}")
+            for name, value in data["settings"].items():
+                print(f"  {name} = {json.dumps(value)}")
+            for name in data["off"]:
+                print(f"  off: {name} ({data['can_turn_off'][name]})")
+            if not data["settings"] and not data["off"]:
+                print("  (it sets nothing)")
+        elif data["looked_for"]:
+            print(f"No policy is in force (PlanetPDF looks for {data['looked_for']}).")
+        else:
+            print("No policy: this copy of PlanetPDF isn't installed, so it has no policy file.")
+        for problem in data["problems"]:
+            print(f"Problem: {problem}")
+        print("\nA policy can set: " + ", ".join(data["can_set"]))
+        print("A policy can turn off: " + ", ".join(data["can_turn_off"]))
+    return CHECK_FAILED if data["problems"] else OK
+
+
 def main(argv: list[str]) -> int:
     _console()
     for stream in (sys.stdout, sys.stderr):  # (piped output is UTF-8, whatever the code page)
@@ -234,9 +264,15 @@ def main(argv: list[str]) -> int:
             for cmd in commands.COMMANDS.values():
                 print(f"{cmd.name:20} {cmd.summary}")
         return OK
+    if ns.command == "policy":
+        return _show_policy(ns.json)
     if ns.command == "serve":
+        from planetpdf.core import policy
         from planetpdf.ui import api_server
 
+        if policy.current().settings.get("api_enabled") is False:
+            print("planetpdf: the local API is turned off on this computer by your administrator.", file=sys.stderr)
+            return FAILED
         root = _profile_root()
         if root is None:
             print("planetpdf: PlanetPDF's profile folder couldn't be found.", file=sys.stderr)
@@ -270,6 +306,10 @@ def main(argv: list[str]) -> int:
     except (PdfError, OSError, ValueError) as e:
         progress.finish()
         print(f"planetpdf {cmd.name}: {e}", file=sys.stderr)
+        return FAILED
+    except Exception as e:  # noqa: BLE001 (MuPDF's own errors: a message, not a traceback)
+        progress.finish()
+        print(f"planetpdf {cmd.name}: failed ({type(e).__name__}: {e})", file=sys.stderr)
         return FAILED
     progress.finish()
     if ns.json:

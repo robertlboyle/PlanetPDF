@@ -7,6 +7,7 @@ because the window's unsaved-changes state is the stack's clean state.
 
 from __future__ import annotations
 
+import uuid
 from typing import TYPE_CHECKING
 
 from PySide6.QtGui import QUndoCommand
@@ -554,10 +555,11 @@ class InsertPdfPagesCommand(QUndoCommand):
         self._name = name
         self._password = password
         self._count = 0
+        self._salt = uuid.uuid4().hex  # (the inserted items' new ids, the same on every redo)
 
     def redo(self) -> None:
         self._count, mapping = P.insert_pdf_pages(
-            self._window.session, self._data, self._index, name=self._name, password=self._password
+            self._window.session, self._data, self._index, name=self._name, password=self._password, salt=self._salt
         )
         inserted = list(range(self._index, self._index + self._count))
         self._window.pages_changed(mapping, focus=self._index, select=inserted)

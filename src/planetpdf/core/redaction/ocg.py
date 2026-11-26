@@ -6,12 +6,17 @@ Hidden = OFF in the default configuration (``/OCProperties/D``). Removed:
 * ``/Name Do`` invocations of XObjects that carry a hidden ``/OC``;
 * annotations with a hidden ``/OC``.
 Afterwards ``/OCProperties`` is deleted, so any remaining optional content is simply
-always visible.
+always visible. That must never show what was hidden (security review 2026-11-25: a file whose
+list of hidden layers was its own object, ``/OFF 5 0 R``, was read as "nothing hidden", and
+Sanitize showed the hidden text): every list is read through references, content whose layer
+can't be told stops it (``LayerError``), and the words on each page afterwards are checked
+against the words shown before.
 """
 
 from __future__ import annotations
 
 import re
+from collections import Counter
 from dataclasses import dataclass
 
 import pymupdf
@@ -100,8 +105,27 @@ def tokenize(data: bytes):
             yield Token(kind, word, start, i)
 
 
+class LayerError(Exception):
+    """Hidden layers couldn't be removed without the risk of showing what they hide."""
+
+
 def _refs(value: str) -> list[int]:
     return [int(x) for x in _REF.findall(value)]
+
+
+def _listed(doc: pymupdf.Document, xref: int, key: str) -> list[int]:
+    """The objects an entry lists, whether the list is written in place (``[5 0 R 6 0 R]``), is an
+    object of its own (``7 0 R`` holding the list), or is a single object (``5 0 R``)."""
+    kind, value = doc.xref_get_key(xref, key)
+    if kind == "array":
+        return _refs(value)
+    if kind == "xref":
+        target = _refs(value)
+        if not target:
+            return []
+        text = doc.xref_object(target[0]).strip()
+        return _refs(text) if text.startswith("[") else target
+    return []
 
 
 def hidden_ocgs(doc: pymupdf.Document) -> set[int]:
@@ -110,9 +134,9 @@ def hidden_ocgs(doc: pymupdf.Document) -> set[int]:
     kind, _ = doc.xref_get_key(catalog, "OCProperties")
     if kind == "null":
         return set()
-    all_ocgs = set(_refs(doc.xref_get_key(catalog, "OCProperties/OCGs")[1]))
-    off = set(_refs(doc.xref_get_key(catalog, "OCProperties/D/OFF")[1]))
-    on = set(_refs(doc.xref_get_key(catalog, "OCProperties/D/ON")[1]))
+    all_ocgs = set(_listed(doc, catalog, "OCProperties/OCGs"))
+    off = set(_listed(doc, catalog, "OCProperties/D/OFF"))
+    on = set(_listed(doc, catalog, "OCProperties/D/ON"))
     base = doc.xref_get_key(catalog, "OCProperties/D/BaseState")[1]
     if base == "/OFF":
         return all_ocgs - on
@@ -125,7 +149,7 @@ def _oc_is_hidden(doc: pymupdf.Document, xref: int, hidden: set[int]) -> bool:
     if value == "/OCG":
         return xref in hidden
     if value == "/OCMD":
-        members = _refs(doc.xref_get_key(xref, "OCGs")[1])
+        members = _listed(doc, xref, "OCGs")
         if not members:
             return False
         visible = [m not in hidden for m in members]
@@ -167,9 +191,10 @@ def _page_resources_xref_key(doc: pymupdf.Document, page_xref: int) -> tuple[int
 
 
 def _strip_stream(
-    data: bytes, properties: dict[str, int], hidden_xobjects: set[str], doc, hidden: set[int]
+    data: bytes, properties: dict[str, int], hidden_xobjects: set[str], doc, hidden: set[int], strict: bool = False
 ) -> tuple[bytes, int]:
-    """Remove hidden marked-content blocks and Do's of hidden XObjects."""
+    """Remove hidden marked-content blocks and Do's of hidden XObjects. ``strict``: content whose
+    layer can't be found raises ``LayerError`` (it might be hidden)."""
     tokens = list(tokenize(data))
     cut: list[tuple[int, int]] = []
     stack: list[tuple[bool, int]] = []  # (hidden?, start offset) per open marked-content
@@ -185,7 +210,12 @@ def _strip_stream(
                 prop = tokens[i - 1]
                 if prop.kind == "name":
                     xref = properties.get(prop.value[1:].decode("latin-1"))
+                    if xref is None and strict:
+                        raise LayerError(f"Some content belongs to a layer the file doesn't define "
+                                         f"({prop.value.decode('latin-1')}).")
                     is_hidden = xref is not None and _oc_is_hidden(doc, xref, hidden)
+                elif strict:
+                    raise LayerError("Some content names its layer in a way PlanetPDF can't read.")
             stack.append((is_hidden, start))
             if is_hidden:
                 hidden_depth += 1
@@ -220,7 +250,7 @@ def _process_resources(doc, owner_xref: int, key: str, data: bytes, hidden: set[
         oc_kind, oc_value = doc.xref_get_key(xref, "OC")
         if oc_kind == "xref" and _oc_is_hidden(doc, _refs(oc_value)[0], hidden):
             hidden_xobjects.add(name)
-    new_data, removed = _strip_stream(data, properties, hidden_xobjects, doc, hidden)
+    new_data, removed = _strip_stream(data, properties, hidden_xobjects, doc, hidden, strict=True)
     # Recurse into visible form XObjects (they can contain their own hidden blocks).
     for name, xref in xobjects.items():
         if name in hidden_xobjects or xref in seen:
@@ -252,11 +282,21 @@ def remove_layer_content(doc: pymupdf.Document, layers: set[int], pages) -> int:
     return removed
 
 
+def _shown_words(doc: pymupdf.Document) -> list[Counter]:
+    """The words each page shows (text in hidden layers isn't read)."""
+    return [Counter(w[4] for w in page.get_text("words")) for page in doc]
+
+
 def remove_hidden_layers(doc: pymupdf.Document) -> int:
-    """Delete hidden-layer content and the layer definitions. Returns items removed."""
+    """Delete hidden-layer content and the layer definitions. Returns items removed. Raises
+    ``LayerError`` (with ``doc`` part done: the caller puts it back) rather than show anything
+    that was hidden."""
     hidden = hidden_ocgs(doc)
     catalog = doc.pdf_catalog()
     has_layers = doc.xref_get_key(catalog, "OCProperties")[0] != "null"
+    if not has_layers:
+        return 0
+    before = _shown_words(doc)
     removed = 0
     if hidden:
         seen: set[int] = set()
@@ -274,6 +314,11 @@ def remove_hidden_layers(doc: pymupdf.Document) -> int:
                 if oc_kind == "xref" and _oc_is_hidden(doc, _refs(oc_value)[0], hidden):
                     page.delete_annot(annot)
                     removed += 1
-    if has_layers:
-        doc.xref_set_key(catalog, "OCProperties", "null")
+    doc.xref_set_key(catalog, "OCProperties", "null")
+    # (MuPDF keeps the layers it read when the file opened: a fresh copy shows what will be seen)
+    after = _shown_words(pymupdf.open("pdf", doc.tobytes(garbage=0, encryption=pymupdf.PDF_ENCRYPT_NONE)))
+    for number, (was, now) in enumerate(zip(before, after), 1):
+        if now - was:
+            raise LayerError(f"Removing the hidden layers would have shown hidden text on page {number} "
+                             f"(\"{' '.join(list((now - was).elements())[:6])}\").")
     return removed

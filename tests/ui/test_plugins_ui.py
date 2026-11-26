@@ -45,6 +45,8 @@ def win(qapp, tmp_path, monkeypatch):
     monkeypatch.setattr(api_server, "info_path", lambda: tmp_path / "api.json")
     w = MainWindow(tmp_path / "profile")
     monkeypatch.setattr(w, "save_settings_now", lambda: None)
+    assert api_server.attach(w, w.profile.root) is None  # (off by default: security review 2026-11-25)
+    w.settings.api_enabled = True
     server = api_server.attach(w, w.profile.root)
     w.show()
     QCoreApplication.processEvents()

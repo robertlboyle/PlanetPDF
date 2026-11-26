@@ -29,7 +29,6 @@ import pymupdf
 
 from planetpdf.core.document import PdfError
 from planetpdf.core.progress import Progress, report
-from planetpdf.core.storage.files import remove_quietly, replace_with_retry, temp_path_beside
 
 PRESETS = {
     "screen": (96, 60),  # (image dpi, JPEG quality): emailing / on-screen
@@ -286,17 +285,14 @@ def compressed_bytes(doc: pymupdf.Document, options: ReduceOptions, progress: Pr
 
 
 def reduce_size(doc: pymupdf.Document, target: Path, options: ReduceOptions, before_size: int,
-                progress: Progress | None = None) -> ReduceResult:
-    """Write a smaller copy of ``doc`` (a private copy: it is modified) to ``target``."""
+                progress: Progress | None = None, protection=None) -> ReduceResult:
+    """Write a smaller copy of ``doc`` (a private copy: it is modified) to ``target``, encrypted as
+    it is written with ``protection``."""
+    from planetpdf.core.document import save_pdf
+
     done = compress(doc, options, progress)
-    tmp = temp_path_beside(Path(target))
-    try:
-        doc.save(str(tmp), **SAVE_ARGS, encryption=pymupdf.PDF_ENCRYPT_NONE)
-        after = tmp.stat().st_size
-        replace_with_retry(tmp, Path(target))
-    finally:
-        remove_quietly(tmp)
-    return ReduceResult(before_size, after, done.black_white, done.gray)
+    save_pdf(doc, Path(target), protection, **SAVE_ARGS, encryption=pymupdf.PDF_ENCRYPT_NONE)
+    return ReduceResult(before_size, Path(target).stat().st_size, done.black_white, done.gray)
 
 
 # --- what takes the room -------------------------------------------------------------------------------------

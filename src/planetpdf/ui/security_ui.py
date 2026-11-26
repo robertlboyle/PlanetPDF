@@ -108,9 +108,10 @@ class SecurityUi:
         protection = self._ask_protection(dialog.with_certificate.isChecked())
         if protection is None:
             return
-        target, _ = QFileDialog.getSaveFileName(w, "Save Security Envelope",
-                                                str(Path(w.settings.last_directory or ".") / "Security Envelope.pdf"),
-                                                "PDF files (*.pdf)")
+        from planetpdf.ui.save_path import choose_save_path
+
+        target = choose_save_path(w, "Save Security Envelope",
+                                  Path(w.settings.last_directory or Path.home()) / "Security Envelope.pdf")
         if not target:
             return
         try:

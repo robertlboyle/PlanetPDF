@@ -1919,6 +1919,7 @@ class PageView(QGraphicsView):
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
         self.stop_auto_scroll()  # (a click on the page stops Automatically Scroll)
+        self._press_at = event.position()  # (a move starts only past the drag distance from here)
         self._pending_click = None  # (set below only by a plain press on the page with no tool on)
         if self.view_tool and event.button() == Qt.MouseButton.LeftButton and self._session is not None:
             point = event.position().toPoint()
@@ -2169,6 +2170,14 @@ class PageView(QGraphicsView):
                 self._pointer_hover(self.mapToScene(event.position().toPoint()))
             return
         page: PageItem = drag["page"]
+        if drag["mode"] in ("move", "resize", "group") and not drag.get("past"):
+            # A click's wobble isn't a move (security review 2026-11-25: a click meant to add text
+            # nudged an item, and the alignment snap then pulled it up to 6 points)
+            press = getattr(self, "_press_at", None)
+            if press is not None and (event.position() - press).manhattanLength() < QApplication.startDragDistance():
+                event.accept()
+                return
+            drag["past"] = True
         if drag["mode"] in ("move", "group") and self.drag_page_picker is not None:
             # Over a thumbnail in the Pages panel: show that page, to drop onto it
             hovered = self.drag_page_picker(event.globalPosition().toPoint())

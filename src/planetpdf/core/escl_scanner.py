@@ -18,9 +18,13 @@ the rest is ``urllib`` and ``xml.etree``. Windows keeps its own scanner support 
 
 from __future__ import annotations
 
+import hashlib
+import http.client
+import json
 import random
 import socket
 import ssl
+import threading
 import struct
 import time
 import urllib.error
@@ -228,14 +232,85 @@ def scanner_at(address: str) -> Scanner:
 
 # --- talking to a scanner ------------------------------------------------------------------------
 
+# --- a scanner's certificate, remembered the first time (security review 2026-11-25) -------------
+# Scanners make their own certificates, which nothing can vouch for. So the first time PlanetPDF
+# talks to a scanner over HTTPS, the user is asked (``first_use``) and its certificate's
+# fingerprint is remembered (``PINS_FILE``, in the profile); later a different certificate at the
+# same address is refused: something may be pretending to be the scanner.
+
+PINS_FILE: Path | None = None  # (the UI sets it: <profile>/scanner-certificates.json)
+first_use: Callable[[str, str], bool] | None = None  # (address, fingerprint) -> allow? (UI thread only)
+_pins_lock = threading.Lock()
+
+
+class CertificateChanged(PdfError):
+    """A scanner's certificate isn't the one remembered for its address."""
+
+
+def fingerprint(der: bytes) -> str:
+    digest = hashlib.sha256(der).hexdigest().upper()
+    return ":".join(digest[i:i + 2] for i in range(0, len(digest), 2))
+
+
+def _pins() -> dict[str, str]:
+    try:
+        data = json.loads(PINS_FILE.read_text(encoding="utf-8")) if PINS_FILE else {}
+        return {str(k): str(v) for k, v in data.items()} if isinstance(data, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def check_certificate(address: str, der: bytes) -> None:
+    """Accepts the scanner at ``address`` ("host:port") only with the certificate remembered for it,
+    or, the first time, when the user allows it; otherwise ``CertificateChanged`` / ``PdfError``."""
+    seen = fingerprint(der)
+    with _pins_lock:
+        pins = _pins()
+        known = pins.get(address)
+        if known == seen:
+            return
+        if known is not None:
+            raise CertificateChanged(
+                f"The scanner at {address} answered with a different certificate than before, so PlanetPDF didn't "
+                "use it: something on the network may be pretending to be the scanner. If the scanner was reset "
+                "or replaced, click Forget Certificates in the scanner window and connect again.")
+        if first_use is None or not first_use(address, seen):
+            raise PdfError(f"The scanner at {address} wasn't used: its certificate wasn't accepted.")
+        pins[address] = seen
+        if PINS_FILE is not None:
+            PINS_FILE.parent.mkdir(parents=True, exist_ok=True)
+            PINS_FILE.write_text(json.dumps(pins, indent=1), encoding="utf-8")
+
+
+def forget_certificates() -> None:
+    """Forgets every remembered scanner certificate (asked again at the next connection)."""
+    with _pins_lock:
+        if PINS_FILE is not None:
+            PINS_FILE.unlink(missing_ok=True)
+
+
+class _CheckedHTTPSConnection(http.client.HTTPSConnection):
+    """HTTPS whose certificate is checked on this very connection (not on an earlier one)."""
+
+    def connect(self) -> None:
+        super().connect()
+        check_certificate(f"{self.host}:{self.port}", self.sock.getpeercert(binary_form=True) or b"")
+
+
+class _CheckedHTTPSHandler(urllib.request.HTTPSHandler):
+    def https_open(self, req):
+        return self.do_open(_CheckedHTTPSConnection, req, context=self._context)
+
+
 def _open(request: urllib.request.Request | str, timeout: float):
     url = request.full_url if isinstance(request, urllib.request.Request) else request
-    context = None
-    if url.startswith("https:"):  # (scanners use their own self-made certificates)
-        context = ssl.create_default_context()
-        context.check_hostname = False
-        context.verify_mode = ssl.CERT_NONE
-    return urllib.request.urlopen(request, timeout=timeout, context=context)
+    if not url.startswith("https:"):
+        return urllib.request.urlopen(request, timeout=timeout)
+    context = ssl.create_default_context()  # (encrypted; who it is: its remembered certificate)
+    context.check_hostname = False
+    context.verify_mode = ssl.CERT_NONE
+    opener = urllib.request.build_opener(_CheckedHTTPSHandler(context=context))
+    return opener.open(request, timeout=timeout)
 
 
 def _text(element, path: str) -> str:

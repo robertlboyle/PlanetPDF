@@ -141,7 +141,15 @@ def test_sign_with_timestamp(pdf_copy, provider, tmp_path, test_certs):
     tsa = DummyTimeStamper(tsa_cert=test_certs.tsa_cert, tsa_key=test_certs.tsa_key)
     _source, target = _sign(pdf_copy, provider, tmp_path, timestamper=tsa)
     [status] = validate_signatures(target, FileTrustStore(tmp_path / "t"))
-    assert status.timestamped
+    assert not status.timestamped and "isn't proven" in status.summary  # (a timestamp server not trusted)
+    trust = FileTrustStore(tmp_path / "trusted")
+    pem = tmp_path / "tsa.pem"
+    from asn1crypto import pem as asn1_pem
+
+    pem.write_bytes(asn1_pem.armor("CERTIFICATE", test_certs.tsa_cert.dump()))
+    trust.import_certificate(pem)
+    [status] = validate_signatures(target, trust)
+    assert status.timestamped  # (its server trusted: the time is proven)
 
 
 def test_tampering_is_detected(pdf_copy, provider, tmp_path):

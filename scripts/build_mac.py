@@ -123,8 +123,8 @@ def build_python() -> Path:
     marker = BUILD_VENV / "requirements.sha256"
     if not marker.is_file() or marker.read_text().strip() != wanted.hexdigest():
         print("Installing the packages into the build environment (build/mac-venv)…", flush=True)
-        run(python, "-m", "pip", "install", "--quiet", "--disable-pip-version-check", "-r",
-            ROOT / "requirements-dev.txt")
+        run(python, "-m", "pip", "install", "--quiet", "--disable-pip-version-check", "--require-hashes", "-r",
+            ROOT / "requirements-dev.txt")  # (exactly the files pinned: scripts/hash_requirements.py)
         marker.write_text(wanted.hexdigest() + "\n")
     return python
 

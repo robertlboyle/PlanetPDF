@@ -18,7 +18,7 @@ from PySide6.QtWidgets import QApplication
 import planetpdf
 from planetpdf.ui import file_locks
 from planetpdf.ui.main_window import MainWindow
-from planetpdf.ui.single_instance import InstanceServer, instance_lock, send_to_running
+from planetpdf.ui.single_instance import InstanceServer, instance_file, instance_lock, send_to_running
 
 
 @pytest.fixture(scope="module")
@@ -117,12 +117,13 @@ def test_the_other_planetpdf_is_asked_to_show_it(win, locks, pdf, monkeypatch):
         _end(other, pid, pdf)
 
 
-def test_files_handed_over_while_the_window_is_built_wait_for_it(qapp, pdf):
-    server = InstanceServer(None, name=f"PlanetPDF-test-early-{os.getpid()}")
+def test_files_handed_over_while_the_window_is_built_wait_for_it(qapp, pdf, tmp_path):
+    folder = tmp_path / "instance"
+    server = InstanceServer(None, folder)
     try:
-        code = ("from PySide6.QtCore import QCoreApplication; app = QCoreApplication([]); "
-                "from planetpdf.ui.single_instance import send_to_running; "
-                f"print(send_to_running([{str(pdf)!r}], name={server.name!r}))")
+        code = ("from pathlib import Path; from PySide6.QtCore import QCoreApplication; app = QCoreApplication([]); "
+                "from planetpdf.ui.single_instance import instance_file, send_to_running; "
+                f"print(send_to_running([{str(pdf)!r}], instance_file(Path({str(folder)!r}))))")
         second = subprocess.Popen([sys.executable, "-c", code], stdout=subprocess.PIPE, text=True, env=_env())
         end = time.time() + 30
         while second.poll() is None and time.time() < end:
@@ -138,11 +139,11 @@ def test_files_handed_over_while_the_window_is_built_wait_for_it(qapp, pdf):
 
 
 def test_a_later_start_waits_for_a_copy_still_starting_but_not_for_none(qapp, tmp_path):
-    name = f"PlanetPDF-test-wait-{os.getpid()}"
-    lock = instance_lock(name)
+    folder = tmp_path / "instance"
+    lock = instance_lock(folder)
     assert lock.tryLock(0)  # (nobody running: this start takes it at once, no waiting)
     lock.unlock()
     started = time.monotonic()
-    assert not send_to_running([], name=name, wait=10, lock=lock)
+    assert not send_to_running([], instance_file(folder), wait=10, lock=lock)
     assert time.monotonic() - started < 3 and lock.isLocked()  # (free lock: this one is the copy now)
     lock.unlock()

@@ -11,6 +11,7 @@
 //! (A port monitor of our own was the first design; Windows refuses Microsoft Print To PDF with
 //! any non-inbox port monitor, and the service keeps our code out of the spooler anyway.)
 
+pub mod acl;
 pub mod naming;
 
 #[cfg(windows)]

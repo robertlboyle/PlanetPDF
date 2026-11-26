@@ -25,7 +25,7 @@
  },
  {
   "name": "pypdf",
-  "version": "6.19.0",
+  "version": "6.21.4",
   "license": "BSD-3-Clause",
   "url": "https://github.com/py-pdf/pypdf",
   "kind": "Python package",
@@ -137,7 +137,7 @@
  },
  {
   "name": "cryptography",
-  "version": "50.0.1",
+  "version": "50.0.2",
   "license": "Apache-2.0 OR BSD-3-Clause",
   "url": "https://github.com/pyca/cryptography",
   "kind": "Python package",
@@ -193,7 +193,7 @@
  },
  {
   "name": "certifi",
-  "version": "2026.7.22",
+  "version": "2026.11.20",
   "license": "Mozilla Public License 2.0 (MPL 2.0)",
   "url": "https://github.com/certifi/python-certifi",
   "kind": "Python package",
@@ -209,7 +209,7 @@
  },
  {
   "name": "aiohttp",
-  "version": "3.14.3",
+  "version": "3.14.5",
   "license": "Apache-2.0 AND MIT",
   "url": "https://github.com/aio-libs/aiohttp",
   "kind": "Python package",

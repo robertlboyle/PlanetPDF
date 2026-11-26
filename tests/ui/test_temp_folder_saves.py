@@ -16,9 +16,8 @@ from planetpdf.ui.main_window import MainWindow
 
 
 @pytest.fixture
-def strict(monkeypatch):
-    """The rule on (tests/conftest.py switches it off for pytest's own temporary folders)."""
-    monkeypatch.delenv(T.ALLOW_ENV, raising=False)
+def strict():
+    """The rule is always on (tests/conftest.py keeps pytest's own folders out of the temporary one)."""
 
 
 def test_temporary_folders_are_recognized(strict, tmp_path):
@@ -109,3 +108,56 @@ def test_canceling_the_question_saves_nothing(win, strict, monkeypatch):
     monkeypatch.setattr(QFileDialog, "getSaveFileName", staticmethod(lambda *a: pytest.fail("no dialog")))
     _dirty(win)
     assert not win.save() and win.is_dirty()
+
+
+def test_every_save_dialog_starts_outside_and_refuses_a_temporary_folder(qapp, monkeypatch, tmp_path):
+    """The shared Save dialog (security review 2026-11-25: Apply Redactions offered the redacted
+    copy in the zip's temporary folder and wrote it there, beside the unredacted original)."""
+    from planetpdf.ui.save_path import choose_save_path
+
+    temp = Path(tempfile.gettempdir()) / "x.zip.1"
+    keep = tmp_path / "kept"
+    keep.mkdir()
+    monkeypatch.setattr(T, "lasting_folder", lambda *a: keep)
+    offered, warned = [], []
+    choices = [str(temp / "copy_redacted.pdf"), str(keep / "copy_redacted")]
+    monkeypatch.setattr(QFileDialog, "getSaveFileName",
+                        staticmethod(lambda parent, title, start, f: offered.append(start) or (choices.pop(0), f)))
+    monkeypatch.setattr(QMessageBox, "warning", staticmethod(lambda *a, **k: warned.append(a[1])))
+    target = choose_save_path(None, "Save Redacted Copy As", temp / "copy_redacted.pdf")
+    assert offered[0] == str(keep / "copy_redacted.pdf")  # (not where the source is)
+    assert warned == ["Temporary Folder"]  # (the temporary folder chosen anyway: refused, asked again)
+    assert target == keep / "copy_redacted.pdf"
+
+
+def test_an_attachments_name_is_only_a_file_name(win, monkeypatch, tmp_path):
+    offered = []
+    monkeypatch.setattr(QFileDialog, "getSaveFileName", staticmethod(lambda p, t, start, f: offered.append(start) or ("", "")))
+    win.settings.last_directory = str(tmp_path)
+    win.save_attachment(r"\\SERVER\share\r2-attach.txt", b"data")
+    assert offered == [str(tmp_path / "r2-attach.txt")]  # (never the share the PDF names)
+
+
+def test_apply_redactions_offers_and_writes_the_copy_outside_a_temporary_folder(win, monkeypatch, tmp_path):
+    """Security review 2026-11-25: a file opened from inside a zip had its redacted copy offered,
+    and written, in the zip's temporary folder beside the unredacted original."""
+    from planetpdf.core.redaction import marks as M
+    from planetpdf.ui.dialogs.sanitize import SanitizeDialog
+
+    original = win.session.path
+    keep = tmp_path / "kept"
+    keep.mkdir()
+    monkeypatch.setattr(T, "temporary_reason",
+                        lambda p: "the temporary folder Windows uses while a zip file is open"
+                        if Path(p).parent == original.parent else None)
+    monkeypatch.setattr(T, "lasting_folder", lambda *a: keep)
+    M.add_mark(win.session, M.make_spec(0, [(72, 72, 200, 100)], "Area"))
+    monkeypatch.setattr(SanitizeDialog, "exec", lambda self: SanitizeDialog.DialogCode.Accepted)
+    offered, written = [], []
+    monkeypatch.setattr(QFileDialog, "getSaveFileName",
+                        staticmethod(lambda parent, title, start, f: offered.append(start) or ("", f)))
+    monkeypatch.setattr(win, "redact_to", lambda target, *a, **k: written.append(target) or True)
+    win.apply_redactions()
+    assert offered == [str(keep / f"{original.stem}_redacted.pdf")]  # (not beside the original)
+    assert written == []  # (canceled: nothing written)
+    win.undo_stack.setClean()

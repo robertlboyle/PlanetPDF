@@ -45,13 +45,23 @@ def image_png(image: QImage) -> bytes:
     return bytes(buffer.data())
 
 
+class _Copied:
+    """What was copied last, shared by every window (security review 2026-11-25: a paste in a
+    second window put back that window's older copy). The newest copy wins."""
+
+    items: list = []  # (MarkupSpec: comments, placed items)
+    objects = None  # (edit_controller.CopiedObjects: Edit PDF / Prepare Form objects)
+    pastes = 0  # pastes since the copy: each lands a little further down and right
+
+
 class ClipboardTools(QObject):
     def __init__(self, window: MainWindow) -> None:
         super().__init__(window)
         self._window = window
-        self._copied: list[K.MarkupSpec] = []
-        self._objects = None  # (edit_controller.CopiedObjects: Edit PDF / Prepare Form objects)
-        self._pastes = 0  # pastes since the copy: each lands a little further down and right
+
+    _copied = property(lambda self: _Copied.items, lambda self, value: setattr(_Copied, "items", value))
+    _objects = property(lambda self: _Copied.objects, lambda self, value: setattr(_Copied, "objects", value))
+    _pastes = property(lambda self: _Copied.pastes, lambda self, value: setattr(_Copied, "pastes", value))
 
     @property
     def clipboard(self):
@@ -92,6 +102,11 @@ class ClipboardTools(QObject):
     def cut(self) -> bool:
         if self._window.edit.mode is not None and self._window.view.selected_group:
             if self.copy():  # (Edit PDF / Prepare Form objects: copied, then deleted as one step)
+                left_out = self._objects.left_out if self._objects is not None else 0
+                if left_out:  # (Cut removes only what Paste can put back: security review 2026-11-25)
+                    self._status(f"{left_out} of the selected objects can't be copied, so nothing was cut. "
+                                 "What could be was copied; delete the objects yourself if they should go.")
+                    return False
                 self._window.edit.delete()
                 return True
             return False
@@ -123,6 +138,12 @@ class ClipboardTools(QObject):
         if session is None:
             return False
         page_index = max(0, window.view.current_page)
+        mime = self.clipboard.mimeData()
+        pasteable = self._ours_on_clipboard() or (mime is not None and (
+            (mime.hasImage() and not self.clipboard.image().isNull()) or (mime.hasText() and mime.text().strip())))
+        # A signed document is asked about before anything changes (security review 2026-11-25)
+        if pasteable and not window._confirm_signature_change():
+            return False
         if self._ours_on_clipboard():
             self._pastes += 1
             if self._objects is not None:  # (Edit PDF / Prepare Form objects)

@@ -26,6 +26,38 @@ from planetpdf.core.document import PdfError, PdfSession
 
 NM_PREFIX = "ppdf-mk-"
 SPEC_KEY = "PPDFSpec"
+CHECK_KEY = "PPDFCheck"  # (a keyed hash of the description: made by this user's PlanetPDF)
+_item_key: bytes | None = None
+
+
+def set_item_key(key: bytes | None) -> None:
+    """The key that tells the items this user's PlanetPDF made (``Profile.item_key``) from ones a
+    file only claims are PlanetPDF's (security review 2026-11-25: a crafted PDF's page-sized
+    "PlanetPDF" item took Add Text's clicks). Without a key, nothing is marked or recognized."""
+    global _item_key
+    _item_key = key
+
+
+def _check_value(raw: str) -> str | None:
+    import hashlib
+    import hmac
+
+    return None if _item_key is None else hmac.new(_item_key, raw.encode("utf-8"), hashlib.sha256).hexdigest()
+
+
+def _seal(doc: pymupdf.Document, xref: int) -> None:
+    """Marks an item's description as written by this PlanetPDF (``made_here``)."""
+    kind, raw = doc.xref_get_key(xref, SPEC_KEY)
+    value = _check_value(raw) if kind == "string" else None
+    doc.xref_set_key(xref, CHECK_KEY, pymupdf.get_pdf_str(value) if value else "null")
+
+
+def _made_here(doc: pymupdf.Document, xref: int, raw: str) -> bool:
+    import hmac
+
+    expected = _check_value(raw)
+    kind, value = doc.xref_get_key(xref, CHECK_KEY)
+    return expected is not None and kind == "string" and hmac.compare_digest(value, expected)
 Point = tuple[float, float]
 Color = tuple[float, float, float]
 
@@ -207,6 +239,7 @@ class MarkupItem:
     popup_open: bool = False
     modified: str = ""  # PDF date ("D:2026…")
     replies: tuple = ()  # its thread (``Reply``), oldest first
+    made_here: bool = False  # ours, and written by this user's PlanetPDF (``set_item_key``)
 
     @property
     def ours(self) -> bool:
@@ -348,6 +381,7 @@ def add_markup(session: PdfSession, spec: MarkupSpec) -> int:
             doc, spec.page, spec.rect, spec.source, name=name, title=spec.author, contents=spec.text or spec.kind.label
         )
         doc.xref_set_key(xref, SPEC_KEY, pymupdf.get_pdf_str(spec.to_json()))
+        _seal(doc, xref)
         session.mark_modified()
         return xref
 
@@ -442,6 +476,7 @@ def add_markup(session: PdfSession, spec: MarkupSpec) -> int:
         annot.set_open(spec.popup_open)
     doc.xref_set_key(xref, "NM", pymupdf.get_pdf_str(name))
     doc.xref_set_key(xref, SPEC_KEY, pymupdf.get_pdf_str(spec.to_json()))
+    _seal(doc, xref)
     if k is Kind.REPLACE:
         _add_replace_caret(page, spec, xref)
     session.mark_modified()
@@ -721,12 +756,14 @@ def _list_markup(session: PdfSession, pages=None) -> list[MarkupItem]:
             if annot.type[0] in _SKIP_TYPES:
                 continue
             spec = None
+            made_here = False
             nm = _nm(doc, annot.xref)
             if nm.startswith(COMPANION_PREFIX):
                 continue  # (part of one of our items, e.g. Replace Text's caret)
             if nm.startswith(NM_PREFIX):
                 kind_, raw = doc.xref_get_key(annot.xref, SPEC_KEY)
                 if kind_ == "string":
+                    made_here = _made_here(doc, annot.xref, raw)
                     try:
                         # Keep the stored rect: annot.rect is padded (line ends, widths).
                         spec = replace(MarkupSpec.from_json(raw, read_source(doc, annot.xref)), page=index)
@@ -750,6 +787,7 @@ def _list_markup(session: PdfSession, pages=None) -> list[MarkupItem]:
                     popup=popup if popup and pymupdf.Rect(popup).width > 1 else None,
                     popup_open=bool(annot.is_open),
                     modified=info.get("modDate", "") or info.get("creationDate", ""),
+                    made_here=made_here and spec is not None,
                 )
             )
     return items
@@ -772,10 +810,50 @@ def _popup_rect(doc: pymupdf.Document, page: pymupdf.Page, annot) -> tuple | Non
 
 
 def find_item(session: PdfSession, item_id: str) -> MarkupItem:
-    for item in list_markup(session):
-        if item.item_id == item_id:
-            return item
-    raise PdfError("That markup no longer exists.")
+    """The item with this id. Two with the same id (pages copied in by another program, or by an
+    older PlanetPDF) refuse rather than act on the wrong one (security review 2026-11-25:
+    deleting an item could delete its twin on another page)."""
+    found = [item for item in list_markup(session) if item.item_id == item_id]
+    if not found:
+        raise PdfError("That markup no longer exists.")
+    if len(found) > 1:
+        raise PdfError("Two items in this document share the same identity, so PlanetPDF can't tell which one is "
+                       "meant. Save the document and open it again: each gets one of its own.")
+    return found[0]
+
+
+def renew_ids(doc: pymupdf.Document, pages, salt: str) -> int:
+    """Gives PlanetPDF's items on ``pages`` new ids (``/NM`` and their description), with their
+    companions, so copies of pages (inserted twice, copied within the document) never share one.
+    The same ``salt`` gives the same ids (an insert that's undone and redone). Returns how many."""
+    import hashlib
+
+    renewed: dict[str, str] = {}
+    for index in pages:
+        page = doc[index]
+        for annot in page.annots():
+            nm = _nm(doc, annot.xref)
+            if not nm.startswith(NM_PREFIX):
+                continue
+            old = nm[len(NM_PREFIX):]
+            new = renewed.setdefault(old, hashlib.sha256(f"{salt}:{index}:{old}".encode()).hexdigest()[:16])
+            doc.xref_set_key(annot.xref, "NM", pymupdf.get_pdf_str(f"{NM_PREFIX}{new}"))
+            kind, raw = doc.xref_get_key(annot.xref, SPEC_KEY)
+            if kind == "string":
+                try:
+                    data = json.loads(raw)
+                except ValueError:
+                    continue
+                if isinstance(data, dict) and data.get("mark_id") == old:
+                    data["mark_id"] = new
+                    doc.xref_set_key(annot.xref, SPEC_KEY, pymupdf.get_pdf_str(json.dumps(data)))
+                    _seal(doc, annot.xref)
+        for annot in page.annots():  # (companions, e.g. Replace Text's caret, follow their item)
+            nm = _nm(doc, annot.xref)
+            if nm.startswith(COMPANION_PREFIX) and nm[len(COMPANION_PREFIX):] in renewed:
+                doc.xref_set_key(annot.xref, "NM",
+                                 pymupdf.get_pdf_str(f"{COMPANION_PREFIX}{renewed[nm[len(COMPANION_PREFIX):]]}"))
+    return len(renewed)
 
 
 def set_popup(session: PdfSession, item_id: str, rect=None, open_: bool | None = None, *,
@@ -801,6 +879,7 @@ def set_popup(session: PdfSession, item_id: str, rect=None, open_: bool | None =
         spec = replace(item.spec, popup=tuple(rect) if rect is not None else item.popup,
                        popup_open=item.popup_open if open_ is None else bool(open_))
         doc.xref_set_key(item.xref, SPEC_KEY, pymupdf.get_pdf_str(spec.to_json()))
+        _seal(doc, item.xref)
     if modified:
         session.mark_modified()
     return old
@@ -818,8 +897,23 @@ class RemovedForeign:
 
 def remove_markup(session: PdfSession, item_id: str) -> MarkupSpec | RemovedForeign:
     """Delete an item; returns what's needed to put it back (``restore_markup``)."""
-    item = find_item(session, item_id)
+    return _remove(session, find_item(session, item_id))
+
+
+def _companions(doc: pymupdf.Document, item: MarkupItem) -> list[int]:
+    """The xrefs of an item's companions (Replace Text's caret) on its page."""
+    if item.spec is None:
+        return []
+    page = doc[item.page]
+    return [a.xref for a in page.annots() if _nm(doc, a.xref) == f"{COMPANION_PREFIX}{item.spec.mark_id}"]
+
+
+def _remove(session: PdfSession, item: MarkupItem, companions: list[int] | None = None) -> MarkupSpec | RemovedForeign:
+    """Deletes ``item`` (by its object) and its companions (``companions``: these, found before a
+    replacement with the same id was added)."""
     doc = session.doc
+    if companions is None:
+        companions = _companions(doc, item)
     page = doc[item.page]
     if item.spec is not None:
         restore: MarkupSpec | RemovedForeign = item.spec
@@ -831,10 +925,9 @@ def remove_markup(session: PdfSession, item_id: str) -> MarkupSpec | RemovedFore
     annot = page.load_annot(item.xref)
     if annot is not None:
         page.delete_annot(annot)
-    if item.spec is not None:  # its companions (Replace Text's caret)
-        page = doc[item.page]
-        for other in [a for a in page.annots() if _nm(doc, a.xref) == f"{COMPANION_PREFIX}{item.spec.mark_id}"]:
-            page.delete_annot(other)
+    page = doc[item.page]  # its companions (Replace Text's caret)
+    for other in [a for a in page.annots() if a.xref in companions]:
+        page.delete_annot(other)
     session.mark_modified()
     return restore
 
@@ -878,13 +971,23 @@ def transformed(spec: MarkupSpec, new_rect) -> MarkupSpec:
 
 def replace_markup(session: PdfSession, old: MarkupSpec, new: MarkupSpec) -> None:
     """Swap an item for a changed version of itself (same id). Its replies stay its own:
-    they're pointed at the new annotation."""
-    old_xref = find_item(session, old.mark_id).xref
-    replies = _reply_ids(session, old_xref)
+    they're pointed at the new annotation. The new one is made first, and the old one goes only
+    once that worked (security review 2026-11-25: an item that couldn't be drawn again was
+    deleted and never put back)."""
+    item = find_item(session, old.mark_id)
+    if new.kind.uses_appearance and not new.source:
+        raise PdfError("This item can't be drawn again: the file keeps only how it looks.")
+    replies = _reply_ids(session, item.xref)
+    companions = _companions(session.doc, item)
     for reply in replies:  # (MuPDF deletes an annotation's replies with it: let go of them first)
         session.doc.xref_set_key(reply, "IRT", "null")
-    remove_markup(session, old.mark_id)
-    xref = add_markup(session, new)
+    try:
+        xref = add_markup(session, new)
+    except BaseException:
+        for reply in replies:
+            session.doc.xref_set_key(reply, "IRT", f"{item.xref} 0 R")
+        raise
+    _remove(session, item, companions)
     for reply in replies:
         session.doc.xref_set_key(reply, "IRT", f"{xref} 0 R")
 

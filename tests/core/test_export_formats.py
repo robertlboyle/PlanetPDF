@@ -163,3 +163,24 @@ def test_office_files_to_pdf(tmp_path):
     office.to_pdf(source, tmp_path / "letter.pdf")
     with pymupdf.open(tmp_path / "letter.pdf") as out:
         assert "your fiber is live" in out[0].get_text()
+
+
+def test_excel_never_turns_the_pages_words_into_formulas(tmp_path):
+    """Security review 2026-11-25: "=1+1" and "=SUM(2,3)" in a PDF became <f> formulas."""
+    import zipfile
+
+    from openpyxl import load_workbook
+
+    from planetpdf.core.export import ExportOptions
+    from planetpdf.core.export_formats import export_xlsx
+
+    doc = pymupdf.open()
+    page = doc.new_page(width=612, height=792)
+    for n, text in enumerate(["=1+1", "=SUM(2,3)", "+cmd|x", "@SUM(1)", "Plain words"]):
+        page.insert_text((72, 100 + 30 * n), text, fontsize=12)
+    out = export_xlsx(doc, [0], tmp_path / "out.xlsx", ExportOptions())
+    sheet_xml = zipfile.ZipFile(out).read("xl/worksheets/sheet1.xml")
+    assert b"<f>" not in sheet_xml
+    cells = [c for row in load_workbook(out).active.iter_rows() for c in row if c.value]
+    risky = [c for c in cells if str(c.value)[:1] in "=+-@"]
+    assert risky and all(c.data_type == "s" and c.quotePrefix for c in risky)

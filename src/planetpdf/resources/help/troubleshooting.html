@@ -138,17 +138,27 @@ with an older version:</p>
 </ul>
 
 <h2 id="updates">Updates</h2>
-<!-- index: update; Check for Updates; Restart Now; When I Close PlanetPDF; Skip This Version; UAC; administrator; terminal server; --install-updates; scheduled task -->
-<p>PlanetPDF checks for updates as set in <a href="preferences.html#updates">Preferences ▸ Updates</a>, and any time you choose <b>Help ▸ Check for Updates…</b>. A new version is downloaded in the background and checked (it must carry Planet Networks' signature and match its checksum, or it isn't used). When it is installed, the installing step checks it again on a copy only administrators can change, and it never installs a version older than the one you have. Then you choose:</p>
+<!-- index: update; Check for Updates; Download; Not Now; Restart Now; When I Close PlanetPDF; Skip This Version; UAC; administrator; terminal server; --install-updates; scheduled task -->
+<p>PlanetPDF checks for updates as set in <a href="preferences.html#updates">Preferences ▸ Updates</a>, and any time you choose <b>Help ▸ Check for Updates…</b>. When a new version is out, PlanetPDF asks before it downloads it (<b>Download</b>, <b>Not Now</b>, or <b>Skip This Version</b>). The download is checked (it must carry Planet Networks' signature and match its checksum, or it isn't used). When it is installed, the installing step checks it again on a copy only administrators can change, never installs a version older than the one you have, and installs only into the PlanetPDF it runs from (the one the installer registered). An update also brings new versions of the PlanetPDF printer's service and of the program that starts PlanetPDF, when they changed; the print service is stopped for a moment while it's replaced. Then you choose:</p>
 <ul>
   <li><b>Restart Now</b>: PlanetPDF closes every window (asking about unsaved work), installs, and starts again.</li>
   <li><b>When I Close PlanetPDF</b>: installs the next time you close it.</li>
+  <li><b>Not Now</b>, or closing the question: nothing is installed; you're asked again at the next check.</li>
   <li><b>Skip This Version</b>: not asked about this version again.</li>
 </ul>
 <p>Installing needs administrator rights, so Windows shows one <b>User Account Control</b> prompt. Each version is installed in a folder of its own, so other people still using the old version on a shared computer aren't disturbed; old versions are removed once nobody uses them.</p>
-<p><b>Terminal servers and computers without administrator rights.</b> Users who can't answer the UAC prompt can't install updates themselves. IT can install them with no questions by running, as an administrator or as a scheduled task under SYSTEM:</p>
+<p><b>Terminal servers and computers without administrator rights.</b> Users who can't answer the UAC prompt can't install updates themselves, so PlanetPDF only tells them once that a new version is out, and doesn't download it. IT can install them with no questions by running, as an administrator or as a scheduled task under SYSTEM:</p>
 <p><code>&amp; "C:\Program Files\PlanetPDF\PlanetPDF.exe" --install-updates</code></p>
 <p>On a Mac, the update replaces the app; macOS asks for an administrator password only if the Applications folder isn't writable for you.</p>
+
+<h3 id="update-older-parts">"…is still from an older version"</h3>
+<!-- index: still from an older version; printer service older; launcher older; Update Now; finish updating; refresh-install -->
+<p>Two programs live beside PlanetPDF's versions rather than inside one: the small program that starts PlanetPDF, and the PlanetPDF printer's service. An update installed by PlanetPDF 1.0.6 or older replaced only the version itself, so after such an update those two can still be the old ones. PlanetPDF notices when it starts and says so, once for each version:</p>
+<ul>
+  <li>If you can approve Windows' administrator prompt, click <b>Update Now</b> and answer the prompt: PlanetPDF replaces them with the ones this version came with and tells you when it's done. <b>Not Now</b>, or closing the question, changes nothing.</li>
+  <li>If you can't, the message says to ask whoever looks after the computer. They can run PlanetPDF's installer for this version, or, as administrator, <code>PlanetPDF.exe --refresh-install "C:\Program Files\PlanetPDF"</code>.</li>
+</ul>
+<p>PlanetPDF itself works as usual meanwhile; what's missing are the newer print service's and launcher's own fixes.</p>
 
 <h3 id="update-not-installed">The update wasn't installed</h3>
 <!-- index: update failed; File system error; -1073740791; administrator prompt failed; update.log; install manually -->

@@ -34,6 +34,29 @@ MAC_PERMISSION = ("\n\nOn a Mac, PlanetPDF also needs permission to use the loca
                   "Privacy & Security ▸ Local Network.")
 
 
+def remember_certificates(window: MainWindow) -> None:
+    """Where scanners' certificates are remembered, and who's asked the first time (security
+    review 2026-11-25): the user, only from the window's own thread (a scan running in the
+    background never asks: the scanner window, which reads its abilities first, already did)."""
+    from PySide6.QtCore import QThread
+    from PySide6.QtWidgets import QApplication, QMessageBox
+
+    E.PINS_FILE = window.profile.root / "scanner-certificates.json"
+
+    def ask(address: str, fingerprint: str) -> bool:
+        if QThread.currentThread() is not QApplication.instance().thread():
+            return False
+        answer = QMessageBox.question(
+            window, "Scanner Certificate",
+            f"PlanetPDF hasn't used the scanner at {address} before. It identifies itself with a certificate "
+            f"of its own, which nothing can vouch for:\n\n{fingerprint}\n\nUse this scanner? PlanetPDF then "
+            "remembers the certificate and refuses a different one at this address later.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes)
+        return answer == QMessageBox.StandardButton.Yes
+
+    E.first_use = ask
+
+
 def find_scanners() -> list:
     """The scanners on this computer's network (and, on a Mac, its USB ones)."""
     if sys.platform == "darwin":
@@ -72,10 +95,16 @@ class ScanDialog(QDialog):
         find.clicked.connect(self.find_again)
         add = QPushButton("Add by Address…", self)
         add.clicked.connect(self.add_by_address)
+        forget = QPushButton("Forget Certificates", self)
+        forget.setToolTip("Forget the scanners' certificates PlanetPDF remembered: each scanner is asked about "
+                          "again the next time (after a scanner was reset or replaced).")
+        forget.clicked.connect(self.forget_certificates)
+        remember_certificates(window)
         row = QHBoxLayout()
         row.addWidget(self.scanner, 1)
         row.addWidget(find)
         row.addWidget(add)
+        row.addWidget(forget)
         self.source = QComboBox(self)
         self.color = QComboBox(self)
         self.dpi = QComboBox(self)
@@ -133,6 +162,10 @@ class ScanDialog(QDialog):
             QApplication.restoreOverrideCursor()
         current = self.scanner.currentData()
         self._fill_scanners(found, prefer=current.url if current else "")
+
+    def forget_certificates(self) -> None:
+        E.forget_certificates()
+        self.status.setText("The scanners' certificates were forgotten: each is asked about again.")
 
     def add_by_address(self) -> None:
         text, ok = QInputDialog.getText(self, "Add Scanner", "The scanner's address (for example 192.168.1.40):")

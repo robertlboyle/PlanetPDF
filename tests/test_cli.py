@@ -149,3 +149,11 @@ def test_export_with_ai_says_why_it_cant_run(capsys, pdf, tmp_path, monkeypatch)
     monkeypatch.setattr(ai_ocr, "status", lambda: ai_ocr.Status(False, "No NVIDIA graphics card was found."))
     code, _result, err = run(capsys, "export", str(pdf), "--format", "docx", "--ai", "--out", str(tmp_path / "a.docx"))
     assert code == cli.FAILED and "NVIDIA" in err
+
+
+def test_text_never_writes_over_the_pdf_it_reads(capsys, pdf):
+    """Security review 2026-11-25: text --out the input replaced the PDF with its text."""
+    before = pdf.read_bytes()
+    code, _out, err = run(capsys, "text", str(pdf), "--out", str(pdf))
+    assert code == cli.USAGE and "being read" in err
+    assert pdf.read_bytes() == before

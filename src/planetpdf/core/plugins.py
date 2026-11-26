@@ -163,9 +163,17 @@ def discover(profile_root: Path) -> list[Plugin]:
     return list(found.values())
 
 
+def turned_off() -> str:
+    """Why no plugin runs on this computer ("" = they may): an administrator's policy."""
+    from planetpdf.core import policy
+
+    return policy.reason("plugins")
+
+
 def is_enabled(plugin: Plugin, enabled: dict[str, str]) -> bool:
-    """On, and unchanged since the user turned it on."""
-    return not plugin.problem and enabled.get(plugin.id) == plugin.fingerprint()
+    """On, and unchanged since the user turned it on (and plugins aren't turned off for the
+    whole computer)."""
+    return not turned_off() and not plugin.problem and enabled.get(plugin.id) == plugin.fingerprint()
 
 
 def command_line(plugin: Plugin) -> list[str]:
@@ -182,11 +190,17 @@ def command_line(plugin: Plugin) -> list[str]:
 
 
 def start(plugin: Plugin, item: MenuItem, *, address: str, token: str, log_folder: Path,
-          document: Path | None = None, page: int | None = None) -> subprocess.Popen:
-    """Start the plugin for one of its menu items (never through a shell)."""
+          document: Path | None = None, page: int | None = None, key: str = "") -> subprocess.Popen:
+    """Start the plugin for one of its menu items (never through a shell). ``key``: what the API
+    proves itself with (``planetpdf.prove``)."""
+    if turned_off():
+        raise PluginError(turned_off())
     env = dict(os.environ)
     env.update({"PLANETPDF_API_ADDRESS": address, "PLANETPDF_API_TOKEN": token, "PLANETPDF_COMMAND": item.command,
                 "PLANETPDF_PLUGIN_NAME": plugin.name, "PLANETPDF_PLUGIN_ID": plugin.id})
+    env.pop("PLANETPDF_API_KEY", None)
+    if key:
+        env["PLANETPDF_API_KEY"] = key
     for key in ("PLANETPDF_DOCUMENT", "PLANETPDF_PAGE"):
         env.pop(key, None)
     if document is not None:

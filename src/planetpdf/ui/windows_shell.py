@@ -32,6 +32,51 @@ def session_id() -> int:
     return 0
 
 
+GENERIC_READ, GENERIC_WRITE, FILE_READ_ATTRIBUTES = 0x80000000, 0x40000000, 0x0080
+OPEN_EXISTING = 3
+FILE_FLAG_OVERLAPPED = 0x40000000
+SECURITY_SQOS_PRESENT, SECURITY_IDENTIFICATION = 0x00100000, 0x00010000
+ERROR_PIPE_BUSY = 231
+PIPE_PREFIX = "\\\\.\\pipe\\"
+
+
+def open_pipe(name: str, timeout_ms: int = 500, overlapped: bool = True) -> int | None:
+    """Connect to a named pipe so that the program at the other end can learn who is calling but
+    can't act as this user (identification only; security list 2026-11-26, item 2: Qt's and
+    Python's own ways of opening a pipe allow impersonation). ``name`` with or without the
+    pipe prefix in front. The handle (for Qt: overlapped), or None when nothing listens."""
+    import time
+    from ctypes import wintypes
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.CreateFileW.restype = wintypes.HANDLE
+    kernel32.CreateFileW.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD, ctypes.c_void_p,
+                                     wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE]
+    kernel32.WaitNamedPipeW.argtypes = [wintypes.LPCWSTR, wintypes.DWORD]
+    kernel32.WaitNamedPipeW.restype = wintypes.BOOL
+    path = name if name.startswith(PIPE_PREFIX) else PIPE_PREFIX + name
+    flags = SECURITY_SQOS_PRESENT | SECURITY_IDENTIFICATION | (FILE_FLAG_OVERLAPPED if overlapped else 0)
+    invalid = wintypes.HANDLE(-1).value
+    end = time.monotonic() + timeout_ms / 1000
+    while True:
+        handle = kernel32.CreateFileW(path, GENERIC_READ | GENERIC_WRITE | FILE_READ_ATTRIBUTES, 0, None,
+                                      OPEN_EXISTING, flags, None)
+        if handle not in (None, 0, invalid):
+            return int(handle)
+        left = int((end - time.monotonic()) * 1000)
+        if ctypes.get_last_error() != ERROR_PIPE_BUSY or left <= 0:
+            return None  # (nothing listens there, or it stayed busy)
+        kernel32.WaitNamedPipeW(path, left)  # (every instance is taken: wait for a free one)
+
+
+def close_handle(handle: int) -> None:
+    from ctypes import wintypes
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+    kernel32.CloseHandle(handle)
+
+
 def allow_foreground() -> None:
     """Let the already-running PlanetPDF bring its window to the front when this start
     hands it a file (Windows only lets the program the user is using do that)."""

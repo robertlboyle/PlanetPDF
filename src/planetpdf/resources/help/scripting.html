@@ -123,19 +123,20 @@ Signs with a Digital ID from your certificate store; PlanetPDF asks you first.</
   <tr><td>Protect</td><td><code>protect</code></td><td>Password-protect a PDF (AES-256)</td></tr>
   <tr><td>Protect</td><td><code>unprotect</code></td><td>Remove a PDF's password protection</td></tr>
 </table>
-<p>Two more commands are for programs: <code>planetpdf commands</code> lists the commands, and <code>planetpdf serve</code> runs the local API without a PlanetPDF window until you press <b>Ctrl+C</b>.</p>
+<p>Two more commands are for programs: <code>planetpdf commands</code> lists the commands, and <code>planetpdf serve</code> runs the local API without a PlanetPDF window until you press <b>Ctrl+C</b>. For IT, <code>planetpdf policy</code> shows the settings an administrator made for everyone on the computer (see <a href="administrators.html#policy-check">Checking that your policy is in force</a>).</p>
 
 <h2 id="local-api">The local API (for programmers)</h2>
 <!-- index: API; JSON-RPC; named pipe; socket; api.json; planetpdf_client.py; SDK; token; integration -->
 <p>Other programs on your computer can ask PlanetPDF to do work through its local API: JSON-RPC 2.0, one JSON message per line, over a named pipe (Windows) or a socket file (Mac, Linux). Only programs running as you on this computer can connect; it is never open to the network. Every command of the command line is an API method of the same name, with the same options, and long jobs send progress as they go.</p>
 <ul>
   <li>A running PlanetPDF writes the connection's address to <code>api.json</code> in its local app data folder (Windows: <code>%LOCALAPPDATA%\Planet Networks\PlanetPDF</code>). Without a PlanetPDF window, <code>planetpdf serve</code> provides the API.</li>
+  <li>The address is made at random each time PlanetPDF starts, and <code>api.json</code>, which only you can read, also holds a key. A program first has PlanetPDF prove that it holds that key, so on a computer several people use, nobody else's program can pass for your PlanetPDF and receive what was meant for it. The Python client does this by itself.</li>
   <li>The first time a program connects, PlanetPDF asks you whether to <b>Allow</b> it, showing the program file it really is (from the computer, not the name the program gives itself). Click <b>Allow</b> only if you started or installed that program yourself. It then gets a key (token) that works only for that program file; if another program uses the key, you're asked again. It appears in <a href="preferences.html#programs-list">Preferences ▸ Scripting &amp; Plugins</a>, where you can block it.</li>
   <li>The first time a program wants to sign, you choose <b>Allow Once</b>, <b>Always Allow This Program</b> (until you click <b>Stop Signing</b> in Preferences), or <b>Don't Allow</b>.</li>
   <li>Each program may make 10 requests a second and run 2 jobs at once.</li>
 </ul>
 <p>Programmers will find a ready-made Python client (<code>planetpdf_client.py</code>, standard library only) and an example plugin in the <code>sdk</code> folder of PlanetPDF's resources, and the full description (methods, messages, error codes) in the developer guide, <code>docs/SCRIPTING.md</code>.</p>
-<p>You can turn the API off for yourself: untick <b>Let other programs and plugins use PlanetPDF</b> in Preferences ▸ Scripting &amp; Plugins (it takes effect the next time PlanetPDF starts).</p>
+<p>The API is <b>off until you turn it on</b>: tick <b>Let other programs and plugins use PlanetPDF</b> in Preferences ▸ Scripting &amp; Plugins (it takes effect the next time PlanetPDF starts; turning a plugin on starts it at once). The list of programs you allowed is sealed with a key Windows (or the Mac's Keychain) keeps for you, so a program can't add itself by editing the file: a list changed outside PlanetPDF is ignored, and each program is asked about again.</p>
 
 <h2 id="plugins">Plugins</h2>
 <!-- index: plugin; add-in; extension; plugin.json; menu items; PLANETPDF_PLUGINS; permissions -->

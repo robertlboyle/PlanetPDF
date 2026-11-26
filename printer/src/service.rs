@@ -32,6 +32,17 @@ use crate::{PIPE_NAME, PRINTER_NAME, SERVICE_NAME};
 /// looking for this, isn't put back: the flag above already keeps other computers out.)
 const PIPE_SDDL: &str = "D:(A;;GA;;;SY)(A;;GA;;;BA)(A;;GRGWSD;;;WD)";
 const BUFFER: usize = 64 * 1024;
+// Limits on what the service keeps (security list 2026-11-26, item 4: nothing bounded it, so
+// printouts nobody could be given, or one endless job, could fill the system drive).
+/// A single printout larger than this is thrown away (the rest of it is read and dropped, so the
+/// queue isn't left with a failed job).
+const MAX_JOB_BYTES: u64 = 4 * 1024 * 1024 * 1024;
+/// Held printouts (whose owner couldn't be told) are kept this long for an administrator…
+const HELD_SECONDS: u64 = 30 * 24 * 60 * 60;
+/// …and at most this much of them, the oldest going first.
+const HELD_MAX_BYTES: u64 = 1024 * 1024 * 1024;
+/// A job file left in the spool folder by a run that ended mid-job is removed after this long.
+const LEFTOVER_SECONDS: u64 = 24 * 60 * 60;
 
 static STOPPING: AtomicBool = AtomicBool::new(false);
 static mut STATUS_HANDLE: HANDLE = std::ptr::null_mut();
@@ -50,6 +61,7 @@ impl Drop for Owned {
 /// Serves the pipe until the service is told to stop. `console` = run by hand for testing.
 pub fn serve(console: bool) {
     log(if console { "print service started by hand" } else { "print service started" });
+    warn_if_open_to_others();
     let sddl = ffi::wide(PIPE_SDDL);
     let mut descriptor: *mut std::ffi::c_void = std::ptr::null_mut();
     // SAFETY: a valid SDDL string; the descriptor lives for the whole service.
@@ -63,18 +75,39 @@ pub fn serve(console: bool) {
         bInheritHandle: 0,
     };
     let name = ffi::wide(PIPE_NAME);
-    while !STOPPING.load(Ordering::Relaxed) {
+    // The only instance there can be, made once and kept until the service stops (security review
+    // 2026-11-25): Everyone's write access includes the right to make another instance of a pipe,
+    // and the spooler needs that access, so a program could otherwise open a second instance and
+    // receive other people's printouts. FIRST_PIPE_INSTANCE: if the name is taken already,
+    // something else got there first; the printer is then paused (jobs wait, nobody receives them)
+    // and the service doesn't run.
+    let pipe = loop {
         // SAFETY: valid name and attributes; the handle is closed by `Owned`.
-        let pipe = Owned(unsafe {
-            ffi::CreateNamedPipeW(name.as_ptr(), ffi::PIPE_ACCESS_INBOUND,
-                                  ffi::PIPE_TYPE_BYTE_WAIT | ffi::PIPE_REJECT_REMOTE_CLIENTS,
-                                  ffi::PIPE_UNLIMITED_INSTANCES, 0, BUFFER as u32, 0, &attributes)
-        });
-        if pipe.0 == ffi::INVALID_HANDLE_VALUE {
-            log(&format!("the pipe couldn't be made: {}", std::io::Error::last_os_error()));
-            std::thread::sleep(std::time::Duration::from_secs(5));
-            continue;
+        let handle = unsafe {
+            ffi::CreateNamedPipeW(name.as_ptr(), ffi::PIPE_ACCESS_INBOUND | ffi::FILE_FLAG_FIRST_PIPE_INSTANCE,
+                                  ffi::PIPE_TYPE_BYTE_WAIT | ffi::PIPE_REJECT_REMOTE_CLIENTS, 1, 0, BUFFER as u32,
+                                  0, &attributes)
+        };
+        if handle != ffi::INVALID_HANDLE_VALUE {
+            break Owned(handle);
         }
+        // SAFETY: reads this thread's last-error value.
+        if unsafe { ffi::GetLastError() } == ffi::ERROR_ACCESS_DENIED {
+            set_printer_paused(true);
+            log(&format!("another program already holds {PIPE_NAME}, so the print service doesn't run and the \
+                          {PRINTER_NAME} printer is paused (its jobs wait): restart the computer, or find the \
+                          program that holds the pipe"));
+            return;
+        }
+        log(&format!("the pipe couldn't be made: {}", std::io::Error::last_os_error()));
+        std::thread::sleep(std::time::Duration::from_secs(5));
+        if STOPPING.load(Ordering::Relaxed) {
+            return;
+        }
+    };
+    set_printer_paused(false);  // (paused while the service wasn't there to receive the jobs)
+    tidy_spool();
+    while !STOPPING.load(Ordering::Relaxed) {
         // SAFETY: waits for a client on our pipe.
         let connected = unsafe { ffi::ConnectNamedPipe(pipe.0, std::ptr::null_mut()) } != 0
             || unsafe { ffi::GetLastError() } == ffi::ERROR_PIPE_CONNECTED;
@@ -89,7 +122,119 @@ pub fn serve(console: bool) {
         // SAFETY: our connected pipe.
         unsafe { ffi::DisconnectNamedPipe(pipe.0) };
     }
+    set_printer_paused(true);  // (while nothing receives them, jobs wait in the queue)
+    drop(pipe);
     log("print service stopped");
+}
+
+/// Says in the log when someone other than an administrator can change this program or the
+/// folders it is in (security list 2026-11-26, item 3): whoever can, can have a program of their
+/// own run as SYSTEM in its place. The service can't stop that from the inside (the program
+/// replaced would be this one), so it says what to do; the installer closes the folder, and
+/// setup refuses to add the service where it is open.
+fn warn_if_open_to_others() {
+    let Ok(exe) = std::env::current_exe() else { return };
+    for line in crate::acl::open_parts(&exe) {
+        log(&format!("WARNING: {line}. Whoever can change it can run a program with system rights. Run \
+                      PlanetPDF's installer again (it closes the folder to everyone but administrators), or \
+                      take away their right to write there."));
+    }
+}
+
+/// Pauses or resumes the PlanetPDF printer's queue.
+fn set_printer_paused(paused: bool) {
+    let name = ffi::wide(PRINTER_NAME);
+    let defaults = ffi::PRINTER_DEFAULTSW {
+        pDatatype: std::ptr::null_mut(),
+        pDevMode: std::ptr::null_mut(),
+        DesiredAccess: ffi::PRINTER_ACCESS_ADMINISTER,
+    };
+    let mut printer: HANDLE = std::ptr::null_mut();
+    // SAFETY: a NUL-terminated name and valid defaults; the handle is closed below.
+    unsafe {
+        if ffi::OpenPrinterW(name.as_ptr(), &mut printer, &defaults) == 0 {
+            return;
+        }
+        let command = if paused { ffi::PRINTER_CONTROL_PAUSE } else { ffi::PRINTER_CONTROL_RESUME };
+        ffi::SetPrinterW(printer, 0, std::ptr::null_mut(), command);
+        ffi::ClosePrinter(printer);
+    }
+}
+
+/// Who is writing to the pipe, as Windows knows them (the spooler writes as the printing user:
+/// Process Monitor, 2026-11-22). None when it can't be told.
+struct Writer {
+    name: String,
+    sid: String,
+}
+
+fn pipe_writer(pipe: HANDLE) -> Option<Writer> {
+    // SAFETY: impersonates the pipe's client only to open its token, then reverts at once; the
+    // token is closed by `Owned`; buffers are sized as Windows asks.
+    unsafe {
+        if ffi::ImpersonateNamedPipeClient(pipe) == 0 {
+            return None;
+        }
+        let mut token: HANDLE = std::ptr::null_mut();
+        let opened = ffi::OpenThreadToken(ffi::GetCurrentThread(), ffi::TOKEN_QUERY, ffi::TRUE, &mut token);
+        ffi::RevertToSelf();
+        if opened == 0 {
+            return None;
+        }
+        let token = Owned(token);
+        let mut needed = 0u32;
+        ffi::GetTokenInformation(token.0, ffi::TOKEN_USER, std::ptr::null_mut(), 0, &mut needed);
+        let mut buffer = vec![0u64; (needed as usize).div_ceil(8).max(1)];
+        if ffi::GetTokenInformation(token.0, ffi::TOKEN_USER, buffer.as_mut_ptr() as *mut _, needed, &mut needed) == 0 {
+            return None;
+        }
+        let sid = *(buffer.as_ptr() as *const *mut std::ffi::c_void);  // (TOKEN_USER.User.Sid)
+        let mut text: ffi::LPWSTR = std::ptr::null_mut();
+        let sid_text = if ffi::ConvertSidToStringSidW(sid, &mut text) != 0 {
+            let value = ffi::from_wide(text);
+            ffi::LocalFree(text as *mut _);
+            value
+        } else {
+            String::new()
+        };
+        let mut name = [0u16; 256];
+        let mut domain = [0u16; 256];
+        let (mut name_len, mut domain_len, mut kind) = (name.len() as u32, domain.len() as u32, 0i32);
+        if ffi::LookupAccountSidW(std::ptr::null(), sid, name.as_mut_ptr(), &mut name_len, domain.as_mut_ptr(),
+                                  &mut domain_len, &mut kind) == 0 {
+            return None;
+        }
+        Some(Writer { name: String::from_utf16_lossy(&name[..name_len as usize]), sid: sid_text })
+    }
+}
+
+/// A job in the PlanetPDF printer's queue, and whether it's the one printing.
+struct QueueJob {
+    job: Job,
+    printing: bool,
+}
+
+/// Whose printout it is (security review 2026-11-25: it was guessed from the queue): the person
+/// Windows says is writing it; only when that's a service account (the spooler's own) the one job
+/// printing, if there's exactly one. Otherwise Err: it's held, never handed to a guess.
+fn choose_job(writer: Option<&Writer>, queue: &[QueueJob]) -> Result<Job, String> {
+    const SERVICE_ACCOUNTS: [&str; 3] = ["S-1-5-18", "S-1-5-19", "S-1-5-20"];
+    if let Some(writer) = writer.filter(|w| !w.name.is_empty() && !SERVICE_ACCOUNTS.contains(&w.sid.as_str())) {
+        let theirs = |q: &&QueueJob| q.job.user.eq_ignore_ascii_case(&writer.name);
+        let found = queue.iter().filter(|q| q.printing).find(theirs).or_else(|| queue.iter().find(theirs));
+        // (the account itself goes along, so the printout reaches that account's session and not
+        // another account's of the same name)
+        return Ok(match found {
+            Some(q) => Job { user: writer.name.clone(), sid: writer.sid.clone(), ..q.job.clone() },
+            None => Job { id: 0, user: writer.name.clone(), sid: writer.sid.clone(), document: "Printout".into() },
+        });
+    }
+    let printing: Vec<&QueueJob> = queue.iter().filter(|q| q.printing).collect();
+    match printing.as_slice() {
+        [one] if !one.job.user.is_empty() => Ok(one.job.clone()),
+        _ => Err(format!("whose printout it is isn't known for sure ({} jobs printing on {PRINTER_NAME}, and the \
+                          writer is {})", printing.len(), writer.map_or("unknown", |w| w.name.as_str()))),
+    }
 }
 
 /// Windows' own print helpers the spooler starts, which may write a job to the port themselves:
@@ -170,7 +315,8 @@ fn parent_pid(pid: u32) -> Option<u32> {
     }
 }
 
-fn system_dir() -> String {
+/// Windows' System32 folder, asked of Windows (never read from an environment variable).
+pub fn system_dir() -> String {
     let mut buffer = [0u16; ffi::MAX_PATH];
     // SAFETY: a buffer of MAX_PATH UTF-16 units.
     let n = unsafe { ffi::GetSystemDirectoryW(buffer.as_mut_ptr(), buffer.len() as u32) } as usize;
@@ -215,7 +361,7 @@ fn take_job(pipe: HANDLE) {
     };
     let mut buffer = vec![0u8; BUFFER];
     let mut total = 0u64;
-    let mut job: Option<Job> = None;
+    let mut found: Option<(Option<Writer>, Vec<QueueJob>)> = None;
     loop {
         let mut read = 0;
         // SAFETY: a buffer of BUFFER bytes; our connected pipe.
@@ -223,41 +369,119 @@ fn take_job(pipe: HANDLE) {
         if ok == 0 || read == 0 {
             break;  // (the spooler closed its end: the job is all here)
         }
-        if job.is_none() {
-            job = printing_job();  // (while it's being written, the job shows as printing)
+        if found.is_none() {
+            // (who writes it, once data has come; and the queue while the job shows as printing)
+            found = Some((pipe_writer(pipe), queue_jobs()));
+        }
+        total += read as u64;
+        if total > MAX_JOB_BYTES {
+            continue;  // (too large to keep: the rest is read and dropped, so the spooler's job ends normally)
         }
         if file.write_all(&buffer[..read as usize]).is_err() {
             log("a printout couldn't be written to the spool folder");
             break;
         }
-        total += read as u64;
     }
     drop(file);
     if total == 0 {
         let _ = std::fs::remove_file(&path);  // (Windows checking the port, e.g. when the printer is added)
         return;
     }
-    match job {
-        Some(job) if !job.user.is_empty() => match deliver::deliver(&job, &path) {
+    if total > MAX_JOB_BYTES {
+        let _ = std::fs::remove_file(&path);
+        log(&format!("a printout of {total} bytes was thrown away: larger than the {} MB the service keeps",
+                     MAX_JOB_BYTES / (1024 * 1024)));
+        return;
+    }
+    let (writer, queue) = found.unwrap_or((None, Vec::new()));
+    match choose_job(writer.as_ref(), &queue) {
+        Ok(job) => match deliver::deliver(&job, &path) {
             Ok(target) => log(&format!("job {} ({}, {total} bytes): {}", job.id, job.user, target.display())),
-            Err(e) => log(&format!("job {} ({}): not delivered: {e}", job.id, job.user)),
+            Err(deliver::Failure::Unsure(why)) => return hold(&path, total, &why),
+            Err(deliver::Failure::Failed(e)) => log(&format!("job {} ({}): not delivered: {e}", job.id, job.user)),
         },
-        _ => log(&format!("a printout of {total} bytes: whose it is isn't known (no job printing on {PRINTER_NAME})")),
+        Err(why) => return hold(&path, total, &why),
     }
     let _ = std::fs::remove_file(&path);
+}
+
+/// Keeps a printout nobody can be given for sure in the private spool folder, for an
+/// administrator: never delivered to a guess. Older held printouts make room (`tidy_spool`).
+fn hold(path: &std::path::Path, total: u64, why: &str) {
+    let held = spool_dir().join(format!("held-{}.pdf", stamp()));
+    let kept = std::fs::rename(path, &held).is_ok();
+    log(&format!("a printout of {total} bytes was held: {why}{}",
+                 if kept { format!(" ({})", held.display()) } else { String::new() }));
+    tidy_spool();
+}
+
+/// A file in the spool folder: its name, its age in seconds, its size.
+#[derive(Clone, Debug, PartialEq)]
+struct Kept {
+    name: String,
+    age: u64,
+    bytes: u64,
+}
+
+/// Which of the spool folder's files go (the rule, apart from the folder): held printouts older
+/// than `HELD_SECONDS`; then the oldest held ones until what's left is within `HELD_MAX_BYTES`;
+/// and job files a run that ended mid-job left behind (`print-….pdf` older than
+/// `LEFTOVER_SECONDS`). Anything else in the folder (the log) stays.
+fn to_remove(files: &[Kept]) -> Vec<String> {
+    let mut gone: Vec<String> = Vec::new();
+    let mut held: Vec<&Kept> = Vec::new();
+    for file in files {
+        let pdf = file.name.ends_with(".pdf");
+        if pdf && file.name.starts_with("print-") && file.age > LEFTOVER_SECONDS {
+            gone.push(file.name.clone());
+        } else if pdf && file.name.starts_with("held-") {
+            if file.age > HELD_SECONDS { gone.push(file.name.clone()) } else { held.push(file) }
+        }
+    }
+    held.sort_by_key(|f| std::cmp::Reverse(f.age));  // (oldest first)
+    let mut total: u64 = held.iter().map(|f| f.bytes).sum();
+    for file in held {
+        if total <= HELD_MAX_BYTES {
+            break;
+        }
+        total -= file.bytes;
+        gone.push(file.name.clone());
+    }
+    gone
+}
+
+/// Applies `to_remove` to the spool folder, saying in the log what went.
+fn tidy_spool() {
+    let folder = spool_dir();
+    let now = std::time::SystemTime::now();
+    let Ok(entries) = std::fs::read_dir(&folder) else { return };
+    let files: Vec<Kept> = entries
+        .flatten()
+        .filter_map(|entry| {
+            let info = entry.metadata().ok().filter(|m| m.is_file())?;
+            let age = info.modified().ok().and_then(|m| now.duration_since(m).ok()).map_or(0, |d| d.as_secs());
+            Some(Kept { name: entry.file_name().to_string_lossy().into_owned(), age, bytes: info.len() })
+        })
+        .collect();
+    for name in to_remove(&files) {
+        if std::fs::remove_file(folder.join(&name)).is_ok() {
+            log(&format!("{name} was removed from the spool folder (kept {} days, or {} MB of held printouts, \
+                          at most)", HELD_SECONDS / 86_400, HELD_MAX_BYTES / (1024 * 1024)));
+        }
+    }
 }
 
 fn stamp() -> u128 {
     std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis()).unwrap_or(0)
 }
 
-/// The job the PlanetPDF printer is printing now (else its first job).
-fn printing_job() -> Option<Job> {
+/// The PlanetPDF printer's queue.
+fn queue_jobs() -> Vec<QueueJob> {
     let name = ffi::wide(PRINTER_NAME);
     let mut printer: HANDLE = std::ptr::null_mut();
     // SAFETY: a NUL-terminated name; the handle is closed below.
     if unsafe { ffi::OpenPrinterW(name.as_ptr(), &mut printer, std::ptr::null()) } == 0 {
-        return None;
+        return Vec::new();
     }
     let (mut needed, mut count) = (0u32, 0u32);
     // SAFETY: first the size, then a buffer that big (8-byte aligned) of JOB_INFO_1W entries.
@@ -272,9 +496,12 @@ fn printing_job() -> Option<Job> {
             &[]
         };
         jobs.iter()
-            .find(|j| j.Status & ffi::JOB_STATUS_PRINTING != 0)
-            .or_else(|| jobs.first())
-            .map(|j| Job { id: j.JobId, user: ffi::from_wide(j.pUserName), document: ffi::from_wide(j.pDocument) })
+            .map(|j| QueueJob {
+                job: Job { id: j.JobId, user: ffi::from_wide(j.pUserName), sid: String::new(),
+                           document: ffi::from_wide(j.pDocument) },
+                printing: j.Status & ffi::JOB_STATUS_PRINTING != 0,
+            })
+            .collect()
     };
     // SAFETY: the handle opened above.
     unsafe { ffi::ClosePrinter(printer) };
@@ -367,6 +594,53 @@ mod tests {
         // nothing known
         assert!(!allowed(&client(46972, None, ""), SPOOLER, SYSTEM));
         assert!(!allowed(&client(46972, Some(SPOOLER), r"C:\Windows\System32\printfilterpipelinesvc.exe"), SPOOLER, ""));
+    }
+
+    fn queued(id: u32, user: &str, printing: bool) -> QueueJob {
+        QueueJob { job: Job { id, user: user.into(), sid: String::new(), document: format!("doc{id}") }, printing }
+    }
+
+    fn writer(name: &str, sid: &str) -> Writer {
+        Writer { name: name.into(), sid: sid.into() }
+    }
+
+    #[test]
+    fn the_printout_goes_to_who_windows_says_wrote_it() {
+        let queue = [queued(1, "alice", true), queued(2, "bob", false)];
+        let bob = writer("bob", "S-1-5-21-1-2-3-1001");
+        // (bob is writing: his, even though alice's job shows as printing)
+        assert_eq!(choose_job(Some(&bob), &queue).unwrap(),
+                   Job { id: 2, user: "bob".into(), sid: "S-1-5-21-1-2-3-1001".into(), document: "doc2".into() });
+        let carol = writer("carol", "S-1-5-21-1-2-3-1002");
+        assert_eq!(choose_job(Some(&carol), &queue).unwrap().user, "carol");  // (not in the queue: still hers)
+        assert_eq!(choose_job(Some(&carol), &queue).unwrap().sid, "S-1-5-21-1-2-3-1002");  // (her account goes along)
+    }
+
+    fn kept(name: &str, days: u64, megabytes: u64) -> Kept {
+        Kept { name: name.into(), age: days * 86_400 + 60, bytes: megabytes * 1024 * 1024 }
+    }
+
+    #[test]
+    fn held_printouts_are_kept_a_month_and_a_gigabyte_at_most() {
+        let files = [kept("held-1.pdf", 40, 1), kept("held-2.pdf", 3, 1), kept("printer.log", 400, 1),
+                     kept("print-99-1.pdf", 2, 5), kept("print-99-2.pdf", 0, 5), kept("notes.txt", 90, 1)];
+        // the old held one, and the job file a run left behind two days ago; nothing else
+        assert_eq!(to_remove(&files), vec!["held-1.pdf".to_string(), "print-99-1.pdf".to_string()]);
+        // more than a gigabyte held: the oldest go until the rest fits
+        let many = [kept("held-a.pdf", 1, 500), kept("held-b.pdf", 9, 500), kept("held-c.pdf", 5, 500)];
+        assert_eq!(to_remove(&many), vec!["held-b.pdf".to_string()]);
+        let huge = [kept("held-a.pdf", 1, 2000)];
+        assert_eq!(to_remove(&huge), vec!["held-a.pdf".to_string()]);  // (even alone it is over)
+        assert!(to_remove(&[kept("held-a.pdf", 1, 900)]).is_empty());
+    }
+
+    #[test]
+    fn a_guess_is_held_not_delivered() {
+        let system = writer("SYSTEM", "S-1-5-18");
+        assert_eq!(choose_job(Some(&system), &[queued(1, "alice", true)]).unwrap().user, "alice");  // (only one)
+        assert!(choose_job(Some(&system), &[queued(1, "alice", true), queued(2, "bob", true)]).is_err());
+        assert!(choose_job(None, &[queued(1, "alice", false)]).is_err());  // (none printing: was "the first")
+        assert!(choose_job(None, &[]).is_err());
     }
 
     #[test]

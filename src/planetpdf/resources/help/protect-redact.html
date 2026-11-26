@@ -113,6 +113,7 @@
   <li><b>No</b>: the new file is not protected.</li>
   <li><b>Cancel</b>: nothing is made.</li>
 </ul>
+<p>A protected new file is encrypted as it is written, so its folder never holds an unprotected copy, not even for a moment (a redacted copy is checked first in a folder only you can open). On the command line, <code>redact</code>, <code>compress</code>, <code>extract</code>, <code>split</code>, and <code>export --format image_pdf</code> keep a protected file's password on the new files; add <code>--no-protect</code> to leave it off on purpose.</p>
 
 <h2 id="redact">Redacting</h2>
 <!-- index: redaction; black out; remove sensitive information; Redact Text & Images; censor -->
@@ -176,10 +177,10 @@
 <table>
   <tr><th>Result</th><th>What it means</th></tr>
   <tr><td><b>PASS</b></td><td>That check found nothing left: for example "removed" for each piece of marked text, "no text under N redaction(s)" for each page, image areas blank, a single revision of the file.</td></tr>
-  <tr><td><b>WARNING</b></td><td>Not a leak, but worth a look. The most common: the same words "still appear where they weren't marked", elsewhere in the document. Mark those too if they should go, and apply again. Shapes that only cross a box, such as table lines, are a warning too: they keep their whole outline in the file.</td></tr>
-  <tr><td><b>FAIL</b></td><td>Something marked can still be read or extracted from the file, for example "text remains under the box", with the page, the box, and the text found; a curved shape partly under a box (text drawn as outlines, a drawn signature); or a check that couldn't run (a picture under a box that couldn't be read, or the second PDF reader couldn't read the file). The headline says "Do not share this file", and the file isn't saved.</td></tr>
+  <tr><td><b>WARNING</b></td><td>Not a leak, but worth a look. The most common: the same words "still appear where they weren't marked", elsewhere in the document. Mark those too if they should go, and apply again. Straight level or upright lines and frames that cross a box, such as table lines, are a warning too: they keep their whole outline in the file.</td></tr>
+  <tr><td><b>FAIL</b></td><td>Something marked can still be read or extracted from the file, for example "text remains under the box", with the page, the box, and the text found; a curved or slanted shape reaching under a box (text drawn as outlines, a signature drawn as lines, a zig-zag); the marked words left somewhere else in the file, such as its information, an attachment, a comment, or a field, even when they also appear unmarked on a page; a page thumbnail; or a check that couldn't run (a picture under a box that couldn't be read, or the second PDF reader couldn't read the file). The headline says "Do not share this file", and the file isn't saved.</td></tr>
 </table>
-<p><b>Copy Report</b> copies the whole report as text, for your records. Very short marked text (under four characters) is checked by area only, since searching for it would find it everywhere.</p>
+<p><b>Copy Report</b> copies the whole report as text, for your records. Very short marked text (under four characters) is checked on the pages by area only, since searching for it would find it everywhere; elsewhere in the file (its information, bookmarks, attachments, comments, and fields) it is looked for as a whole word, and found there it fails. Page thumbnails, small pictures of the pages as they were, are always removed from redacted pages.</p>
 
 <h3 id="redaction-limits">What redaction can't find</h3>
 <!-- index: scanned pages redaction; OCR redaction; outlined text; hidden layers; limits -->
@@ -202,6 +203,19 @@
   <tr><td><b>Hidden layers</b></td><td>Content in layers that are turned off. It can't be searched, so it's easy to miss.</td></tr>
   <tr><td><b>Comments and markup</b></td><td>Notes, highlights, drawings, and stamps that haven't been flattened.</td></tr>
   <tr><td><b>Form field values</b></td><td>Every field's value and default value, including XFA form data.</td></tr>
-  <tr><td><b>Tags and alternate text</b></td><td>The accessibility tags, with the alternate text of pictures and replacement text, which can describe what was redacted. Screen readers then read the pages without tags.</td></tr>
+  <tr><td><b>Tags and alternate text</b></td><td>The accessibility tags, with the alternate text of pictures and replacement text (also where it is written into the pages themselves), which can describe what was redacted. Screen readers then read the pages without tags.</td></tr>
 </table>
+
+<h3 id="sanitize-signed">Signed documents</h3>
+<!-- index: sanitize signed document; signatures removed; sanitized copy -->
+<p>A signed PDF is saved by adding the changes to the end of the file, which keeps the signatures valid but also keeps everything before the changes. Removed items would still be in the file's earlier, signed version, where anyone can dig them out. So on a signed document the Sanitize window says that the signatures are removed too, and offers two buttons:</p>
+<ul>
+  <li><b>Save Sanitized Copy…</b> (the default): saves a sanitized copy under a new name, as a whole new file without the signatures. The signed document stays as it is.</li>
+  <li><b>Remove Signatures and Sanitize</b>: sanitizes the open document and removes its signatures. When you save, PlanetPDF writes the whole file again, so nothing of the signed version is left. Undo puts the signed document back.</li>
+</ul>
+<p>On the command line, <code>planetpdf sanitize</code> refuses a signed file unless you add <code>--remove-signatures</code>.</p>
+
+<h3 id="sanitize-layers">Hidden layers</h3>
+<!-- index: hidden layers; layers not removed -->
+<p>PlanetPDF never shows what a hidden layer holds. If it can't tell which content belongs to a hidden layer, or removing the layers would make hidden words appear, it stops, changes nothing, and says so. Untick <b>Hidden layers</b> to remove everything else.</p>
 </body></html>

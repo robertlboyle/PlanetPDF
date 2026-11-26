@@ -51,13 +51,9 @@ def ask_open(window: MainWindow, document: str) -> tuple[bool, bool]:
 def ask_where(window: MainWindow, suggested: Path) -> Path | None:
     """The system's own Save dialog (Windows' and the Mac's: their places, long names). None =
     canceled. Tests replace this."""
-    name, _kind = QFileDialog.getSaveFileName(window, "Print to PlanetPDF", str(suggested), "PDF files (*.pdf)")
-    if not name:
-        return None
-    target = Path(name)
-    if target.suffix.lower() != ".pdf":
-        target = target.with_name(target.name + ".pdf")
-    return target
+    from planetpdf.ui.save_path import choose_save_path
+
+    return choose_save_path(window, "Print to PlanetPDF", suggested)  # (never a temporary folder)
 
 
 def receive(window: MainWindow, path: Path) -> tuple[Path, bool] | None:
@@ -95,13 +91,19 @@ def receive(window: MainWindow, path: Path) -> tuple[Path, bool] | None:
             return None
         s.print_last_folder = str(target.parent)
         window.save_settings_now()
+    from planetpdf.core.storage.files import remove_quietly, replace_with_retry, temp_path_beside
+
+    tmp = temp_path_beside(target)
     try:
-        if target.exists():  # (the Save dialog already asked to replace it)
-            target.unlink()
-        shutil.move(str(path), str(target))
+        # A copy beside the target, then put in its place in one step: a file being replaced (the
+        # Save dialog asked) is never gone before the printout is there (security review 2026-11-25)
+        shutil.copyfile(path, tmp)
+        replace_with_retry(tmp, target)
     except OSError as exc:
+        remove_quietly(tmp)
         window.show_message("PlanetPDF Printer", f"The printout couldn't be saved as {target}:\n\n{exc}")
         return None
+    remove_quietly(path)
     P.done_with(path, inbox())
     if not open_after:
         window.statusBar().showMessage(f"Printout saved: {target}", 8000)

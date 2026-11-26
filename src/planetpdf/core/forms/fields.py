@@ -76,6 +76,7 @@ class FormField:
     editable_combo: bool = False
     max_length: int = 0
     date_format: str = ""  # AFDate format, e.g. "mm/dd/yyyy"
+    password: bool = False  # a text field that shows dots
 
     @property
     def first_page(self) -> int:
@@ -225,6 +226,7 @@ def list_fields(session: PdfSession) -> list[FormField]:
                 editable_combo=bool(flags & FF_COMBO_EDIT) and kind is FieldKind.COMBO,
                 max_length=widget.text_maxlen or 0,
                 date_format=fmt,
+                password=bool(flags & FF_PASSWORD) and kind is FieldKind.TEXT,
             )
             order.append(name)
     return [fields[n] for n in order]

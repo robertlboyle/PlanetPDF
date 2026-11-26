@@ -17,6 +17,7 @@ Layout::
 from __future__ import annotations
 
 import logging
+import secrets
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
@@ -52,6 +53,27 @@ class Profile:
         from planetpdf.core.storage.text_history import FILENAME
 
         return self.root / FILENAME
+
+    @property
+    def item_key_path(self) -> Path:
+        return self.root / "item-key"
+
+    def item_key(self) -> bytes:
+        """This user's key for marking the items PlanetPDF makes (``markup.set_item_key``; security
+        review 2026-11-25). Made once and kept in the profile, which only this user can open."""
+        try:
+            text = self.item_key_path.read_text(encoding="ascii").strip()
+            if len(text) == 64:
+                return bytes.fromhex(text)
+        except (OSError, ValueError):
+            pass
+        key = secrets.token_bytes(32)
+        try:
+            self.item_key_path.parent.mkdir(parents=True, exist_ok=True)
+            self.item_key_path.write_text(key.hex(), encoding="ascii")
+        except OSError:
+            log.warning("Couldn't keep the item key in %s", self.item_key_path)
+        return key
 
     def ensure(self) -> Profile:
         for directory in (self.root, self.signatures_dir, self.stamps_dir, self.trusted_certs_dir):

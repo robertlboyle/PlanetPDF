@@ -130,3 +130,22 @@ def test_nothing_remembered_when_switched_off(win, qapp):
     QTest.keyClick(win.markup.editor, Qt.Key.Key_Return)
     QCoreApplication.processEvents()
     assert win.text_history.entries == ["Something"]
+
+
+def test_preferences_option_for_private_numbers(win):
+    from planetpdf.ui.dialogs.preferences import PreferencesDialog
+
+    win.text_history.remember("Card 4111 1111 1111 1111", allow_private=True)
+    dialog = PreferencesDialog(win)
+    assert not dialog.remember_private.isChecked()  # (off by default)
+    dialog.remember_text.setChecked(False)
+    assert not dialog.remember_private.isEnabled()
+    dialog.remember_text.setChecked(True)
+    dialog._save()  # (saved off: any such text remembered before is forgotten)
+    assert not win.settings.remember_private_numbers
+    assert not any("4111" in e for e in win.text_history.entries)
+    dialog.remember_private.setChecked(True)
+    dialog._save()
+    assert win.settings.remember_private_numbers
+    win.markup._remember_text("SSN 123-45-6789")
+    assert win.text_history.entries[0] == "SSN 123-45-6789"

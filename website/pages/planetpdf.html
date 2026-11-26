@@ -108,6 +108,12 @@ Free, with no warranty and no support: see the <a href="freeware.html">freeware 
 PlanetPDF-Setup.exe /VERYSILENT /SUPPRESSMSGBOXES /COMPONENTS="main"</pre>
     <p class="note">Where users can't approve the administrator prompt (terminal servers), install updates as SYSTEM:</p>
     <pre class="code">"C:\Program Files\PlanetPDF\PlanetPDF.exe" --install-updates</pre>
+    <p class="note">On computers several people share, move up from version 1.0.6 or older with the full installer,
+      not the update inside the program: only the installer brings the newest PlanetPDF printer service and closes
+      PlanetPDF's folder to everyone but administrators.</p>
+    <p class="note">Settings for everyone on a computer (update checks, plugins, the local API, and more) go in a
+      <code>policy.json</code> beside PlanetPDF.exe; <code>planetpdf policy</code> shows what is in force. The manual's
+      chapter "For IT" has the details.</p>
     <p class="note">To check that an installed copy works: <code>PlanetPDF.exe --self-test report.txt</code></p>
   </div>
   <div>

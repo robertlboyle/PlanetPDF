@@ -328,6 +328,7 @@ SANITIZE_SECRETS = {
     "comments": "COMMENT-SECRET-6",
     "form_values": "FIELD-SECRET-7",
     "hidden_layers": "LAYER-SECRET-8",
+    "structure": "ALT-SECRET-9",
 }
 VISIBLE_LAYER_TEXT = "LAYER-VISIBLE-TEXT"
 BODY_TEXT = "Ordinary body text stays."
@@ -373,6 +374,12 @@ def make_sanitize_pdf(path: Path) -> Path:
     js = doc.get_new_xref()
     doc.update_object(js, f"<< /S /JavaScript /JS (app.alert\\('{s['javascript']}'\\);) >>")
     doc.xref_set_key(doc.pdf_catalog(), "Names/JavaScript", f"<< /Names [(init) {js} 0 R] >>")
+    # A tag tree whose picture has alternate text (Sanitize's "Tags and alternate text").
+    tree, figure = doc.get_new_xref(), doc.get_new_xref()
+    doc.update_object(figure, f"<< /Type /StructElem /S /Figure /P {tree} 0 R /Alt ({s['structure']}) >>")
+    doc.update_object(tree, f"<< /Type /StructTreeRoot /K [{figure} 0 R] >>")
+    doc.xref_set_key(doc.pdf_catalog(), "StructTreeRoot", f"{tree} 0 R")
+    doc.xref_set_key(doc.pdf_catalog(), "MarkInfo", "<< /Marked true >>")
     doc.save(path, incremental=True, encryption=pymupdf.PDF_ENCRYPT_KEEP)
     doc.close()
     return path

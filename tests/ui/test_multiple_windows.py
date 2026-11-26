@@ -193,9 +193,9 @@ def test_tabs_can_be_hidden(win, files):
     assert win.tabs.isVisible()
 
 
-def test_a_later_start_hands_its_files_to_the_running_one(win, files, qapp):
+def test_a_later_start_hands_its_files_to_the_running_one(win, files, qapp, tmp_path):
     """Double-clicking another PDF opens it in the running PlanetPDF (one copy)."""
-    from planetpdf.ui.single_instance import InstanceServer, send_to_running
+    from planetpdf.ui.single_instance import InstanceServer, instance_file, send_to_running
 
     import os
     import subprocess
@@ -206,12 +206,13 @@ def test_a_later_start_hands_its_files_to_the_running_one(win, files, qapp):
     import planetpdf
 
     received = []
-    server = InstanceServer(received.append, name=f"PlanetPDF-test-{os.getpid()}")
+    folder = tmp_path / "instance"  # (where the running copy says how to reach it: the user's own folder)
+    server = InstanceServer(received.append, folder)
     assert server.listening
     # the second start is a separate process, as when another PDF is double-clicked
-    code = ("from PySide6.QtCore import QCoreApplication; app = QCoreApplication([]); "
-            "from planetpdf.ui.single_instance import send_to_running; "
-            f"print(send_to_running([{str(files[0])!r}], name={server.name!r}))")
+    code = ("from pathlib import Path; from PySide6.QtCore import QCoreApplication; app = QCoreApplication([]); "
+            "from planetpdf.ui.single_instance import instance_file, send_to_running; "
+            f"print(send_to_running([{str(files[0])!r}], instance_file(Path({str(folder)!r}))))")
     env = dict(os.environ, PYTHONPATH=str(Path(planetpdf.__file__).parents[1]))
     second = subprocess.Popen([sys.executable, "-c", code], stdout=subprocess.PIPE, text=True, env=env)
     end = time.time() + 30
@@ -220,8 +221,8 @@ def test_a_later_start_hands_its_files_to_the_running_one(win, files, qapp):
         time.sleep(0.01)
     QCoreApplication.processEvents()
     assert second.stdout.read().strip() == "True" and received == [[files[0].resolve()]]
-    assert not send_to_running([files[0]], name=server.name + "-nobody")  # (none running: start normally)
-    server.server.close()
+    assert not send_to_running([files[0]], instance_file(tmp_path / "nobody"))  # (none running: start normally)
+    server.close()
 
 
 def test_a_whole_document_change_keeps_the_view_where_it_was(win, files):

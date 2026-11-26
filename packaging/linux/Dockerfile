@@ -78,7 +78,7 @@ RUN case "${TARGETARCH}" in \
 # PlanetPDF's packages (the same pins as everywhere else)
 COPY requirements.txt requirements-dev.txt /tmp/req/
 RUN /opt/python/bin/python3 -m venv /opt/venv \
-    && /opt/venv/bin/python -m pip install --no-cache-dir -r /tmp/req/requirements-dev.txt \
+    && /opt/venv/bin/python -m pip install --no-cache-dir --require-hashes -r /tmp/req/requirements-dev.txt \
     && rm -rf /tmp/req
 
 ENV PATH=/opt/venv/bin:/opt/python/bin:$PATH PYTHONDONTWRITEBYTECODE=1

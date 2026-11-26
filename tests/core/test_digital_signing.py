@@ -50,4 +50,8 @@ def test_a_timestamp_that_doesnt_check_out_proves_no_time():
     assert not s.timestamped and s.signing_time.year == 2026 and "timestamp doesn't check out" in s.summary
     untrusted = SimpleNamespace(intact=True, valid=True, trusted=False, timestamp=datetime(2026, 1, 1, tzinfo=timezone.utc))
     s = _summarize("Sig1", _status(timestamp_validity=untrusted))
-    assert s.timestamped and "don't trust" in s.summary
+    # (an untrusted server proves no time: the time shown is the signer's own; security review 2026-11-25)
+    assert not s.timestamped and s.signing_time.year == 2026 and "isn't proven" in s.summary
+    trusted = SimpleNamespace(intact=True, valid=True, trusted=True, timestamp=datetime(2025, 1, 1, tzinfo=timezone.utc))
+    s = _summarize("Sig1", _status(timestamp_validity=trusted))
+    assert s.timestamped and s.signing_time.year == 2025

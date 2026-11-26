@@ -2,6 +2,109 @@
 <h1 id="top">What's New</h1>
 <p>The changes in each version of PlanetPDF, newest first. Help ▸ About PlanetPDF shows the same list.</p>
 
+<h2 id="v1-0-8">Version 1.0.8</h2>
+<!-- index: version 1.0.8; security; shared computers; terminal server; policy.json; policy file; install folder protected; PlanetPDF printer service; Update Now; older version; libraries updated -->
+<p>A second round of security work, this time with computers that several people share (terminal
+servers) in mind. Version 1.0.7 wasn't released on its own: its changes, listed under it below,
+come with this version.</p>
+<ul>
+  <li><b>Nobody else on a shared computer can pass for your PlanetPDF.</b> The connections PlanetPDF's
+    own windows use (a double-clicked PDF handed to the copy that's running, and the local API when
+    it's on) now have names made at random each time PlanetPDF starts, kept in a file only you can
+    read, and each side proves it read that file before anything is said. Before, another user of
+    the same computer could have received the names of the files you opened.</li>
+  <li><b>The install folder is protected.</b> Setup now lets only administrators change PlanetPDF's
+    folder, wherever it is installed, so one user of a shared computer can't replace a program the
+    others run. See <a href="getting-started.html#install-windows">Installing on Windows</a>.</li>
+  <li><b>Settings for everyone on a computer.</b> IT can set some settings once for all users, and
+    turn off features such as plugins or update checks, with a policy file. Settings made that way
+    show grayed in Preferences. The manual has a new chapter,
+    <a href="administrators.html#top">For IT: Shared Computers and Policies</a>.</li>
+  <li><b>The PlanetPDF printer.</b> A printout goes to the session of the very account that printed
+    it, so two people with the same user name never get each other's; printouts it had to hold are
+    kept 30 days and 1 GB at most; and Windows starts its service again if it ever stops by
+    itself.</li>
+  <li><b>An install that is partly older says so.</b> After an update installed by version 1.0.6 or
+    older, the PlanetPDF printer's service and the program that starts PlanetPDF can still be the
+    old ones. PlanetPDF now notices and offers <b>Update Now</b>; see
+    <a href="troubleshooting.html#update-older-parts">"…is still from an older version"</a>. On
+    shared computers, IT should install this version with the full installer.</li>
+  <li><b>Updates.</b> The step that installs an update with administrator rights no longer takes
+    anything from the user's own environment settings, and starts Windows' tools only from Windows'
+    own folder.</li>
+  <li><b>Libraries brought up to date.</b> Four of the libraries PlanetPDF is built from had
+    published fixes (among them the second reader used by the redaction check, which a crafted PDF
+    could send into an endless loop). They are updated, and every build is now checked against the
+    public lists of known problems. Ghostscript and the text-recognition language files in the
+    installer must match the exact copies that were checked.</li>
+  <li><b>For programmers.</b> <code>api.json</code> now also holds a key, and a program can have
+    the API prove itself with <code>planetpdf.prove</code> before it says anything; the Python client
+    in the <code>sdk</code> folder does (copy the new one into your program). The address is new
+    each time PlanetPDF starts, so always read it from the file. <code>planetpdf policy</code> shows
+    an administrator's policy.</li>
+</ul>
+
+<h2 id="v1-0-7">Version 1.0.7</h2>
+<!-- index: version 1.0.7; security; Sanitize signed document; hidden layers; redaction checks; temporary folder; protected copies; local API; updates; PlanetPDF printer; remembered text -->
+<p>Fixes from an outside security review of versions 1.0.5 and 1.0.6, and a few changes that come
+with them.</p>
+<ul>
+  <li><b>Text from a document is shown as written.</b> A link's address, a comment, a field's name,
+    or anything else a PDF holds is never treated as formatting, so resting the pointer on a link
+    can't make Windows connect to a server the PDF names.</li>
+  <li><b>Sanitizing a signed document.</b> The Sanitize window now says that the signatures are
+    removed too, and offers <b>Save Sanitized Copy</b> (the signed file stays as it is) or
+    <b>Remove Signatures and Sanitize</b>; either way the result is a whole new file, so nothing
+    removed is left in an earlier, signed version. A signed document can always be saved again
+    after Undo. Hidden layers are removed, never shown, whichever way a file lists them.
+    Alternate text written into the pages themselves is removed with the tags.</li>
+  <li><b>Stricter redaction checks.</b> A signature or drawing made of straight lines reaching under
+    a box fails the check, as curves did; very short marked words left in the file's information
+    fail; page thumbnails are always removed; the marked words found in an attachment fail even
+    when they also appear unmarked on a page; and a failed copy never replaces the original.</li>
+  <li><b>Protected copies stay protected.</b> A copy of a password-protected document is encrypted
+    as it's written, so an unprotected copy never sits in its folder, and the command line keeps
+    the password on the new files too.</li>
+  <li><b>Never in a temporary folder.</b> Every Save window (redacted, signed, sanitized, and
+    smaller copies, exports, new PDFs, reports, printouts) starts in a lasting folder and refuses a
+    temporary one, such as a zip's.</li>
+  <li><b>Fill &amp; Sign.</b> A small wobble of the mouse while clicking no longer moves what you
+    added; an item another program saved without what PlanetPDF needs to draw it can't be moved by
+    mistake (it would have been deleted); and Add Text's clicks pick up only what PlanetPDF added on
+    your account.</li>
+  <li><b>Updates are asked for.</b> When a new version is out, PlanetPDF asks before downloading
+    it, and closing the question installs nothing. On a computer where you can't install updates
+    (a terminal server), it only tells you once.</li>
+  <li><b>The local API is off until you turn it on</b> (Preferences ▸ Scripting &amp; Plugins;
+    turning a plugin on turns it on), and the list of programs you allowed can't be changed by
+    editing its file.</li>
+  <li><b>Office files</b> are turned into PDFs from a copy without links to other places, so a
+    document can't make Office fetch a template from a server. An older-format file from the
+    internet is refused, with how to convert it safely.</li>
+  <li><b>Signatures.</b> A signing time counts as proven only when it comes from a timestamp
+    server you trust (otherwise it shows "signer's clock"), and the Signatures panel says when
+    revocation wasn't checked.</li>
+  <li><b>Remembered text</b> no longer keeps what looks like a Social Security, card, or account
+    number, unless you turn that on (Preferences ▸ Documents ▸ Adding text). Scanned pages are
+    deleted from the temporary folder when the scan ends.</li>
+  <li><b>Network scanners</b> (Mac, Linux): the first time PlanetPDF uses one over an encrypted
+    connection, it shows the scanner's certificate and asks; a different certificate later is
+    refused (the scan window has Forget Certificates).</li>
+  <li><b>Copy and paste.</b> What you copied last can be pasted in any PlanetPDF window; Cut
+    removes nothing when something selected can't be copied; pasting into a signed document asks
+    first; a copied password field stays one.</li>
+  <li><b>Excel export</b> keeps text that starts with =, +, -, or @ as text, never a formula.</li>
+  <li><b>The PlanetPDF printer</b> knows for certain whose printout it is, keeps one it can't
+    place instead of guessing, and can't have its connection taken over by another program.
+    Updates now also bring new versions of the print service and of the program that starts
+    PlanetPDF.</li>
+  <li><b>What PlanetPDF loads is checked.</b> The voice files and the AI text reader's code must
+    match the exact versions PlanetPDF was built with, the libraries it's built from are pinned by
+    checksum, and the voices' engine sends no usage data.</li>
+  <li><b>Licensing.</b> The About box and the notices now say what PlanetPDF is: free software
+    under the GNU AGPL-3.0-or-later, with its source on GitHub.</li>
+</ul>
+
 <h2 id="v1-0-6">Version 1.0.6</h2>
 <!-- index: version 1.0.6; move added text; Fill & Sign -->
 <ul>

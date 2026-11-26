@@ -309,6 +309,9 @@ pub const SERVICE_AUTO_START: DWORD = 2;
 pub const SERVICE_ERROR_NORMAL: DWORD = 1;
 pub const SERVICE_NO_CHANGE: DWORD = 0xFFFF_FFFF;
 pub const SERVICE_CONFIG_DESCRIPTION: DWORD = 1;
+pub const SERVICE_CONFIG_FAILURE_ACTIONS: DWORD = 2;
+pub const SC_ACTION_NONE: i32 = 0;
+pub const SC_ACTION_RESTART: i32 = 1;
 pub const SC_STATUS_PROCESS_INFO: i32 = 0;
 pub const ERROR_SERVICE_EXISTS: DWORD = 1073;
 pub const ERROR_SERVICE_DOES_NOT_EXIST: DWORD = 1060;
@@ -353,6 +356,22 @@ pub struct SERVICE_TABLE_ENTRYW {
 #[repr(C)]
 pub struct SERVICE_DESCRIPTIONW {
     pub lpDescription: LPWSTR,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct SC_ACTION {
+    pub Type: i32,
+    pub Delay: DWORD,
+}
+
+#[repr(C)]
+pub struct SERVICE_FAILURE_ACTIONSW {
+    pub dwResetPeriod: DWORD,
+    pub lpRebootMsg: LPWSTR,
+    pub lpCommand: LPWSTR,
+    pub cActions: DWORD,
+    pub lpsaActions: *mut SC_ACTION,
 }
 
 #[link(name = "advapi32")]
@@ -442,4 +461,44 @@ pub unsafe fn from_wide(p: *const u16) -> String {
         }
         String::from_utf16_lossy(std::slice::from_raw_parts(p, n))
     }
+}
+
+// --- the pipe held once, whose job it is, the spool folder's owner (security review 2026-11-25) ---
+
+pub const FILE_FLAG_FIRST_PIPE_INSTANCE: DWORD = 0x0008_0000;
+pub const ERROR_ACCESS_DENIED: DWORD = 5;
+pub const TOKEN_QUERY: DWORD = 0x0008;
+pub const TOKEN_USER: i32 = 1;  // (TokenInformationClass: TokenUser)
+pub const PRINTER_ACCESS_ADMINISTER: DWORD = 0x4;
+pub const PRINTER_CONTROL_PAUSE: DWORD = 1;
+pub const PRINTER_CONTROL_RESUME: DWORD = 2;
+pub const SE_FILE_OBJECT: i32 = 1;
+pub const OWNER_SECURITY_INFORMATION: DWORD = 0x1;
+pub const DACL_SECURITY_INFORMATION: DWORD = 0x4;
+
+#[link(name = "advapi32")]
+unsafe extern "system" {
+    pub fn ImpersonateNamedPipeClient(hNamedPipe: HANDLE) -> BOOL;
+    pub fn OpenThreadToken(ThreadHandle: HANDLE, DesiredAccess: DWORD, OpenAsSelf: BOOL, TokenHandle: *mut HANDLE)
+        -> BOOL;
+    pub fn GetTokenInformation(TokenHandle: HANDLE, TokenInformationClass: i32, TokenInformation: *mut c_void,
+                               TokenInformationLength: DWORD, ReturnLength: *mut DWORD) -> BOOL;
+    pub fn LookupAccountSidW(lpSystemName: LPCWSTR, Sid: *mut c_void, Name: LPWSTR, cchName: *mut DWORD,
+                             ReferencedDomainName: LPWSTR, cchReferencedDomainName: *mut DWORD, peUse: *mut i32)
+        -> BOOL;
+    pub fn ConvertSidToStringSidW(Sid: *mut c_void, StringSid: *mut LPWSTR) -> BOOL;
+    pub fn GetNamedSecurityInfoW(pObjectName: LPCWSTR, ObjectType: i32, SecurityInfo: DWORD,
+                                 ppsidOwner: *mut *mut c_void, ppsidGroup: *mut *mut c_void,
+                                 ppDacl: *mut *mut c_void, ppSacl: *mut *mut c_void,
+                                 ppSecurityDescriptor: *mut *mut c_void) -> DWORD;
+    pub fn ConvertSecurityDescriptorToStringSecurityDescriptorW(SecurityDescriptor: *mut c_void,
+                                                                RequestedStringSDRevision: DWORD,
+                                                                SecurityInformation: DWORD,
+                                                                StringSecurityDescriptor: *mut LPWSTR,
+                                                                StringSecurityDescriptorLen: *mut DWORD) -> BOOL;
+}
+
+#[link(name = "kernel32")]
+unsafe extern "system" {
+    pub fn GetCurrentThread() -> HANDLE;
 }

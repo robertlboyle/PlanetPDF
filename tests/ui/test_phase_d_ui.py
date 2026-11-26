@@ -54,8 +54,35 @@ def test_insert_from_scanner_two_pages(win, tmp_path, monkeypatch):
     answers = iter([True, False])  # "Scan another page?" yes, then no
     win.ask = lambda title, text: next(answers)
     before = win.session.page_count
+    folders = []
+    real_scan = fake_scan
+
+    def remembered(folder):
+        folders.append(folder)
+        return real_scan(folder)
+
+    monkeypatch.setattr(win.extras, "scan_one", remembered)
     assert win.extras.insert_from_scanner()
     assert win.session.page_count == before + 2 and win.undo_stack.undoText().startswith("Insert Pages from Scanner")
+    assert folders and not folders[0].exists()  # (the scans are deleted: security review 2026-11-25)
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows scanner")
+def test_a_scan_that_fails_leaves_nothing_behind(win, monkeypatch):
+    from planetpdf.core import windows_scanner
+
+    monkeypatch.setattr(windows_scanner, "scanners", lambda: ["Test Scanner"])
+    folders = []
+
+    def broken(folder):
+        folders.append(folder)
+        (folder / "half.png").write_bytes(b"x")
+        raise RuntimeError("the scanner stopped")
+
+    monkeypatch.setattr(win.extras, "scan_one", broken)
+    with pytest.raises(RuntimeError):
+        win.extras.scan_pages()
+    assert folders and not folders[0].exists()
 
 
 def test_no_scanner_says_so(win, monkeypatch):

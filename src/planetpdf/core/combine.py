@@ -78,8 +78,12 @@ def combine_files(
                     if password is None or not src.authenticate(password):
                         src.close()
                         raise PasswordRequired(f"{path.name} is password protected.")
+            first = out.page_count
             out.insert_pdf(src)
             src.close()
+            from planetpdf.core.markup import new_id, renew_ids
+
+            renew_ids(out, range(first, out.page_count), new_id())  # (the same file twice: no shared ids)
         if out.page_count == 0:
             raise PdfError("The files contain no pages.")
         report(progress, 0, 0, f"Saving the combined PDF ({out.page_count} pages from {len(files)} files)…")

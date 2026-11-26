@@ -1,6 +1,7 @@
 import hashlib
 import io
 import json
+import sys
 import zipfile
 
 import pytest
@@ -286,6 +287,8 @@ def test_as_administrator_nothing_is_written_into_the_users_folder(server, tmp_p
     monkeypatch.setattr(U, "public_key", lambda path=None: server.key)
     monkeypatch.setattr(H, "_is_admin", lambda: True)
     root = tmp_path / "root"
+    monkeypatch.setattr(U, "install_root", lambda executable=None: root)  # (running from that install)
+    monkeypatch.setattr(H, "_registered_install_dir", lambda: root)
     server("3.0")
     signed = U.check(BASE, "1.0", key=server.key, opener=server.opener)
     folder = tmp_path / "dl"
@@ -324,3 +327,84 @@ def test_the_appimage_is_checked_again_as_root_before_it_is_installed(tmp_path):
     assert image.read_bytes() == b"old"
     with pytest.raises(U.UpdateError):
         H.appimage_install_command(new, "x; rm -rf /", image)
+
+
+def test_the_administrator_step_installs_only_into_its_own_folder(tmp_path, monkeypatch):
+    """Security review 2026-11-25 (finding 10): the folder came from its command line."""
+    from planetpdf.core import update_helper as H
+
+    root = tmp_path / "PlanetPDF"
+    monkeypatch.setattr(U, "install_root", lambda executable=None: root)
+    monkeypatch.setattr(H, "_registered_install_dir", lambda: root)
+    assert H.trusted_root(root) == root
+    with pytest.raises(U.UpdateError, match="isn't this PlanetPDF's"):
+        H.trusted_root(tmp_path / "Windows" / "System32")
+    monkeypatch.setattr(H, "_registered_install_dir", lambda: tmp_path / "Elsewhere")
+    with pytest.raises(U.UpdateError, match="installer registered"):
+        H.trusted_root(root)
+    monkeypatch.setattr(U, "install_root", lambda executable=None: None)
+    with pytest.raises(U.UpdateError, match="installed PlanetPDF"):
+        H.trusted_root(root)
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows install folder")
+def test_updates_replace_the_launchers_and_the_print_service(tmp_path, monkeypatch):
+    """Security review 2026-11-25 (finding 6): updates never replaced them."""
+    root = tmp_path / "PlanetPDF"
+    (root / "printer").mkdir(parents=True)
+    (root / "PlanetPDF.exe").write_bytes(b"old launcher")
+    (root / "PlanetPDF.com").write_bytes(b"same console")
+    (root / "printer" / "planetpdf-print-service.exe").write_bytes(b"old service")
+    new = tmp_path / "install-root"
+    (new / "printer").mkdir(parents=True)
+    (new / "PlanetPDF.exe").write_bytes(b"new launcher")
+    (new / "PlanetPDF.com").write_bytes(b"same console")
+    (new / "printer" / "planetpdf-print-service.exe").write_bytes(b"new service")
+    calls = []
+    monkeypatch.setattr(U, "_service_state", lambda: "STOPPED" if ("stop",) in calls else "RUNNING")
+    monkeypatch.setattr(U, "_sc", lambda *args: calls.append(args[:1]) or "")
+    changed = U.update_root_files(root, new)
+    assert sorted(changed) == ["PlanetPDF.exe", r"printer\planetpdf-print-service.exe"]
+    assert (root / "PlanetPDF.exe").read_bytes() == b"new launcher"
+    assert (root / "printer" / "planetpdf-print-service.exe").read_bytes() == b"new service"
+    # stopped while replaced, set to start again by itself if it ever ends, started again
+    assert calls == [("stop",), ("failure",), ("start",)]
+    assert not list(root.glob("*.old")) and not list(root.glob("*.new"))
+    assert U.update_root_files(root, new) == []  # (nothing to change the second time)
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows install folder")
+def test_an_install_whose_own_programs_are_older_is_noticed_and_brought_up_to_date(tmp_path, monkeypatch):
+    """Security list 2026-11-26, item 6: updated by a version that replaced only the program, an
+    install kept its old print service and launcher. PlanetPDF can tell, and an administrator's
+    step (--refresh-install) replaces them."""
+    from planetpdf.core import update_helper as H
+
+    root = tmp_path / "PlanetPDF"
+    version = root / U.VERSIONS / "2.0.0"
+    (root / "printer").mkdir(parents=True)
+    (version / U.ROOT_FILES / "printer").mkdir(parents=True)
+    (version / U.EXE_NAME).write_bytes(b"program")
+    (root / U.CURRENT_FILE).write_text("2.0.0\n", encoding="utf-8")
+    for folder, age in ((root, b"old"), (version / U.ROOT_FILES, b"new")):
+        (folder / "PlanetPDF.exe").write_bytes(age + b" launcher")
+        (folder / "PlanetPDF.com").write_bytes(b"same console")
+        (folder / "printer" / "planetpdf-print-service.exe").write_bytes(age + b" service")
+    assert U.stale_root_files(root) == [r"printer\planetpdf-print-service.exe", "PlanetPDF.exe"]
+    assert U.stale_root_files(tmp_path / "nothing-here") == []
+    calls = []
+    monkeypatch.setattr(U, "_service_state", lambda: "STOPPED")
+    monkeypatch.setattr(U, "_sc", lambda *args: calls.append(args[0]) or "")
+    monkeypatch.setattr(U, "install_root", lambda executable=None: root)
+    monkeypatch.setattr(H, "_registered_install_dir", lambda: root)
+    monkeypatch.setattr(H, "_is_admin", lambda: False)
+    assert H.helper_main(["planetpdf", H.REFRESH, str(root)]) == 1  # (only as administrator)
+    assert U.stale_root_files(root)
+    monkeypatch.setattr(H, "_is_admin", lambda: True)
+    assert H.helper_main(["planetpdf", H.REFRESH, str(tmp_path / "Elsewhere")]) == 1  # (only its own install)
+    assert H.helper_main(["planetpdf", H.REFRESH, str(root)]) == 0
+    assert U.stale_root_files(root) == [] and "failure" in calls
+    assert (root / "printer" / "planetpdf-print-service.exe").read_bytes() == b"new service"
+    log = (H.status_folder(root) / H.REFRESH_LOG).read_text(encoding="utf-8")
+    assert "PlanetPDF.exe" in log and "planetpdf-print-service.exe" in log
+    assert H.REFRESH in H.FLAGS

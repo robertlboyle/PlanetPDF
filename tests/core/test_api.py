@@ -139,3 +139,46 @@ def test_a_key_works_only_for_the_program_that_was_allowed(tmp_path):
     assert reply["error"]["code"] == api.DENIED and asked[-1] == ("Good", r"C:\Temp\evil.exe", r"C:\Tools\good.exe")
     reply, _ = request(service, api.Connection(program=r"C:\Temp\evil.exe"), "planetpdf.hello", name="Adobe")
     assert reply["error"]["code"] == api.DENIED and len(asked) == 2  # (refused once: not asked again)
+
+
+def test_a_program_cant_add_itself_by_writing_the_list(tmp_path):
+    """Security review 2026-11-25: clients.json was a plain file a program running as the user
+    could write itself into. It's sealed with a key the operating system keeps for the user."""
+    import json
+
+    from planetpdf.core.api import ClientStore
+
+    store = ClientStore(tmp_path / "api")
+    client, token = store.register("Good Program", "Planet")
+    assert store.by_token(token) is not None
+    data = json.loads(store.path.read_text(encoding="utf-8"))
+    assert data["seal"]
+    forged = dict(data["clients"][0], id="evil", name="Evil", token_hash="0" * 64, can_sign=True)
+    data["clients"].append(forged)
+    store.path.write_text(json.dumps(data), encoding="utf-8")
+    assert ClientStore(tmp_path / "api").load() == []  # (changed outside PlanetPDF: ignored)
+    store.path.write_text(json.dumps({"clients": [forged]}), encoding="utf-8")
+    assert ClientStore(tmp_path / "api").load() == []  # (no seal at all)
+
+
+def test_the_api_is_off_until_turned_on():
+    from planetpdf.core.storage.settings import Settings
+
+    assert Settings().api_enabled is False
+
+
+
+def test_older_settings_turn_the_api_off_once_unless_plugins_use_it(tmp_path):
+    import json
+
+    from planetpdf.core.storage.settings import SETTINGS_FILENAME, load_settings, save_settings
+
+    (tmp_path / SETTINGS_FILENAME).write_text(json.dumps({"api_enabled": True}), encoding="utf-8")
+    settings = load_settings(tmp_path)
+    assert settings.api_enabled is False  # (the old default, not a choice)
+    settings.api_enabled = True  # (turned on by the user since)
+    save_settings(settings, tmp_path)
+    assert load_settings(tmp_path).api_enabled is True
+    (tmp_path / SETTINGS_FILENAME).write_text(json.dumps({"api_enabled": True, "plugins_enabled": {"x": "y"}}),
+                                              encoding="utf-8")
+    assert load_settings(tmp_path).api_enabled is True  # (plugins on: they need it)

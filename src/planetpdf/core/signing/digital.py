@@ -251,7 +251,10 @@ def _summarize(field_name: str, status, mdp=None, revocation_checked: bool = Fal
         notes.append("Its timestamp doesn't check out, so the signing time is only what the signer's computer said.")
         ts = None
     elif ts is not None and not getattr(ts, "trusted", False):
-        notes.append("Its timestamp is from a timestamp server you don't trust.")
+        # (a timestamp proves the time only when its server is trusted: security review 2026-11-25)
+        notes.append("Its timestamp is from a timestamp server you don't trust, so the signing time isn't proven: "
+                     "it's what the signer's computer said.")
+        ts = None
     if ts is not None and getattr(ts, "timestamp", None):
         when = ts.timestamp
     revoked = bool(getattr(status, "revoked", False))

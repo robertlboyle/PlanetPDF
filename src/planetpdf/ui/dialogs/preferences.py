@@ -271,6 +271,52 @@ class PreferencesDialog(QDialog):
         accessibility.put_first(self, self.page_list)  # (made after the pages: Tab reached it last)
         self.resize(640, 440)  # (fits a 1366 x 768 screen at 125 % with room to spare)
         self._refresh_certs()
+        self.policy_note = QLabel("", self)
+        self.policy_note.setStyleSheet("color: gray;")
+        self.policy_note.setWordWrap(True)
+        layout.insertWidget(1, self.policy_note)
+        self._show_policy(s, check_now)
+
+    # What an administrator set for everyone on this computer (core/policy.py): shown, grayed.
+    LOCKED_CONTROLS = {
+        "check_updates_on_start": ("check_on_start",), "update_every_days": ("update_days",),
+        "check_revocation": ("check_revocation",), "trust_windows_roots": ("trust_windows",),
+        "timestamp_url": ("tsa",), "autosave_minutes": ("autosave",), "company_name": ("company_name",),
+        "remember_text": ("remember_text",), "remember_private_numbers": ("remember_private",),
+        "print_folder": ("print_ask", "print_to_folder", "print_folder"), "print_name_template": ("print_name",),
+    }
+    BY_ADMINISTRATOR = "Set by your administrator for everyone on this computer."
+
+    def _lock(self, widget: QWidget, why: str = "") -> None:
+        widget.setEnabled(False)
+        widget.setToolTip(why or self.BY_ADMINISTRATOR)
+
+    def _show_policy(self, s, check_now: QPushButton) -> None:
+        from planetpdf.core import policy
+        from planetpdf.core import update as U
+
+        current = policy.current()
+        locked = [name for name in self.LOCKED_CONTROLS if s.locked(name)]
+        for name in locked:
+            for attribute in self.LOCKED_CONTROLS[name]:
+                self._lock(getattr(self, attribute))
+        if "remember_private_numbers" in locked:  # (ticking "Remember the text" would turn it back on)
+            self.remember_text.toggled.disconnect(self.remember_private.setEnabled)
+        if s.locked("api_enabled"):
+            self._lock(self.scripting.api_enabled)
+        updates_off = U.checks_off(U.install_root())
+        if updates_off:
+            for widget in (self.check_on_start, self.update_days, check_now):
+                self._lock(widget, updates_off)
+        from planetpdf.core import voice_download
+
+        button = getattr(self, "download_voices", None)  # (there only while the voices aren't downloaded)
+        if voice_download.turned_off() and button is not None:
+            self._lock(button, voice_download.turned_off())
+        if locked or s.locked("api_enabled") or updates_off or current.off:
+            self.policy_note.setText("Some settings here are set by your administrator for everyone on this "
+                                     "computer; they are grayed.")
+        self.policy_note.setVisible(bool(self.policy_note.text()))
 
     def _show_page(self, row: int) -> None:
         self.pages.setCurrentIndex(row)
@@ -435,10 +481,18 @@ class PreferencesDialog(QDialog):
         self.remember_text.setChecked(s.remember_text)
         self.remember_text.setToolTip("Kept only in your profile folder. Tab, Right, or End takes a suggestion; "
                                       "Up and Down show the others; Shift+Delete forgets it.")
+        self.remember_private = QCheckBox("Also remember text with Social Security, card, or account numbers", self)
+        self.remember_private.setChecked(s.remember_private_numbers)
+        self.remember_private.setToolTip("Off: text holding what looks like one of those numbers is never remembered, "
+                                         "and switching this off forgets any that was.")
+        self.remember_private.setStyleSheet("margin-left: 22px;")
+        self.remember_private.setEnabled(s.remember_text)
+        self.remember_text.toggled.connect(self.remember_private.setEnabled)
         self.clear_text = QPushButton(self, clicked=self._clear_remembered_text)
         self._show_remembered_count()
         box.addWidget(self.click_adds_text)
         box.addWidget(self.remember_text)
+        box.addWidget(self.remember_private)
         box.addWidget(self.clear_text, 0, Qt.AlignmentFlag.AlignLeft)
         return group
 
@@ -520,6 +574,9 @@ class PreferencesDialog(QDialog):
         s.autosave_minutes = self.autosave.value()
         s.click_adds_text = self.click_adds_text.isChecked()
         s.remember_text = self.remember_text.isChecked()
+        s.remember_private_numbers = self.remember_private.isChecked()
+        if not s.remember_private_numbers:
+            self._window.text_history.forget_private()
         s.print_folder = self.print_folder.text().strip() if self.print_to_folder.isChecked() else ""
         s.print_name_template = self.print_name.text().strip()
         s.print_open_ask = self.print_open.currentData() == "ask"

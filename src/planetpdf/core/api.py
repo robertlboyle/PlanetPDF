@@ -3,8 +3,11 @@
 **Protocol:** JSON-RPC 2.0, one JSON object per line (UTF-8, ending in "\\n"), over a local
 connection only: a named pipe on Windows, a socket file on the Mac and Linux, open to this user
 alone (``ui/api_server.py``; never a network port). Where it is: ``api.json`` in PlanetPDF's local
-app data folder (``{"address": …, "protocol": "jsonrpc-lines", "version": 1}``), or
-``PLANETPDF_API_ADDRESS`` in a plugin's environment.
+app data folder (``{"address": …, "key": …, "protocol": "jsonrpc-lines", "version": 1}``), or
+``PLANETPDF_API_ADDRESS`` (and ``PLANETPDF_API_KEY``) in a plugin's environment. The address is
+made at random for each run, and a program can have the API prove it holds the key before saying
+anything else (``planetpdf.prove`` with a nonce → the keyed hash of ``core/local_proof.py``), so
+nothing another user of the computer puts in PlanetPDF's place is taken for it.
 
 **Who is calling:** a program first calls ``planetpdf.hello`` with its name (and publisher); the
 first time it gets a token, which it keeps and sends with every later ``hello``. Every program is
@@ -32,6 +35,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import secrets
 import threading
@@ -42,8 +46,10 @@ from pathlib import Path
 from typing import Callable
 
 from planetpdf import __version__
-from planetpdf.core import commands
+from planetpdf.core import commands, local_proof
 from planetpdf.core.document import PdfError
+
+log = logging.getLogger(__name__)
 
 PROTOCOL, PROTOCOL_VERSION = "jsonrpc-lines", 1
 RATE, BURST, JOBS = 10.0, 30, 2
@@ -95,24 +101,44 @@ class Client:
 
 
 class ClientStore:
-    """``<profile>/api/clients.json``: every program, with its token's hash (never the token)."""
+    """``<profile>/api/clients.json``: every program, with its token's hash (never the token),
+    sealed with a key the operating system keeps for the user (``storage.user_key``), so a program
+    can't add itself by writing the file (security review 2026-11-25). A list whose seal doesn't
+    match is ignored (and said so in the log): every program is asked about again."""
 
     def __init__(self, folder: Path) -> None:
         self.path = Path(folder) / "clients.json"
         self._lock = threading.Lock()
+        self._key: bytes | None = None
+
+    def _seal(self, items: list[dict]) -> str:
+        import hmac
+
+        if self._key is None:
+            from planetpdf.core.storage.user_key import user_key
+
+            self._key = user_key(self.path.parent, "api-seal")
+        text = json.dumps(items, sort_keys=True, separators=(",", ":"))
+        return hmac.new(self._key, text.encode("utf-8"), hashlib.sha256).hexdigest()
 
     def load(self) -> list[Client]:
         try:
             data = json.loads(self.path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             return []
+        items = data.get("clients", []) if isinstance(data, dict) else []
+        if not isinstance(items, list) or not secrets.compare_digest(str(data.get("seal", "")), self._seal(items)):
+            if items:
+                log.warning("The list of programs allowed to use PlanetPDF was changed outside PlanetPDF: it's ignored")
+            return []
         known = set(Client.__dataclass_fields__)
-        return [Client(**{k: v for k, v in item.items() if k in known}) for item in data.get("clients", [])]
+        return [Client(**{k: v for k, v in item.items() if k in known}) for item in items if isinstance(item, dict)]
 
     def save(self, clients: list[Client]) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        items = [asdict(c) for c in clients]
         tmp = self.path.with_suffix(".tmp")
-        tmp.write_text(json.dumps({"clients": [asdict(c) for c in clients]}, indent=2), encoding="utf-8")
+        tmp.write_text(json.dumps({"clients": items, "seal": self._seal(items)}, indent=2), encoding="utf-8")
         tmp.replace(self.path)
 
     def change(self, client_id: str, **values) -> Client | None:
@@ -252,6 +278,7 @@ class ApiService:
         self.ask_to_sign = ask_to_sign
         self.ask_to_connect = ask_to_connect
         self.extra = dict(extra or {})
+        self.pipe_key = ""  # (whoever serves the API sets it: the key its api.json gives; planetpdf.prove)
         self._refused: set[str] = set()  # (programs refused while this runs: not asked again)
         self._asking = threading.Lock()  # (one question at a time)
 
@@ -292,7 +319,7 @@ class ApiService:
         except (PdfError, OSError, ValueError) as e:
             self._log(conn, method, cmd, params, f"failed: {e}", started)
             return None if rid is None else _error(rid, FAILED, str(e))
-        if method != "planetpdf.hello":
+        if method not in ("planetpdf.hello", "planetpdf.prove"):
             self._log(conn, method, cmd, params, "ok", started)
         return None if rid is None else {"jsonrpc": "2.0", "id": rid, "result": result}
 
@@ -303,6 +330,13 @@ class ApiService:
                          seconds=round(time.monotonic() - started, 2))
 
     def _dispatch(self, conn, rid, method, params, cmd, send):
+        if method == "planetpdf.prove":
+            # Before anything else, a program can make sure this is PlanetPDF and not something
+            # that took its place: only what read api.json's key can answer (core/local_proof.py)
+            nonce = params.get("nonce")
+            if not self.pipe_key or not isinstance(nonce, str) or not 8 <= len(nonce) <= 200:
+                raise ApiError(BAD_PARAMS, "planetpdf.prove takes a nonce: a random string of your own.")
+            return {"proof": local_proof.proof(self.pipe_key, local_proof.SERVER, nonce)}
         if method == "planetpdf.hello":
             return self._hello(conn, params)
         if conn.client is None:

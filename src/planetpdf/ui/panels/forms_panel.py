@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
 
 from planetpdf.core.forms import fields as F
 from planetpdf.core.forms.xfa import XfaKind
+from planetpdf.ui import plain
 
 if TYPE_CHECKING:
     from planetpdf.ui.main_window import MainWindow
@@ -79,7 +80,7 @@ class FormsPanel(QWidget):
         self.highlight = QCheckBox("Highlight fields", self)
         self.highlight.setChecked(window.settings.highlight_fields)
         self.highlight.toggled.connect(self._toggle_highlight)
-        self.status = QLabel(self)
+        self.status = plain.plain(QLabel(self))
         self.status.setWordWrap(True)
         self.note = QLabel(self)
         self.note.setWordWrap(True)
@@ -112,7 +113,7 @@ class FormsPanel(QWidget):
     # --- filling a field here (standard controls a screen reader can use) ---------------
 
     def _make_editors(self) -> None:
-        self.value_label = QLabel("Choose a field above to fill it in.", self)
+        self.value_label = plain.plain(QLabel(self), "Choose a field above to fill it in.")  # (field names)
         self.value_label.setWordWrap(True)
         self.editors = QStackedWidget(self)
         self.text_edit = QLineEdit(self)

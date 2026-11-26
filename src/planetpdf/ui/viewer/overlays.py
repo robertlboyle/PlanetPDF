@@ -6,6 +6,8 @@ from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import QBrush, QColor, QFont, QFontMetricsF, QPen
 from PySide6.QtWidgets import QGraphicsItem, QGraphicsRectItem, QGraphicsSimpleTextItem
 
+from planetpdf.ui import plain
+
 MARK_FILL = QColor(0, 0, 0, 70)
 MARK_PEN = QColor(210, 30, 30)
 SELECTED_FILL = QColor(30, 120, 255, 70)
@@ -183,7 +185,7 @@ class MarkupOverlay(QGraphicsRectItem):
         """Prepare Form: the field's name inside its box (when it fits; shown while
         selected), a tint (selected), a tooltip. (Dropdown arrows: ``DropArrow``.)"""
         self.tint = tint
-        self.setToolTip(tooltip or text)
+        self.setToolTip(plain.tip(tooltip or text))
         if self._label is not None and self._label.scene() is not None:
             self._label.scene().removeItem(self._label)
         self._label = None
@@ -291,7 +293,7 @@ class LinkOverlay(QGraphicsRectItem):
         self.setPen(QPen(Qt.PenStyle.NoPen))
         self.setBrush(QBrush(Qt.GlobalColor.transparent))
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setToolTip(tooltip)
+        self.setToolTip(plain.tip(tooltip))  # (the link's address, as written)
         self.setZValue(0.4)
 
 

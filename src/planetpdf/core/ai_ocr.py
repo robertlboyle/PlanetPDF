@@ -37,6 +37,43 @@ from planetpdf.core.progress import Progress, report
 ENV_RUNTIME = "PLANETPDF_AI_OCR"  # (a runtime folder elsewhere, e.g. on a test laptop)
 RUNTIME_FOLDER = "ai-ocr"
 MODEL_REVISION = "8249d20b2822a7d8a4c22c8d8c9069b5ac36bda3"  # (huggingface.co/baidu/Unlimited-OCR; reviewed code)
+# The model's own code (Transformers runs it: trust_remote_code) and the files that choose which
+# code runs, at that revision: checked before the helper starts (security review 2026-11-25). The
+# weights are safetensors (data, no code); tokenizer.json is data too.
+MODEL_CODE_SHA256 = {
+    "configuration_deepseek_v2.py": "b8470dd616ba8745fce6e27b093aef73a098863cc891b2477dcf9326a36000f7",
+    "conversation.py": "ec7b6ce89bcda643de1f43269ffa66a7b2e65dc3ed30e427958f776546b4ba03",
+    "deepencoder.py": "0ae2fb6d1e5ae8cf100fc32f854830acd08c821a0a1f23a94a76588c222ddcf2",
+    "modeling_deepseekv2.py": "74e36e6bd0ba7bc565ef76464a99baa8e6bccb710ae9c1007b54ac30b855fa4c",
+    "modeling_unlimitedocr.py": "3894696d68197ad00e89f0963880645dfce49b1933a9f27e78fbc05983547a78",
+    "config.json": "55e6c5179eea054a3fca99e3e41424649d22f574fba4c5f0737ef9c9095526e4",
+    "tokenizer_config.json": "a0cbe8464049da1f891b7a12676de06af4cb54c130995d42f71adc1c30c6e9f3",
+    "processor_config.json": "2c82d81788aac5146db01d842138e8f5921daa907d2fd61c3c6c757d41dfb1d7",
+    "preprocessor_config.json": "62cef9e2db4ae494ff2ecccaedfeef884d8ba880c25d17f14e81f3d1c3c899cb",
+    "generation_config.json": "dc97b67afaad12b72320c4230f292be8cb5a73fcb4caa9072074fe5a341fb003",
+    "special_tokens_map.json": "ab4bd57ce17d62e39e0a39e739de1e407484f090f0b2c7e391312bca7a5b061a",
+    "chat_template.jinja": "690dcec206a691b4876d70db7092b6b0ae14cb8b51396e4c89a25b777f5a6830",
+}
+
+
+def check_model_code(model_dir: Path) -> None:
+    """The model's code and configuration are exactly the reviewed ones, and there's no other
+    code beside them; else ``AiOcrError`` (nothing is loaded)."""
+    import hashlib
+
+    model_dir = Path(model_dir)
+    for name, expected in MODEL_CODE_SHA256.items():
+        try:
+            actual = hashlib.sha256((model_dir / name).read_bytes()).hexdigest()
+        except OSError:
+            actual = ""
+        if actual != expected:
+            raise AiOcrError(f"The AI text reader's model file {name} isn't the reviewed one, so it isn't run. "
+                             "Install the AI component again.")
+    extra = sorted(p.name for p in model_dir.glob("*.py") if p.name not in MODEL_CODE_SHA256)
+    if extra:
+        raise AiOcrError(f"The AI text reader's model folder holds code that wasn't reviewed ({', '.join(extra)}), "
+                         "so it isn't run. Install the AI component again.")
 MIN_MEMORY_GB = 7.5
 IDLE_SECONDS = 300
 PAGES_PER_PASS = 8  # (its context is 32k tokens: a few pages at a time, joined afterwards)
@@ -101,6 +138,10 @@ class Status:
 
 
 def status() -> Status:
+    from planetpdf.core import policy
+
+    if policy.reason("ai_reader"):
+        return Status(False, policy.reason("ai_reader"))
     if sys.platform != "win32" and not os.environ.get(ENV_RUNTIME):
         return Status(False, "AI text reading runs on Windows with an NVIDIA graphics card.")
     runtime = runtime_dir()
@@ -139,6 +180,7 @@ class Helper:
                     runtime = runtime_dir()
                     if runtime is None:
                         raise AiOcrError(NEEDS)
+                    check_model_code(runtime / "model")  # (before any of its code can run)
                     command = helper_command(runtime)
                 cls._shared = Helper(command)
             return cls._shared

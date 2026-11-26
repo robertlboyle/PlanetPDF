@@ -72,8 +72,11 @@ a = Analysis(
     datas=datas,
     hiddenimports=hiddenimports,
     excludes=EXCLUDES,
-    runtime_hooks=[str(ROOT / "packaging" / "linux" / f"rthook_{name}.py") for name in ("environment", "portaudio")]
-    if sys.platform == "linux" else [],
+    # first: the update's installing step cleans its environment before any library loads
+    # (security list 2026-11-26, item 10)
+    runtime_hooks=[str(ROOT / "packaging" / "rthook_clean_environment.py")] + (
+        [str(ROOT / "packaging" / "linux" / f"rthook_{name}.py") for name in ("environment", "portaudio")]
+        if sys.platform == "linux" else []),
     noarchive=False,
 )
 pyz = PYZ(a.pure)

@@ -8,7 +8,8 @@ Files opened from a zip in Windows Explorer (``%TEMP%\\<id>_<name>.zip.<n>\\``),
 like live in such folders and vanish when the zip window or the program closes. PlanetPDF won't
 save a document there: Save asks where to keep it instead, and Save As refuses those folders.
 
-Pure Python (no Qt). ``PLANETPDF_ALLOW_TEMP_SAVES=1`` lets tests save in pytest's temporary folders.
+Pure Python (no Qt). There is no switch that turns this off (tests/conftest.py puts pytest's
+folders somewhere lasting instead: security review 2026-11-25).
 """
 
 from __future__ import annotations
@@ -17,8 +18,6 @@ import os
 import sys
 import tempfile
 from pathlib import Path
-
-ALLOW_ENV = "PLANETPDF_ALLOW_TEMP_SAVES"
 
 # (part of the path, what to call it): folders other programs empty, inside the user's profile
 _KNOWN = (
@@ -64,8 +63,6 @@ def _inside(path: str, root: str) -> bool:
 def temporary_reason(path: Path | str) -> str | None:
     """None when ``path`` is somewhere lasting; else what kind of temporary folder it is in,
     for the message ("a temporary folder", "Outlook's folder for opened attachments")."""
-    if os.environ.get(ALLOW_ENV) == "1":
-        return None
     text = _norm(path)
     parts = [p.lower() for p in Path(text).parts]
     for needle, what in _KNOWN:

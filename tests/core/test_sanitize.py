@@ -170,3 +170,26 @@ def test_hidden_form_xobject_is_removed(tmp_path):
     assert "XOBJECT-SECRET" not in _everything(data)
     assert not g.bytes_contain_text(data, "XOBJECT-SECRET")
     assert "Normal text" in _everything(data)
+
+
+def test_alternate_text_inside_page_content_goes_too():
+    """Security review 2026-11-25: /Alt and /ActualText written into the page's content stayed
+    after Sanitize removed the tag tree."""
+    doc = pymupdf.open()
+    page = doc.new_page(width=612, height=792)
+    page.insert_text((72, 100), "Visible words", fontsize=12)
+    xref = page.get_contents()[-1]
+    doc.update_stream(xref, doc.xref_stream(xref) + b"\n/Span <</ActualText (ACTUAL-SECRET) /MCID 0>> BDC EMC"
+                      b"\n/Figure <</Alt <414c542d534543524554>>> BDC EMC\n")
+    form = doc.get_new_xref()
+    doc.update_object(form, "<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] >>")
+    doc.update_stream(form, b"/P <</E (EXPANSION-SECRET)>> BDC EMC")
+    kind, value = doc.xref_get_key(page.xref, "Resources")
+    owner, key = (int(value.split()[0]), "XObject") if kind == "xref" else (page.xref, "Resources/XObject")
+    doc.xref_set_key(owner, key, f"<< /Fm9 {form} 0 R >>")
+    result = sanitize(doc, _only("structure"))
+    data = _saved_bytes(doc)
+    for secret in ("ACTUAL-SECRET", "ALT-SECRET", "EXPANSION-SECRET"):
+        assert not g.bytes_contain_text(data, secret), secret
+    assert result.removed["structure"] >= 3
+    assert "Visible words" in pymupdf.open("pdf", doc.tobytes())[0].get_text()

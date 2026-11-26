@@ -95,6 +95,8 @@ COMMANDS: dict[str, Command] = {}
 # parameters many commands share
 FILE = Param("file", "file", "The PDF file", required=True, positional=True)
 OUT = Param("out", "out", "Where to write the result", required=True)
+NO_PROTECT = Param("no_protect", "flag", "Write the new file without the input's password (by default a "
+                   "password-protected input's new files keep it)")
 PASSWORD = Param("password", "secret", "The file's password, if it has one")
 PAGES = Param("pages", "pages", 'Which pages, e.g. "1-3, 7, 10-" (default: every page)')
 OVERWRITE = Param("overwrite", "flag", "Replace the output file if it exists")
@@ -186,9 +188,34 @@ def _pages(args: dict, count: int, key: str = "pages") -> list[int]:
     return list(range(count)) if not text else parse_page_ranges(text, count)
 
 
-def _target(args: dict, key: str = "out") -> Path:
-    """The output path, refused if it exists (unless overwrite, or it's the input itself)."""
+def _kept_protection(session: PdfSession, args: dict, result: dict | None = None) -> Protection | None:
+    """The input's password protection, for a new file made from it, unless --no-protect (security
+    review 2026-11-25: redacted and compressed copies of a protected PDF came out unprotected).
+    A file that only limits what may be done (no password to open it) can't be given the same
+    limits again without its permissions password: ``result`` then gets a note saying so."""
+    if args.get("no_protect"):
+        return None
+    known, _complete = session.known_protection()
+    if known is None:
+        return None
+    try:
+        known.validate()
+    except PdfError:
+        if result is not None:
+            result["note"] = ("The input's permission limits weren't kept: they need its permissions password, "
+                              "which PlanetPDF doesn't know.")
+        return None
+    return known
+
+
+def _target(args: dict, key: str = "out", *, replaces_input: bool = True) -> Path:
+    """The output path, refused if it exists (unless overwrite, or it's the input itself). A
+    command whose result isn't the PDF itself (text, Word, pictures, a report) never writes over
+    an input (security review 2026-11-25: ``text --out`` the PDF replaced it with its text)."""
     target = Path(args[key]).resolve()
+    inputs = [Path(args[k]).resolve() for k in ("file", "old", "new") if args.get(k)]
+    if not replaces_input and target in inputs:
+        raise CommandError(f"{key}: that's the PDF being read; choose another name for the new file.")
     source = args.get("file")
     same = source is not None and Path(source).resolve() == target
     if target.exists() and not same and not args.get("overwrite"):
@@ -266,7 +293,7 @@ def _text(args, ctx):
     finally:
         session.close()
     if args.get("out"):
-        target = _target(args)
+        target = _target(args, replaces_input=False)
         target.write_text(text, encoding="utf-8")
         return {"output": str(target), "pages": len(pages)}
     return {"text": text, "pages": len(pages)}
@@ -433,7 +460,7 @@ def _compare(args, ctx):
                             "old_page": None if c.old_page is None else c.old_page + 1}
                            for c in result.changes]}
         if args.get("report"):
-            target = _target(args, "report")
+            target = _target(args, "report", replaces_input=False)
             compare.comparison_report(old, new, result, target, progress=ctx.progress)
             out["report"] = str(target)
     return out
@@ -453,7 +480,7 @@ EXPORT_FORMATS = ("pdf", "png", "jpg", "tiff", "tiff_multi", "image_pdf", "docx"
          Param("quality", "int", "JPEG quality, 1-100", default=85),
          Param("ocr", "flag", "Recognize text on scanned pages first (text, RTF, Word)"),
          Param("ai", "flag", "Read the pages with the AI text reader, Unlimited-OCR (Word, RTF, text, HTML; needs "
-               "the optional AI component and an NVIDIA graphics card)"), OVERWRITE)
+               "the optional AI component and an NVIDIA graphics card)"), NO_PROTECT, OVERWRITE)
 def _export(args, ctx):
     from planetpdf.core import export, pages as page_ops
 
@@ -461,10 +488,16 @@ def _export(args, ctx):
     try:
         pages = _pages(args, session.page_count)
         fmt = export.ExportFormat(args["format"])
-        target = _target(args)
+        target = _target(args, replaces_input=fmt in (export.ExportFormat.PDF, export.ExportFormat.IMAGE_PDF))
+        result: dict = {}
+        protection = _kept_protection(session, args, result)
         if fmt is export.ExportFormat.PDF:
-            page_ops.export_pages(session, pages, target)
-            return {"outputs": [str(target)], "pages": len(pages)}
+            page_ops.export_pages(session, pages, target, protection)
+            return {"outputs": [str(target)], "pages": len(pages), **result}
+        if fmt is export.ExportFormat.IMAGE_PDF and protection is not None:
+            export.export_image_pdf(session.doc, pages, target, export.ExportOptions(dpi=args["dpi"],
+                                    jpeg_quality=args["quality"]), ctx.progress, protection)
+            return {"outputs": [str(target)], "pages": len(pages), **result}
         if args["ai"]:
             from planetpdf.core import ai_ocr
 
@@ -527,17 +560,19 @@ def _compress(args, ctx):
                                          scans_black_white=not args["keep_scan_colors"],
                                          scans_gray=not args["keep_scan_colors"])
         before = session.path.stat().st_size
+        extra: dict = {}
+        protection = _kept_protection(session, args, extra)
         doc = pymupdf.open(stream=session.doc.tobytes(encryption=pymupdf.PDF_ENCRYPT_NONE), filetype="pdf")
         target = _target(args)
     finally:
         session.close()
     try:
-        result = optimize.reduce_size(doc, target, options, before, ctx.progress)
+        result = optimize.reduce_size(doc, target, options, before, ctx.progress, protection)
     finally:
         doc.close()
     return {"output": str(target), "before": result.before, "after": result.after,
             "saved_percent": round(result.saved_percent, 1), "black_and_white": result.black_white,
-            "gray": result.gray}
+            "gray": result.gray, "protected": protection is not None, **extra}
 
 
 @command("optimize-scans", "Straighten, clean, and shrink scanned pages", WRITE, "Scan",
@@ -619,7 +654,7 @@ def _web(args, ctx):
          FILE, PASSWORD, Param("folder", "folder", "Where to put the files", required=True),
          Param("every", "int", "A new file every N pages"),
          Param("ranges", "texts", 'Page ranges, one file each, e.g. "1-3" "4-9"'),
-         Param("bookmarks", "flag", "One file per top-level bookmark"))
+         Param("bookmarks", "flag", "One file per top-level bookmark"), NO_PROTECT)
 def _split(args, ctx):
     from planetpdf.core import pages as page_ops
 
@@ -634,14 +669,17 @@ def _split(args, ctx):
             groups = page_ops.split_groups_by_bookmarks(session)
         else:
             raise CommandError("Say how to split: every, ranges, or bookmarks.")
-        files = page_ops.split_document(session, groups, args["folder"], session.path.stem, ctx.progress)
-        return {"outputs": [str(f) for f in files]}
+        result: dict = {}
+        protection = _kept_protection(session, args, result)
+        files = page_ops.split_document(session, groups, args["folder"], session.path.stem, ctx.progress,
+                                        protection)
+        return {"outputs": [str(f) for f in files], "protected": protection is not None, **result}
     finally:
         session.close()
 
 
 @command("extract", "Make a new PDF of some pages", WRITE, "Pages",
-         FILE, OUT, PASSWORD, Param("pages", "pages", "Which pages", required=True), OVERWRITE)
+         FILE, OUT, PASSWORD, Param("pages", "pages", "Which pages", required=True), NO_PROTECT, OVERWRITE)
 def _extract(args, ctx):
     from planetpdf.core import pages as page_ops
 
@@ -649,8 +687,10 @@ def _extract(args, ctx):
     try:
         pages = _pages(args, session.page_count)
         target = _target(args)
-        page_ops.export_pages(session, pages, target)
-        return {"output": str(target), "pages": len(pages)}
+        result: dict = {}
+        protection = _kept_protection(session, args, result)
+        page_ops.export_pages(session, pages, target, protection)
+        return {"output": str(target), "pages": len(pages), "protected": protection is not None, **result}
     finally:
         session.close()
 
@@ -744,10 +784,14 @@ def _crop(args, ctx):
          Param("keep_hidden_information", "flag", "Don't also remove metadata, comments, attachments, scripts…"),
          Param("touching_shapes", "flag", "Also remove shapes that only touch a box"),
          Param("keep_failed", "flag", "Save the file even if its checks fail (by default a failed redaction "
-               "saves nothing)"), OVERWRITE)
+               "saves nothing)"), NO_PROTECT, OVERWRITE)
 def _redact(args, ctx):
     from planetpdf.core.redaction import apply, marks, sanitize, search
 
+    if args["keep_failed"] and Path(args["out"]).resolve() == Path(args["file"]).resolve():
+        # (a failed copy kept over its own original: security review 2026-11-25)
+        raise CommandError("--keep-failed needs --out with another name: a redaction that fails its checks is "
+                           "never written over the original.")
     session = _open(args)
     try:
         pages = _pages(args, session.page_count)
@@ -756,7 +800,13 @@ def _redact(args, ctx):
             for hit in search.search_pages(session, pattern, pages):
                 specs.append(marks.make_spec(hit.page, hit.rects, label))
         if not specs:
-            return {"output": None, "marks": 0, "note": "Nothing matched: no file was written."}
+            scanned = [i + 1 for i in pages if search.page_has_images_but_no_text(session, i)]
+            note = "Nothing matched: no file was written."
+            if scanned:  # (security review 2026-11-25: a page that's only a picture can't be searched)
+                note += (f" {len(scanned)} page(s) have no text to search, only pictures (scans?): "
+                         f"{', '.join(map(str, scanned[:20]))}{'…' if len(scanned) > 20 else ''}. Recognize their "
+                         "text first (planetpdf ocr), or mark them by hand in PlanetPDF.")
+            return {"output": None, "marks": 0, "note": note, "pages_without_text": scanned}
         marks.add_marks(session, specs)
         target = _target(args)
         options = apply.RedactionOptions(fill=_color(args["fill"], (0, 0, 0)), overlay_text=args["overlay_text"],
@@ -764,8 +814,10 @@ def _redact(args, ctx):
         clean = None if args["keep_hidden_information"] else sanitize.SanitizeOptions()
         import pymupdf
 
+        extra: dict = {}
+        protection = _kept_protection(session, args, extra)
         data = session.doc.tobytes(encryption=pymupdf.PDF_ENCRYPT_NONE)
-        finished = apply.redact_copy(data, target, options, clean, progress=ctx.progress)
+        finished = apply.redact_copy(data, target, options, clean, progress=ctx.progress, protection=protection)
         result, verdict = finished.result, finished.result.report
         if verdict.passed or args["keep_failed"]:
             apply.finish_redaction(session, finished)
@@ -774,7 +826,8 @@ def _redact(args, ctx):
         return {"output": str(target) if verdict.passed or args["keep_failed"] else None,
                 "marks": result.marks_applied, "pages": result.pages_redacted,
                 "verified": verdict.passed,
-                "checks": [{"status": c.status.value, "title": c.title, "detail": c.detail} for c in verdict.checks]}
+                "checks": [{"status": c.status.value, "title": c.title, "detail": c.detail} for c in verdict.checks],
+                "protected": protection is not None, **extra}
     finally:
         session.close()
 
@@ -782,9 +835,12 @@ def _redact(args, ctx):
 @command("sanitize", "Remove hidden information: metadata, comments, attachments, scripts, hidden layers…", WRITE,
          "Redact", FILE, OUT, PASSWORD,
          Param("keep", "texts", "What to keep: metadata, xmp_metadata, bookmarks, embedded_files, javascript, "
-               "hidden_layers, comments, form_values, structure"), OVERWRITE)
+               "hidden_layers, comments, form_values, structure"),
+         Param("remove_signatures", "flag", "A signed PDF: remove its signatures too (needed: a signed file "
+               "saved the usual way keeps everything removed in its earlier, signed version)"), OVERWRITE)
 def _sanitize(args, ctx):
     from planetpdf.core.redaction import sanitize
+    from planetpdf.core.redaction.ocg import LayerError
 
     options = sanitize.SanitizeOptions()
     for name in args.get("keep") or []:
@@ -793,7 +849,16 @@ def _sanitize(args, ctx):
         setattr(options, name, False)
     session = _open(args)
     try:
-        result = sanitize.sanitize(session.doc, options)
+        signed = session.has_digital_signatures
+        if signed and not args["remove_signatures"]:  # (security review 2026-11-25)
+            raise CommandError("this PDF is digitally signed. Removing hidden information rewrites it as a whole "
+                               "new file without the signatures; add --remove-signatures to do that (with --out "
+                               "to keep the signed file as it is).")
+        try:
+            result = sanitize.sanitize(session.doc, options, remove_signatures=signed)
+        except LayerError as exc:
+            raise PdfError(f"nothing was saved. {exc} To remove the rest, add --keep hidden_layers.") from None
+        session.signatures_changed()
         session.mark_modified()
         return _done(session, args, removed=result.removed)
     except BaseException:

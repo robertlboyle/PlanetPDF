@@ -8,6 +8,9 @@ from planetpdf.ui import startup_log as S
 
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv if argv is None else argv
+    from planetpdf.core.clean_environment import scrub
+
+    scrub(argv)  # (the update's installing step: nothing of the user's environment steers it)
     from planetpdf.ui.printer_probe import PROBE_FLAG
 
     if PROBE_FLAG in argv:  # (a helper process checking a printer's driver: printer_probe)
@@ -61,9 +64,13 @@ def main(argv: list[str] | None = None) -> int:
     S.log(f"QApplication created (PlanetPDF {__version__})")
     files = [Path(a) for a in argv[1:] if not a.startswith("-")]
     single = "--new-instance" not in argv
+    from planetpdf.ui import paths, single_instance
     from planetpdf.ui.single_instance import InstanceServer
 
-    server = None
+    # How this user's PlanetPDFs reach each other is said in the user's own folder, under names
+    # made at random for each run: nobody else can stand in for one (security list 2026-11-26)
+    single_instance.configure(paths.instance_dir())
+    shared = False
     if single:
         # One PlanetPDF per user (user 2026-10-02): a later start hands its files to the
         # running one (tabs there) and stops here, before loading anything heavy. The running
@@ -80,14 +87,15 @@ def main(argv: list[str] | None = None) -> int:
                 return 0
             if not instance.isLocked():
                 S.log("Another PlanetPDF holds the start lock but didn't answer: starting anyway")
-        server = InstanceServer(None, parent=app)  # (listening now; files wait for the window)
-        app.aboutToQuit.connect(server.close)
-        S.log("Listening for later starts" if server.listening else "Couldn't listen for later starts")
+        shared = instance.isLocked()
+    # Listening now (files wait for the window): for later starts when this is the user's running
+    # copy (``shared``), and always for a copy asking this one to show a file it has open
+    server = InstanceServer(None, shared=shared, parent=app)
+    app.aboutToQuit.connect(server.close)
+    S.log(("Listening for later starts" if shared else "Listening for other PlanetPDFs") if server.listening
+          else "Couldn't listen for later starts")
+    single_instance.forget_stale()
     from planetpdf.ui import file_locks
-
-    own_server = InstanceServer(None, file_locks.process_server_name(), parent=app)  # (asked to show a file it has)
-
-    from planetpdf.ui import paths
 
     profile = paths.profile()
     file_locks.configure(paths.open_files_dir())  # (a file open in one PlanetPDF only)
@@ -136,9 +144,7 @@ def main(argv: list[str] | None = None) -> int:
             S.log(f"Handed over by a later start: {len(paths)} file(s); {len(target.documents)} tab(s) now")
         target.bring_forward()
 
-    for listener in (server, own_server):
-        if listener is not None:
-            listener.set_handler(handed_over)  # (files handed over while the window was built open now)
+    server.set_handler(handed_over)  # (files handed over while the window was built open now)
 
     from planetpdf.ui import api_server
 

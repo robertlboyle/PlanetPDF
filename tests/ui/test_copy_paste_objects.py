@@ -155,3 +155,56 @@ def test_nothing_selected_still_copies_selected_page_text(qapp, tmp_path, pdf_co
     win.clipboard_tools.select_all()
     assert win.clipboard_tools.copy()
     assert g.TEXT_LINES[0] in QApplication.clipboard().text()
+
+
+def test_copies_are_shared_by_every_window_and_password_fields_stay_password_fields(tmp_path):
+    """Security review 2026-11-25: a paste in a second window put back that window's older copy,
+    and a copied password field lost its password flag."""
+    from planetpdf.core.forms import design as D
+    from planetpdf.core.forms import fields as F
+    from planetpdf.ui import clipboard_tools as CT
+
+    CT._Copied.items, CT._Copied.objects = ["older"], None
+    first, second = CT.ClipboardTools.__new__(CT.ClipboardTools), CT.ClipboardTools.__new__(CT.ClipboardTools)
+    first._copied = ["newest"]
+    assert second._copied == ["newest"]  # (one copy, the newest, whichever window pastes)
+    CT._Copied.items = []
+
+    import pymupdf
+
+    from planetpdf.core.document import PdfSession
+
+    doc = pymupdf.open()
+    page = doc.new_page()
+    w = pymupdf.Widget()
+    w.field_type, w.field_name, w.rect = pymupdf.PDF_WIDGET_TYPE_TEXT, "pin", pymupdf.Rect(72, 72, 200, 92)
+    w.field_flags = F.FF_PASSWORD
+    w.field_value = "1234"
+    page.add_widget(w)
+    doc.save(tmp_path / "form.pdf")
+    session = PdfSession.open(tmp_path / "form.pdf")
+    try:
+        spec = D.field_spec(session, "pin")
+        assert spec.password
+        from dataclasses import replace
+
+        D.create_field(session, replace(spec, name="pin2", value=None))
+        [copy] = [f for f in F.list_fields(session) if f.name == "pin2"]
+        assert copy.password
+    finally:
+        session.close()
+
+
+def test_cut_removes_nothing_when_some_objects_cant_be_copied(qapp, tmp_path, pdf_copy, closing, monkeypatch):
+    """Security review 2026-11-25: Cut could remove more than Paste puts back."""
+    from planetpdf.ui.edit_controller import CopiedObjects
+
+    win = _window(tmp_path, pdf_copy, "text.pdf", "edit")
+    closing(win)
+    deleted = []
+    monkeypatch.setattr(type(win.view), "selected_group", property(lambda self: ["txt:0:0", "lnk:0:0"]))
+    monkeypatch.setattr(win.edit, "copy_selection",
+                        lambda: CopiedObjects(None, (), (), 0, "x", 2, left_out=1))
+    monkeypatch.setattr(win.edit, "delete", lambda *a, **k: deleted.append(True))
+    assert not win.clipboard_tools.cut()
+    assert deleted == [] and "nothing was cut" in win.statusBar().currentMessage()

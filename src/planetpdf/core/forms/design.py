@@ -56,6 +56,7 @@ class FieldSpec:
     required: bool = False
     read_only: bool = False
     multiline: bool = False
+    password: bool = False  # (a copy of a password field stays one: security review 2026-11-25)
     multiselect: bool = False
     editable_combo: bool = False
     max_length: int = 0
@@ -98,6 +99,8 @@ def _flags(spec: FieldSpec) -> int:
         flags |= F.FF_REQUIRED
     if spec.multiline and spec.kind is FieldKind.TEXT:
         flags |= F.FF_MULTILINE
+    if spec.password and spec.kind is FieldKind.TEXT:
+        flags |= F.FF_PASSWORD
     if spec.multiselect and spec.kind is FieldKind.LIST:
         flags |= F.FF_MULTISELECT
     if spec.editable_combo and spec.kind is FieldKind.COMBO:
@@ -342,7 +345,8 @@ def field_spec(session: PdfSession, name: str) -> FieldSpec:
                          barcode=barcodes.settings(doc, first.xref) if action == "barcode" else None,
                          extra_widgets=tuple((w.page, w.rect) for w in f.widgets[1:]))
     common = dict(name=f.name, kind=f.kind, page=first.page, rect=first.rect, value=f.value, tooltip=tooltip,
-                  required=f.required, read_only=f.read_only, multiline=f.multiline, multiselect=f.multiselect,
+                  required=f.required, read_only=f.read_only, multiline=f.multiline, password=f.password,
+                  multiselect=f.multiselect,
                   editable_combo=f.editable_combo, max_length=f.max_length, date_format=f.date_format, font_size=size)
     if f.kind is FieldKind.RADIO:
         ours = all(w.label is not None for w in f.widgets)

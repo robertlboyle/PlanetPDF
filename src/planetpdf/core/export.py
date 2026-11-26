@@ -215,9 +215,11 @@ def _export_multipage_tiff(doc, pages, target: Path, options: ExportOptions, pro
 
 
 def export_image_pdf(
-    doc: pymupdf.Document, pages: Sequence[int], target: Path, options: ExportOptions, progress: Progress = None
+    doc: pymupdf.Document, pages: Sequence[int], target: Path, options: ExportOptions, progress: Progress = None,
+    protection=None,
 ) -> Path:
-    """A PDF whose pages are pictures of the originals: no text, no layers, no forms."""
+    """A PDF whose pages are pictures of the originals: no text, no layers, no forms (encrypted as it
+    is written with ``protection``)."""
     pages = _check_pages(doc, pages)
     out = pymupdf.open()
     try:
@@ -231,8 +233,10 @@ def export_image_pdf(
             else:
                 page.insert_image(page.rect, pixmap=pix)
         _tick(progress, 0, 0, f"Saving the PDF ({len(pages)} pages)…")
-        with _AtomicTarget(target) as tmp:
-            out.save(str(tmp), garbage=4, deflate=True)
+        from planetpdf.core.document import save_pdf
+
+        Path(target).parent.mkdir(parents=True, exist_ok=True)
+        save_pdf(out, Path(target), protection, garbage=4, deflate=True)
     finally:
         out.close()
     _tick(progress, len(pages), len(pages))

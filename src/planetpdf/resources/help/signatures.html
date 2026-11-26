@@ -152,7 +152,7 @@
 <h2 id="check-signatures">Checking signatures</h2>
 <!-- index: validate signature; verify signature; signature status; signatures panel; Check Signatures; is the signature valid -->
 <p>When you open a digitally signed document, PlanetPDF checks every signature and opens the <b>Signatures</b> panel. You can open it yourself with <b>View ▸ Show/Hide ▸ Navigation Panes ▸ Signatures Panel</b>, and check again at any time with <b>Fill &amp; Sign ▸ More ▸ Check Signatures</b> or the panel's <b>Check Again</b> button.</p>
-<p>The panel lists each signature with its status, the signer, when it was signed (with "(timestamped)" when a timestamp server vouched for the time), and details. A line at the top gives the overall result.</p>
+<p>The panel lists each signature with its status, the signer, when it was signed (with "(timestamped)" when a timestamp server you trust vouched for the time, or "(signer's clock)" when the time is only what the signer's computer said: a timestamp from a server you don't trust proves no time), and details. A line at the top gives the overall result, and says when whether the certificates were revoked wasn't checked (<a href="preferences.html#signatures">Preferences ▸ Signatures</a>).</p>
 <table>
   <tr><th>Status</th><th>What it means</th></tr>
   <tr><td><b>✔ Valid</b></td><td>The signature is intact, the signer's certificate is one you trust, and the document hasn't changed since (or only in ways the signer allowed).</td></tr>

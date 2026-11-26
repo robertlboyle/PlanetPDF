@@ -1,0 +1,20 @@
+{
+  "ghostscript": {
+    "windows": {
+      "tree_sha256": "21a85df022de0f103f69665d2bf9f857d19893321966e39c01281558809e4e03",
+      "files": 533
+    },
+    "source": {
+      "windows": "Ghostscript 10.08.0 as installed on the build computer by Artifex's gs10080w64.exe (Authenticode: Artifex Software, Inc.; SHA-256 52a91b8bf09298788d7a57b9206127026c23eacd75405f0a131e26dc381dce50). The installed files themselves aren't signed: pinned as found, 2026-11-26."
+    }
+  },
+  "tessdata": {
+    "windows": {
+      "eng.traineddata": "7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2",
+      "osd.traineddata": "9cf5d576fcc47564f11265841e5ca839001e7e6f38ff7f7aacf46d15a96b00ff"
+    },
+    "source": {
+      "windows": "tesseract-ocr/tessdata_fast on GitHub (as UB-Mannheim's Tesseract 5.4.0 installer puts them): both files match that repository's (git blobs bbef4675053b5b468cdb477053e28b1c698ba08e and 527457ca8f8fe1fda7c2f88bce3c0e4be12be9d0), checked 2026-11-26."
+    }
+  }
+}

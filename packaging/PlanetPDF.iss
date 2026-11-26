@@ -109,8 +109,10 @@ Root: HKLM; Subkey: "Software\RegisteredApplications"; ValueType: string; ValueN
 ; Every entry first points current.txt at this version (SetCurrentVersion): Inno runs these
 ; entries BEFORE CurStepChanged(ssPostInstall), so the launcher (PlanetPDF.exe) would otherwise start
 ; the version installed before (user 2026-10-24: installing 0.1.8 started 0.1.0)
-; the PlanetPDF printer (the PlanetPDF Print Service, its pipe port, the printer)
-Filename: "{app}\printer\planetpdf-printer-setup.exe"; Parameters: "install"; Components: printer; Flags: runhidden waituntilterminated; StatusMsg: "Adding the PlanetPDF printer..."; BeforeInstall: SetCurrentVersion
+; the PlanetPDF printer (the PlanetPDF Print Service, its pipe port, the printer): only where
+; PlanetPDF's folder could be closed to other users (FolderIsProtected), since its service runs
+; with system rights; planetpdf-printer-setup checks the folder itself as well
+Filename: "{app}\printer\planetpdf-printer-setup.exe"; Parameters: "install"; Components: printer; Check: FolderIsProtected; Flags: runhidden waituntilterminated; StatusMsg: "Adding the PlanetPDF printer..."; BeforeInstall: SetCurrentVersion
 ; Windows' "How do you want to open .pdf files?" chooser (PlanetPDF.exe --choose-pdf-app), as the
 ; user who ran Setup, not the administrator
 Filename: "{app}\PlanetPDF.exe"; Parameters: "--choose-pdf-app"; Tasks: defaultpdf; Flags: nowait runasoriginaluser skipifsilent; StatusMsg: "Asking Windows which app opens PDF files..."; BeforeInstall: SetCurrentVersion
@@ -185,6 +187,67 @@ begin
   if (Length(Path) > 0) and (Path[1] = ';') then
     Delete(Path, 1, 1);
   RegWriteExpandStringValue(HKEY_LOCAL_MACHINE, EnvironmentKey, 'Path', Path);
+end;
+
+// Only administrators (and Windows itself) may change PlanetPDF's folder; everyone else may read
+// and run what is in it (security list 2026-11-26, item 3). In Program Files that is how a new
+// folder starts out. Anywhere else (D:\Apps…) a new folder usually inherits the right for every
+// user to write, and then any user could put a program of their own in place of PlanetPDF.exe,
+// which everyone else runs, or of the print service, which runs with system rights. So Setup
+// sets the folder's permissions itself, wherever it is: before the files are copied (ProtectFolder:
+// they inherit them), and again over everything in it afterwards (ProtectContents: files left by
+// an earlier install, or put there by someone while the folder was open, get the same owner and
+// permissions). Windows' own icacls does it, started from System32 by its full path.
+//   S-1-5-18 SYSTEM, S-1-5-32-544 Administrators: full; S-1-5-32-545 Users, S-1-15-2-1 app
+//   packages: read and run (as in Program Files).
+var
+  FolderProtected: Boolean;
+
+function Icacls(Parameters: String): Boolean;
+var
+  Code: Integer;
+begin
+  Code := -1;
+  Result := Exec(ExpandConstant('{sys}\icacls.exe'), Parameters, '', SW_HIDE, ewWaitUntilTerminated, Code)
+    and (Code = 0);
+  if not Result then
+    Log('icacls ' + Parameters + ' failed (exit code ' + IntToStr(Code) + ')');
+end;
+
+procedure ProtectFolder;
+var
+  Folder: String;
+begin
+  Folder := ExpandConstant('{app}');
+  ForceDirectories(Folder);
+  // owner: Administrators; then nothing inherited and nothing left over; then exactly these
+  FolderProtected := Icacls('"' + Folder + '" /setowner *S-1-5-32-544 /Q')
+    and Icacls('"' + Folder + '" /reset /Q')
+    and Icacls('"' + Folder + '" /inheritance:r /grant:r *S-1-5-18:(OI)(CI)F *S-1-5-32-544:(OI)(CI)F'
+               + ' *S-1-5-32-545:(OI)(CI)RX *S-1-15-2-1:(OI)(CI)RX /Q');
+  if FolderProtected then
+    Log('PlanetPDF''s folder is closed to everyone but administrators: ' + Folder)
+  else
+    Log('PlanetPDF''s folder could NOT be closed to other users: ' + Folder);
+end;
+
+procedure ProtectContents;
+var
+  Inside: String;
+begin
+  if not FolderProtected then
+    exit;
+  WizardForm.StatusLabel.Caption := 'Protecting PlanetPDF''s folder...';
+  WizardForm.StatusLabel.Update;
+  Inside := '"' + ExpandConstant('{app}') + '\*"';
+  // (/C: go on past a file that can't be changed; the print service's setup checks what matters)
+  Icacls(Inside + ' /setowner *S-1-5-32-544 /T /C /Q');
+  Icacls(Inside + ' /reset /T /C /Q');
+end;
+
+function FolderIsProtected: Boolean;
+begin
+  Result := FolderProtected;
 end;
 
 // The PlanetPDF Print Service runs from {app}\printer: stop it before its files are replaced
@@ -340,18 +403,37 @@ begin
 end;
 
 { The launcher starts the version current.txt names: this one, from the moment its files are in. }
+var
+  ContentsProtected: Boolean;
+
 procedure SetCurrentVersion;
 begin
   SaveStringToFile(ExpandConstant('{app}\current.txt'), '{#AppVersion}' + #13#10, False);
+  { (the first thing after the files are in, before anything of PlanetPDF's is started) }
+  if not ContentsProtected then
+  begin
+    ContentsProtected := True;
+    ProtectContents;
+  end;
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssInstall then
+  begin
     ShowTip(0);
+    ProtectFolder;  { (before the files are copied: they inherit the folder's permissions) }
+  end;
   if CurStep = ssPostInstall then
   begin
     SetCurrentVersion;  { (again: with no [Run] entry chosen, this is the first time) }
     RemoveOldVersions;
+    if not FolderProtected then
+      SuppressibleMsgBox('Setup couldn''t close PlanetPDF''s folder to other users of this computer:' + #13#10
+        + ExpandConstant('{app}') + #13#10#13#10
+        + 'PlanetPDF is installed and works, but anyone who can write to that folder could replace its programs. '
+        + 'The PlanetPDF printer wasn''t added, because its service runs with system rights.' + #13#10#13#10
+        + 'Install PlanetPDF on a drive that keeps Windows permissions (NTFS), such as in Program Files, '
+        + 'and run Setup again.', mbError, MB_OK, IDOK);
   end;
 end;
