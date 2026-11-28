@@ -46,7 +46,7 @@ ELEONORA_ANDROID_VERSION = "2.0.12"  # (the Android beta, 2026-11-26; 2.0.2 cras
 ELEONORA_MAC_VERSION = "2.0.12"  # (Mac 2.0.12, 2026-11-26, from the MacBook Pro)
 ELEONORA_LINUX_VERSION = "2.0.12"  # (Linux 2.0.12, 2026-11-26, from the MacBook Pro)
 # (Eudora 1.x: its pages now send people to Eleonora's, see MOVED; 1.x copies update themselves to Eleonora)
-WINDOWS_VERSION = "1.0.10"  # (Windows' last release, 2026-11-28; raise it when a Windows build is uploaded)
+WINDOWS_VERSION = "1.0.11"  # (Windows' last release, 2026-11-28; raise it when a Windows build is uploaded)
 MAC_VERSION = "1.0.8"  # (the Mac's last release, 2026-11-26; raise it when a Mac build is uploaded)
 EUDORA_VERSION = "1.0.3"  # (Eudora's last Windows release, x64 and ARM64, 2026-11-17; raise it when Eudora uploads a new one)
 EUDORA_MAC_VERSION = "1.0.2"  # (Eudora's last Mac release, 2026-11-17)

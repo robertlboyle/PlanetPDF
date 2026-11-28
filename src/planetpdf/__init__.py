@@ -1,6 +1,6 @@
 """PlanetPDF: a free, open-source desktop PDF editor."""
 
-__version__ = "1.0.10"
+__version__ = "1.0.11"
 APP_NAME = "PlanetPDF"
 ORG_NAME = "Planet Networks"
 # where updates are published (core/update.py); update.json next to the launcher overrides it

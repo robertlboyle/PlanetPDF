@@ -2,6 +2,19 @@
 <h1 id="top">What's New</h1>
 <p>The changes in each version of PlanetPDF, newest first. Help ▸ About PlanetPDF shows the same list.</p>
 
+<h2 id="v1-0-11">Version 1.0.11</h2>
+<!-- index: version 1.0.11; System32; libraries; uninstall; print service folder; Select tool; Comment tool -->
+<p>Three more points from the same security review:</p>
+<ul>
+  <li>PlanetPDF's small programs (the launchers and the PlanetPDF printer's service and setup program)
+    now take every Windows library they load, also while they run, only from Windows' own folder,
+    never one put beside them.</li>
+  <li>Uninstalling PlanetPDF also removes the printer service's working folder in
+    <code>C:\ProgramData\PlanetPDF</code>, with its log.</li>
+  <li>With the arrow, a click on an item the arrow can't select (for example one that keeps only its
+    look) no longer starts a new text on top of it; the status bar says to use the Comment tool.</li>
+</ul>
+
 <h2 id="v1-0-10">Version 1.0.10</h2>
 <!-- index: version 1.0.10; security; shared computers; print service; spool folder; install folder; installer; rich text; tooltips; sanitize; hidden layers; alternate text; redaction; signed documents; protection; passwords; permissions; Office files; RTF; policy; revocation -->
 <p>A third security review, of 1.0.9, tested in a Windows test computer by an outside reviewer. Everything it
