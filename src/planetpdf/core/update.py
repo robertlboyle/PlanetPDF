@@ -373,6 +373,27 @@ def needs_admin(root: Path) -> bool:
     return not (os.access(root.parent, os.W_OK) and os.access(root, os.W_OK))
 
 
+def elevation_refusal(root: Path | None) -> str:
+    """Windows: why PlanetPDF won't run its own programs from ``root`` as administrator ("": it
+    may). Security review 2026-11-27, finding 3: in a folder other users can change (a custom
+    folder installed or updated by 1.0.6 or earlier, or one that already existed), any of its
+    programs or DLLs could have been replaced, and the update's administrator step ran them; closing
+    the folder afterwards didn't undo what was put there. Only PlanetPDF's installer, which comes
+    from outside the folder, can put it right: so PlanetPDF asks for no administrator rights there,
+    and says so."""
+    if sys.platform != "win32" or root is None or is_app_bundle(root):
+        return ""
+    from planetpdf.core import windows_acl
+
+    found = windows_acl.open_in_tree(root)
+    if not found:
+        return ""
+    return (f"PlanetPDF's folder can be changed by other users of this computer ({found[0]}), so a program "
+            "in it could have been replaced, and PlanetPDF won't run one there as administrator. Ask whoever "
+            "looks after this computer to run PlanetPDF's installer from the download page: it closes the "
+            "folder and puts back PlanetPDF's own files.")
+
+
 def user_may_install(root: Path) -> bool:
     """Whether this user can install an update of the copy at ``root``: one in a folder they can
     write, or as an administrator (who can approve the prompt). A standard user on a per-machine
@@ -423,10 +444,12 @@ def configured_url(root: Path | None, default: str, *, even_if_off: bool = False
     ``even_if_off``: the address all the same, for IT's own update (``--install-updates``, a
     scheduled task) and for the voices' download, which has its own switch; turning checks off
     is about what users' PlanetPDF does by itself."""
-    if URL_ENV_VAR in os.environ:
-        return os.environ[URL_ENV_VAR].strip()
+    # (IT's "off" first: a user's own PLANETPDF_UPDATE_URL made the checks happen against the policy;
+    # security review 2026-11-27, finding 14)
     if not even_if_off and checks_off(root):
         return ""
+    if URL_ENV_VAR in os.environ:
+        return os.environ[URL_ENV_VAR].strip()
     return str(_config(root).get("url", "")).strip() or default
 
 

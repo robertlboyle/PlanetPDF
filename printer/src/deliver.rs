@@ -50,8 +50,11 @@ pub struct Session {
 /// other's printouts). With the account's SID, only that account's session (an active one first; a
 /// disconnected one gets the file when they come back). With only a name (the queue's, when the
 /// spooler's own account wrote the job): that name's session, unless two different accounts
-/// carry the name, and then nobody's.
-pub fn pick_session(sessions: &[Session], user: &str, sid: &str) -> Result<u32, Failure> {
+/// carry the name, and then nobody's. ``others``: the SIDs of the accounts this computer knows by
+/// that name (its own and the domain's, ``accounts_named``): security review 2026-11-27, finding
+/// 11: with only one of them signed in, a printout by the other went to it (the driver gives only
+/// the name for every job), so a name two accounts carry is never enough, signed in or not.
+pub fn pick_session(sessions: &[Session], user: &str, sid: &str, others: &[String]) -> Result<u32, Failure> {
     let best = |list: &[&Session]| list.iter().find(|s| s.active).or(list.first()).map(|s| s.id);
     let gone = || Failure::Failed(format!("{user} isn't signed in here"));
     if !sid.is_empty() {
@@ -63,6 +66,12 @@ pub fn pick_session(sessions: &[Session], user: &str, sid: &str) -> Result<u32, 
     if named.len() > 1 && !one_account {
         return Err(Failure::Unsure(format!("more than one account named {user} is signed in here, and Windows \
                                             gave only the name")));
+    }
+    if let Some(first) = named.first() {
+        if others.iter().any(|other| !other.eq_ignore_ascii_case(&first.sid)) {
+            return Err(Failure::Unsure(format!("two accounts are named {user} on this computer (its own and the \
+                                                domain's), and Windows gave only the name")));
+        }
     }
     best(&named).ok_or_else(gone)
 }
@@ -102,7 +111,8 @@ impl Drop for Impersonation {
 /// Puts the spooled PDF in the job's user's PlanetPDF inbox and opens it in PlanetPDF there.
 /// Returns where it went.
 pub fn deliver(job: &Job, spooled: &Path) -> Result<PathBuf, Failure> {
-    let session = pick_session(&sessions(), &job.user, &job.sid)?;
+    let others = if job.sid.is_empty() { accounts_named(&job.user) } else { Vec::new() };
+    let session = pick_session(&sessions(), &job.user, &job.sid, &others)?;
     let failed = Failure::Failed;
     let token = user_token(session)
         .map_err(|e| failed(format!("no access to {}'s session {session}: {e}", job.user)))?;
@@ -167,6 +177,64 @@ pub fn token_sid(token: HANDLE) -> Option<String> {
         ffi::LocalFree(text as *mut _);
         (!value.is_empty()).then_some(value)
     }
+}
+
+/// The SIDs of the accounts this computer knows by ``user``: its own local account, and the
+/// domain's (by its user principal name, when the computer is in a domain).
+fn accounts_named(user: &str) -> Vec<String> {
+    let mut found: Vec<String> = Vec::new();
+    let mut names = vec![format!("{}\\{user}", computer_name())];
+    if let Some(domain) = dns_domain() {
+        names.push(format!("{user}@{domain}"));
+    }
+    for name in names {
+        if let Some(sid) = account_sid(&name) {
+            if !found.iter().any(|f| f.eq_ignore_ascii_case(&sid)) {
+                found.push(sid);
+            }
+        }
+    }
+    found
+}
+
+fn account_sid(name: &str) -> Option<String> {
+    let wide = ffi::wide(name);
+    let mut sid = vec![0u64; 16];  // (a SID is at most 68 bytes)
+    let mut sid_bytes = (sid.len() * 8) as u32;
+    let mut domain = [0u16; 256];
+    let mut domain_len = domain.len() as u32;
+    let mut kind = 0i32;
+    // SAFETY: buffers of the sizes given; the SID string is freed.
+    unsafe {
+        if ffi::LookupAccountNameW(std::ptr::null(), wide.as_ptr(), sid.as_mut_ptr() as *mut c_void, &mut sid_bytes,
+                                   domain.as_mut_ptr(), &mut domain_len, &mut kind) == 0 || kind != 1 {
+            return None;  // (none, or not a user: SidTypeUser = 1)
+        }
+        let mut text: ffi::LPWSTR = std::ptr::null_mut();
+        if ffi::ConvertSidToStringSidW(sid.as_mut_ptr() as *mut c_void, &mut text) == 0 {
+            return None;
+        }
+        let value = ffi::from_wide(text);
+        ffi::LocalFree(text as *mut _);
+        Some(value)
+    }
+}
+
+fn computer_name() -> String {
+    computer_name_ex(0)  // (ComputerNameNetBIOS)
+        .unwrap_or_default()
+}
+
+fn dns_domain() -> Option<String> {
+    computer_name_ex(2).filter(|d| !d.is_empty())  // (ComputerNameDnsDomain: empty when not in a domain)
+}
+
+fn computer_name_ex(kind: i32) -> Option<String> {
+    let mut buffer = [0u16; 256];
+    let mut size = buffer.len() as u32;
+    // SAFETY: a buffer of `size` UTF-16 units.
+    (unsafe { ffi::GetComputerNameExW(kind, buffer.as_mut_ptr(), &mut size) } != 0)
+        .then(|| String::from_utf16_lossy(&buffer[..size as usize]))
 }
 
 fn session_user(session: u32) -> Option<String> {
@@ -277,31 +345,44 @@ mod tests {
         // a local "alice" and a domain "alice", both signed in (the local one active)
         let both = [session(2, true, "alice", LOCAL_ALICE), session(3, false, "Alice", DOMAIN_ALICE),
                     session(4, true, "bob", "S-1-5-21-1-1-1-1002")];
-        assert_eq!(pick_session(&both, "alice", DOMAIN_ALICE), Ok(3));  // (hers, though the other alice is active)
-        assert_eq!(pick_session(&both, "alice", LOCAL_ALICE), Ok(2));
+        assert_eq!(pick_session(&both, "alice", DOMAIN_ALICE, &[]), Ok(3));  // (hers, though the other alice is active)
+        assert_eq!(pick_session(&both, "alice", LOCAL_ALICE, &[]), Ok(2));
         // the account isn't signed in: nobody else with the name gets it
-        assert!(matches!(pick_session(&both, "alice", "S-1-5-21-7-7-7-3001"), Err(Failure::Failed(_))));
+        assert!(matches!(pick_session(&both, "alice", "S-1-5-21-7-7-7-3001", &[]), Err(Failure::Failed(_))));
     }
 
     #[test]
     fn an_account_in_two_sessions_gets_it_in_the_active_one() {
         let twice = [session(2, false, "alice", LOCAL_ALICE), session(5, true, "alice", LOCAL_ALICE)];
-        assert_eq!(pick_session(&twice, "alice", LOCAL_ALICE), Ok(5));
-        assert_eq!(pick_session(&twice, "ALICE", ""), Ok(5));  // (only a name, but one account)
-        assert_eq!(pick_session(&twice[..1], "alice", LOCAL_ALICE), Ok(2));  // (disconnected: when she's back)
+        assert_eq!(pick_session(&twice, "alice", LOCAL_ALICE, &[]), Ok(5));
+        assert_eq!(pick_session(&twice, "ALICE", "", &[]), Ok(5));  // (only a name, but one account)
+        assert_eq!(pick_session(&twice[..1], "alice", LOCAL_ALICE, &[]), Ok(2));  // (disconnected: when she's back)
     }
 
     #[test]
     fn a_name_two_accounts_carry_is_nobodys_without_the_account() {
         let both = [session(2, true, "alice", LOCAL_ALICE), session(3, false, "alice", DOMAIN_ALICE)];
-        assert!(matches!(pick_session(&both, "alice", ""), Err(Failure::Unsure(_))));
+        assert!(matches!(pick_session(&both, "alice", "", &[]), Err(Failure::Unsure(_))));
         // (a session whose account couldn't be read counts as another account)
         let unread = [session(2, true, "alice", LOCAL_ALICE), session(3, false, "alice", "")];
-        assert!(matches!(pick_session(&unread, "alice", ""), Err(Failure::Unsure(_))));
-        // one alice only: hers, as before
-        assert_eq!(pick_session(&both[..1], "alice", ""), Ok(2));
-        assert_eq!(pick_session(&[session(7, true, "alice", "")], "alice", ""), Ok(7));
-        assert!(matches!(pick_session(&both, "carol", ""), Err(Failure::Failed(_))));
-        assert!(matches!(pick_session(&[], "alice", LOCAL_ALICE), Err(Failure::Failed(_))));
+        assert!(matches!(pick_session(&unread, "alice", "", &[]), Err(Failure::Unsure(_))));
+        // one alice only, and the only account of that name: hers, as before
+        assert_eq!(pick_session(&both[..1], "alice", "", &[LOCAL_ALICE.to_string()]), Ok(2));
+        assert_eq!(pick_session(&[session(7, true, "alice", "")], "alice", "", &[]), Ok(7));
+        assert!(matches!(pick_session(&both, "carol", "", &[]), Err(Failure::Failed(_))));
+        assert!(matches!(pick_session(&[], "alice", LOCAL_ALICE, &[]), Err(Failure::Failed(_))));
+    }
+
+    #[test]
+    fn a_name_another_account_carries_is_held_even_when_only_one_is_signed_in() {
+        // (security review 2026-11-27, finding 11: the domain alice signed in, the local alice printed
+        // with only her name, and it went to the domain alice)
+        let domain_only = [session(3, true, "alice", DOMAIN_ALICE)];
+        let accounts = [LOCAL_ALICE.to_string(), DOMAIN_ALICE.to_string()];
+        assert!(matches!(pick_session(&domain_only, "alice", "", &accounts), Err(Failure::Unsure(_))));
+        // with the account Windows gave, still hers
+        assert_eq!(pick_session(&domain_only, "alice", DOMAIN_ALICE, &accounts), Ok(3));
+        // and with only her own account of that name on the computer, hers
+        assert_eq!(pick_session(&domain_only, "alice", "", &[DOMAIN_ALICE.to_string()]), Ok(3));
     }
 }

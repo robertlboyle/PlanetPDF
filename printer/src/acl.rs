@@ -134,6 +134,57 @@ pub fn path_open_to(path: &std::path::Path) -> Result<Vec<String>, String> {
     others_who_can_change(&sddl)
 }
 
+/// Everything in `root`'s tree (the folder itself, every folder and file below it) that someone
+/// other than an administrator can change, or that is a link to another place (a junction or a
+/// symbolic link: never PlanetPDF's); at most `most` lines, empty when nothing is (security review
+/// 2026-11-27, finding 3: Setup asks this before it closes the folder, to know whether what is in
+/// it can be trusted).
+#[cfg(windows)]
+pub fn open_in_tree(root: &std::path::Path, most: usize) -> Vec<String> {
+    const LIMIT: usize = 200_000;
+    let mut found = Vec::new();
+    let mut note = |path: &std::path::Path, why: String| {
+        if found.len() < most {
+            found.push(format!("{}: {why}", path.display()));
+        }
+    };
+    let check = |path: &std::path::Path, note: &mut dyn FnMut(&std::path::Path, String)| match path_open_to(path) {
+        Ok(others) if others.is_empty() => {}
+        Ok(others) => note(path, format!("can be changed by {}",
+                                         others.iter().map(|o| in_words(o)).collect::<Vec<_>>().join(", "))),
+        Err(why) => note(path, why),
+    };
+    check(root, &mut note);
+    let mut pending = vec![root.to_path_buf()];
+    let mut seen = 0;
+    while let Some(folder) = pending.pop() {
+        let Ok(entries) = std::fs::read_dir(&folder) else {
+            note(&folder, "can't be read".into());
+            continue;
+        };
+        for entry in entries.flatten() {
+            seen += 1;
+            if seen > LIMIT {
+                note(root, format!("more than {LIMIT} files and folders, so not all could be checked"));
+                return found;
+            }
+            let path = entry.path();
+            // (symlink_metadata: the entry itself, a junction or link not followed)
+            let Ok(meta) = std::fs::symlink_metadata(&path) else { continue };
+            use std::os::windows::fs::MetadataExt;
+            if meta.file_attributes() & 0x400 != 0 {  // FILE_ATTRIBUTE_REPARSE_POINT
+                note(&path, "a link to another place".into());
+                continue;
+            }
+            check(&path, &mut note);
+            if meta.is_dir() {
+                pending.push(path);
+            }
+        }
+    }
+    found
+}
+
 /// What of PlanetPDF's install can be changed by someone other than an administrator: the
 /// service's program and its folder (`service_exe`: …\printer\planetpdf-print-service.exe), the
 /// install folder above it, and the launcher there. One line per finding; empty when it's closed.
@@ -155,6 +206,31 @@ pub fn open_parts(service_exe: &std::path::Path) -> Vec<String> {
         }
     }
     found
+}
+
+#[cfg(all(test, windows))]
+mod tree_tests {
+    use super::open_in_tree;
+
+    #[test]
+    fn a_tree_is_open_if_anything_in_it_is() {
+        let closed = std::path::PathBuf::from(crate::service::system_dir()).join("drivers").join("etc");
+        assert!(open_in_tree(&closed, 5).is_empty());
+        let mine = std::env::temp_dir().join(format!("ppdf-tree-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&mine);
+        std::fs::create_dir_all(mine.join("printer")).unwrap();
+        std::fs::write(mine.join("printer").join("vcruntime140.dll"), b"x").unwrap();
+        let found = open_in_tree(&mine, 50);
+        assert!(found.iter().any(|l| l.contains("vcruntime140.dll") && l.contains("its owner")), "{found:?}");
+        let link = mine.join("jtop");
+        let made = std::process::Command::new("cmd")
+            .args(["/c", "mklink", "/J", &link.to_string_lossy(), &closed.to_string_lossy()])
+            .output()
+            .unwrap();
+        assert!(made.status.success());
+        assert!(open_in_tree(&mine, 50).iter().any(|l| l.contains("jtop") && l.contains("a link to another place")));
+        std::fs::remove_dir_all(&mine).unwrap();
+    }
 }
 
 #[cfg(test)]

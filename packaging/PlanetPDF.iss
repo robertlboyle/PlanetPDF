@@ -1,25 +1,43 @@
 ; PlanetPDF installer (Inno Setup 6; packaging, 2026-10-04). Built by scripts\build.ps1,
-; which passes /DAppVersion=… /DStage=… /DModels=… /DOutput=….
+; which passes /DAppVersion=… /DStage=… /DOutput=…, the voices installer it downloads (/DVoicesFile=…
+; /DVoicesSha256=… /DVoicesMB=…, from packaging\voices-installer.json), and, to sign, /DSign /Splanet=….
 ;
 ; Layout (core/update.py):  {app}\PlanetPDF.exe       the launcher (native, launcher\: Rust)
 ;                           {app}\current.txt         the version it starts
 ;                           {app}\versions\<version>  the program (+ Ghostscript, OCR files)
-;                           {app}\models              Read Out Loud voices (optional, shared)
+;                           {app}\models              Read Out Loud voices (optional, shared: their own
+;                                                     installer, PlanetPDF-Voices.iss, downloaded when ticked)
 ; Per machine (admin), Start menu shortcut, "Open with" for .pdf, and a question whether
 ; PlanetPDF should open PDF files: Windows doesn't let an installer make itself the default,
 ; so a yes opens Windows' own "How do you want to open .pdf files?" chooser, where the user
 ; picks PlanetPDF (user 2026-10-10; the chooser since 2026-10-18). Silent install for IT: /VERYSILENT
-; /SUPPRESSMSGBOXES (add /COMPONENTS="main" to leave out the voices).
+; /SUPPRESSMSGBOXES (add /COMPONENTS="main,printer,voices" to download and install the voices too).
+; The natural reading voices aren't inside this Setup (user 2026-11-27: "The install is too damn
+; big"): ticking them downloads PlanetPDF-Voices-Setup from software.planet.net, checks it against
+; the SHA-256 built in here, and runs it silently after PlanetPDF's files are in.
 
 #ifndef AppVersion
   #error Run scripts\build.ps1 (AppVersion not given)
 #endif
+#ifndef VoicesFile
+  #error Run scripts\build.ps1 (the voices installer isn't named: packaging\voices-installer.json)
+#endif
+#define VoicesUrl "https://software.planet.net/downloads/" + VoicesFile
+; (PlanetPDF-Voices.iss's AppId: its entry in Apps goes when PlanetPDF is uninstalled)
+#define VoicesUninstallKey "Software\Microsoft\Windows\CurrentVersion\Uninstall\{E5E58D41-A0E3-486C-9EA8-D134A62351FD}_is1"
 
 #define AppName "PlanetPDF"
 #define Publisher "Planet Networks"
 #define ProgId "PlanetPDF.Document"
 
 [Setup]
+#ifdef Sign
+; Setup and its uninstaller signed with Planet Networks' certificate (scripts\sign.ps1, passed by
+; scripts\build.ps1 as the sign tool "planet"; user 2026-11-27). The programs inside are signed
+; before they're packed.
+SignTool=planet
+SignedUninstaller=yes
+#endif
 AppId={{6F3C2A51-8E4B-4C1D-9A57-2B7D0E9C4F18}
 AppName={#AppName}
 AppVersion={#AppVersion}
@@ -56,24 +74,27 @@ ChangesEnvironment=yes
 UsePreviousTasks=no
 
 [Types]
-Name: "full"; Description: "Full installation (with natural reading voices)"
-Name: "compact"; Description: "Without the natural reading voices (smaller)"
+; (named anew on 2026-11-27, when the voices left this Setup: an earlier install's "full" / "compact"
+;  isn't brought back, so an update never downloads the voices unasked; voices already there stay)
+Name: "standard"; Description: "PlanetPDF and the PlanetPDF printer"
+Name: "withvoices"; Description: "PlanetPDF, the printer, and the natural reading voices (a {#VoicesMB} MB download)"
 Name: "custom"; Description: "Custom"; Flags: iscustom
 
 [Components]
-Name: "main"; Description: "PlanetPDF (with OCR and Ghostscript for PDF/A, PDF/X, PDF/E)"; Types: full compact custom; Flags: fixed
-Name: "voices"; Description: "Natural reading voices for Read Out Loud (about 460 MB; without them it uses the Windows voices)"; Types: full
-Name: "printer"; Description: "The PlanetPDF printer: print from any program to a PDF that opens in PlanetPDF (PlanetPDF asks where to save it)"; Types: full compact
+Name: "main"; Description: "PlanetPDF (with OCR and Ghostscript for PDF/A, PDF/X, PDF/E)"; Types: standard withvoices custom; Flags: fixed
+Name: "printer"; Description: "The PlanetPDF printer: print from any program to a PDF that opens in PlanetPDF (PlanetPDF asks where to save it)"; Types: standard withvoices
+Name: "voices"; Description: "Natural reading voices for Read Out Loud: downloaded during setup ({#VoicesMB} MB; without them PlanetPDF reads with the Windows voices; you can add them later)"; Types: withvoices; ExtraDiskSpaceRequired: 482000000
 
 [Files]
+; Setup's own copy of the printer's setup program, used before anything in PlanetPDF's folder is
+; run (PrepareToInstall: security review 2026-11-27, finding 3)
+Source: "{#Stage}\app\printer\planetpdf-printer-setup.exe"; Flags: dontcopy
 ; the launcher, at the top
 Source: "{#Stage}\app\*"; DestDir: "{app}"; Excludes: "PlanetPDF.ico,printer\*"; Components: main; Flags: ignoreversion recursesubdirs createallsubdirs
 ; the PlanetPDF printer's service and its setup program (run below)
-Source: "{#Stage}\app\printer\*"; DestDir: "{app}\printer"; Components: printer; Flags: ignoreversion
+Source: "{#Stage}\app\printer\*"; DestDir: "{app}\printer"; Components: printer; Check: FolderIsProtected; Flags: ignoreversion
 ; the program, in its version folder
 Source: "{#Stage}\versions\{#AppVersion}\*"; DestDir: "{app}\versions\{#AppVersion}"; Components: main; Flags: ignoreversion recursesubdirs createallsubdirs
-; the voices, shared by every version
-Source: "{#Models}\*"; DestDir: "{app}\models"; Components: voices; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 ; (AppUserModelID = windows_shell.APP_USER_MODEL_ID: the taskbar takes its icon from this shortcut)
@@ -109,16 +130,14 @@ Root: HKLM; Subkey: "Software\RegisteredApplications"; ValueType: string; ValueN
 ; Every entry first points current.txt at this version (SetCurrentVersion): Inno runs these
 ; entries BEFORE CurStepChanged(ssPostInstall), so the launcher (PlanetPDF.exe) would otherwise start
 ; the version installed before (user 2026-10-24: installing 0.1.8 started 0.1.0)
-; the PlanetPDF printer (the PlanetPDF Print Service, its pipe port, the printer): only where
-; PlanetPDF's folder could be closed to other users (FolderIsProtected), since its service runs
-; with system rights; planetpdf-printer-setup checks the folder itself as well
-Filename: "{app}\printer\planetpdf-printer-setup.exe"; Parameters: "install"; Components: printer; Check: FolderIsProtected; Flags: runhidden waituntilterminated; StatusMsg: "Adding the PlanetPDF printer..."; BeforeInstall: SetCurrentVersion
+; (the PlanetPDF printer is added in [Code], AddPrinter: its message is shown if it fails)
 ; Windows' "How do you want to open .pdf files?" chooser (PlanetPDF.exe --choose-pdf-app), as the
 ; user who ran Setup, not the administrator
 Filename: "{app}\PlanetPDF.exe"; Parameters: "--choose-pdf-app"; Tasks: defaultpdf; Flags: nowait runasoriginaluser skipifsilent; StatusMsg: "Asking Windows which app opens PDF files..."; BeforeInstall: SetCurrentVersion
 Filename: "{app}\PlanetPDF.exe"; Description: "Start PlanetPDF"; Flags: nowait postinstall skipifsilent runasoriginaluser; BeforeInstall: SetCurrentVersion
 
 [UninstallRun]
+; (from {app}: Setup closes the folder to everyone but administrators, so only they can change it)
 Filename: "{app}\printer\planetpdf-printer-setup.exe"; Parameters: "uninstall"; Flags: runhidden waituntilterminated; RunOnceId: "RemovePlanetPDFPrinter"
 
 [InstallDelete]
@@ -132,6 +151,10 @@ Type: filesandordirs; Name: "{app}\models"
 Type: files; Name: "{app}\current.txt"
 ; what the updater's administrator step wrote (update-status: security review 2026-11-21)
 Type: filesandordirs; Name: "{app}\update-status"
+; the print service's working folder, its log and any printouts it held, and a folder of its own it
+; made when that one couldn't be used (review 2026-11-27: printer.log was left behind)
+Type: filesandordirs; Name: "{commonappdata}\PlanetPDF"
+Type: filesandordirs; Name: "{commonappdata}\PlanetPDF-Spool-*"
 Type: dirifempty; Name: "{app}"
 
 [Code]
@@ -169,7 +192,8 @@ begin
   Result := Pos(';' + Uppercase(Folder) + ';', ';' + Uppercase(Path) + ';') = 0;
 end;
 
-{ Uninstalling takes PlanetPDF's folder out of the PATH again. }
+{ Uninstalling takes PlanetPDF's folder out of the PATH again, and the natural voices' own entry in
+  Apps (their files went with the models folder). }
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var
   Path, Folder: String;
@@ -177,6 +201,7 @@ var
 begin
   if CurUninstallStep <> usPostUninstall then
     exit;
+  RegDeleteKeyIncludingSubkeys(HKEY_LOCAL_MACHINE, '{#VoicesUninstallKey}');
   if not RegQueryStringValue(HKEY_LOCAL_MACHINE, EnvironmentKey, 'Path', Path) then
     exit;
   Folder := ExpandConstant('{app}');
@@ -250,17 +275,174 @@ begin
   Result := FolderProtected;
 end;
 
-// The PlanetPDF Print Service runs from {app}\printer: stop it before its files are replaced
-// (setup's "install" step starts it again).
+// What Setup doesn't install, taken out of PlanetPDF's folder before its files go in (security
+// review 2026-11-27, finding 3: a vcruntime140.dll a user had put in printer\ stayed after the
+// install, and the print service, with system rights, loaded it). Links to other places (junctions,
+// symbolic links) are never PlanetPDF's: they go wherever they are found here, so nothing that
+// closes the folder follows one.
+var
+  FolderWasOpen: Boolean;  { (before Setup closed it: what was in it may be anyone's) }
+  OpenParts: String;
+
+const
+  ReparsePoint = $400;
+  CodeTypes = '|.exe|.com|.dll|.drv|.ocx|.cpl|.sys|.pyd|.bat|.cmd|.ps1|.vbs|.js|.jse|.wsf|.msi|.lnk|.scr|.hta|.manifest|.local|';
+  OwnTopFiles = '|planetpdf.exe|planetpdf.com|current.txt|update.json|policy.json|third-party-notices.txt|planetpdf manual.pdf|';
+  OwnPrinterFiles = '|planetpdf-print-service.exe|planetpdf-printer-setup.exe|';
+
+procedure RemoveEntry(Path: String; Find: TFindRec);
+begin
+  if Find.Attributes and FILE_ATTRIBUTE_DIRECTORY <> 0 then
+  begin
+    if Find.Attributes and ReparsePoint <> 0 then
+      RemoveDir(Path)  { (the link itself, never what it points to) }
+    else
+      DelTree(Path, True, True, True);
+  end
+  else
+    DeleteFile(Path);
+  Log('Taken out of PlanetPDF''s folder (Setup doesn''t install it): ' + Path);
+end;
+
+{ Every entry of Folder that Keep says no to is taken out. }
+procedure TidyEntries(Folder: String; Top: Boolean);
+var
+  Find: TFindRec;
+  Name, Lower: String;
+  Link, Dir, Ours: Boolean;
+begin
+  if not FindFirst(Folder + '\*', Find) then
+    exit;
+  try
+    repeat
+      Name := Find.Name;
+      if (Name = '.') or (Name = '..') then
+        continue;
+      Lower := Lowercase(Name);
+      Link := Find.Attributes and ReparsePoint <> 0;
+      Dir := Find.Attributes and FILE_ATTRIBUTE_DIRECTORY <> 0;
+      if Top then
+      begin
+        if Dir then
+          Ours := not Link and (Pos('.local', Lower) = 0)
+        else
+          Ours := not Link and ((Pos('|' + Lower + '|', OwnTopFiles) > 0) or (Pos('unins', Lower) = 1)
+                                or (Pos('|' + Lowercase(ExtractFileExt(Name)) + '|', CodeTypes) = 0));
+      end
+      else
+        Ours := not Dir and not Link and (Pos('|' + Lower + '|', OwnPrinterFiles) > 0);
+      if not Ours then
+        RemoveEntry(Folder + '\' + Name, Find);
+    until not FindNext(Find);
+  finally
+    FindClose(Find);
+  end;
+end;
+
+{ Links to other places anywhere below Folder (not followed). }
+procedure RemoveLinks(Folder: String);
+var
+  Find: TFindRec;
+begin
+  if not FindFirst(Folder + '\*', Find) then
+    exit;
+  try
+    repeat
+      if (Find.Name = '.') or (Find.Name = '..') then
+        continue;
+      if Find.Attributes and ReparsePoint <> 0 then
+        RemoveEntry(Folder + '\' + Find.Name, Find)
+      else if Find.Attributes and FILE_ATTRIBUTE_DIRECTORY <> 0 then
+        RemoveLinks(Folder + '\' + Find.Name);
+    until not FindNext(Find);
+  finally
+    FindClose(Find);
+  end;
+end;
+
+procedure TidyFolder;
+var
+  App, Version: String;
+begin
+  App := ExpandConstant('{app}');
+  if not DirExists(App) then
+    exit;
+  TidyEntries(App, True);
+  if DirExists(App + '\printer') then
+    TidyEntries(App + '\printer', False);
+  RemoveLinks(App);
+  { the version being installed is copied into an empty folder (one in use stays: its files are
+    replaced, and only administrators could change it, if the folder was closed already) }
+  Version := App + '\versions\{#AppVersion}';
+  if DirExists(Version) and RenameFile(Version, Version + '.old-setup') then
+    DelTree(Version + '.old-setup', True, True, True);
+end;
+
+{ Files an administrator put in a folder others could change can't be told apart from anyone
+  else's: the settings files that would count are set aside, for an administrator to look at. }
+procedure SetAsideSettings;
+var
+  App, Name, Said: String;
+  I: Integer;
+begin
+  if not FolderWasOpen then
+    exit;
+  App := ExpandConstant('{app}');
+  Said := '';
+  for I := 0 to 1 do
+  begin
+    if I = 0 then Name := 'policy.json' else Name := 'update.json';
+    if FileExists(App + '\' + Name) then
+    begin
+      DeleteFile(App + '\' + Name + '.untrusted');
+      if RenameFile(App + '\' + Name, App + '\' + Name + '.untrusted') then
+        Said := Said + '  ' + Name + ' is now ' + Name + '.untrusted' + #13#10;
+    end;
+  end;
+  if Said <> '' then
+    SuppressibleMsgBox('Before this install, other users of this computer could change files in PlanetPDF''s folder:'
+      + #13#10 + OpenParts + #13#10 + 'Setup has closed it to everyone but administrators and taken out programs '
+      + 'it didn''t install. These settings files could have been written by anyone, so PlanetPDF no longer uses them:'
+      + #13#10 + Said + #13#10 + 'If they are your own, check them and give them their names back.',
+      mbInformation, MB_OK, IDOK);
+end;
+
+// Before anything is copied (security review 2026-11-27, finding 3: Setup ran the printer setup
+// program already in PlanetPDF's folder, as administrator, before closing the folder, so a program a
+// user had put in its place ran with administrator rights; and closing the folder removed nothing a
+// user had put there):
+//   1. Setup's own copy of the printer setup program (from Setup's protected temporary folder) says
+//      whether anyone but administrators could change anything in the folder (FolderWasOpen);
+//   2. the folder is closed (ProtectFolder);
+//   3. the PlanetPDF Print Service is stopped, by that same copy (never one in the folder);
+//   4. what Setup doesn't install is taken out (TidyFolder).
+function OwnHelper: String;
+begin
+  ExtractTemporaryFile('planetpdf-printer-setup.exe');
+  Result := ExpandConstant('{tmp}\planetpdf-printer-setup.exe');
+end;
+
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
-  Setup: String;
-  Code: Integer;
+  Code, I: Integer;
+  Output: TExecOutput;
 begin
   Result := '';
-  Setup := ExpandConstant('{app}\printer\planetpdf-printer-setup.exe');
-  if FileExists(Setup) then
-    Exec(Setup, 'stop', '', SW_HIDE, ewWaitUntilTerminated, Code);
+  if DirExists(ExpandConstant('{app}')) then
+  begin
+    FolderWasOpen := not ExecAndCaptureOutput(OwnHelper, 'check-folder "' + ExpandConstant('{app}') + '"', '',
+                                              SW_HIDE, ewWaitUntilTerminated, Code, Output) or (Code <> 0);
+    if FolderWasOpen then
+    begin
+      for I := 0 to GetArrayLength(Output.StdErr) - 1 do
+        if I < 5 then
+          OpenParts := OpenParts + Output.StdErr[I] + #13#10;
+      Log('PlanetPDF''s folder could be changed by other users before Setup:' + #13#10 + OpenParts);
+    end;
+  end;
+  ProtectFolder;
+  Exec(OwnHelper, 'stop', '', SW_HIDE, ewWaitUntilTerminated, Code);
+  TidyFolder;
 end;
 
 { After a yes to "Make PlanetPDF the default app", say what Windows will ask. }
@@ -336,11 +518,67 @@ begin
   ShowTip(CurrentTip + 1);
 end;
 
+{ The natural reading voices: downloaded once the Ready page is passed, when ticked and not already
+  in PlanetPDF's folder (an earlier install's stay), checked against the SHA-256 built in here,
+  then installed silently after PlanetPDF's own files (their Setup needs PlanetPDF's folder). A
+  failed download never stops PlanetPDF's install. }
+var
+  VoicesPage: TDownloadWizardPage;
+  VoicesDownloaded: Boolean;
+
+function VoicesThere: Boolean;
+begin
+  Result := FileExists(ExpandConstant('{app}\models\kokoro\kokoro-v1.0.onnx'));
+end;
+
+function NextButtonClick(CurPageID: Integer): Boolean;
+begin
+  Result := True;
+  if (CurPageID <> wpReady) or not WizardIsComponentSelected('voices') or VoicesThere then
+    exit;
+  VoicesPage.Clear;
+  VoicesPage.Add('{#VoicesUrl}', '{#VoicesFile}', '{#VoicesSha256}');
+  VoicesPage.Show;
+  try
+    try
+      VoicesPage.Download;
+      VoicesDownloaded := True;
+    except
+      if VoicesPage.AbortedByUser then
+        Log('The voices download was canceled; PlanetPDF is installed without them.')
+      else
+        SuppressibleMsgBox('The natural reading voices couldn''t be downloaded:' + #13#10 + GetExceptionMessage + #13#10#13#10
+          + 'PlanetPDF is installed without them and reads with the Windows voices. To add them later, '
+          + 'choose Install Natural Voices in PlanetPDF''s Preferences (Read Out Loud), or run '
+          + 'PlanetPDF-Voices-Setup.exe from software.planet.net.', mbError, MB_OK, IDOK);
+    end;
+  finally
+    VoicesPage.Hide;
+  end;
+end;
+
+procedure InstallVoices;
+var
+  ResultCode: Integer;
+begin
+  WizardForm.StatusLabel.Caption := 'Installing the natural reading voices...';
+  WizardForm.FilenameLabel.Caption := '';
+  if Exec(ExpandConstant('{tmp}\{#VoicesFile}'), '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART', '', SW_HIDE,
+          ewWaitUntilTerminated, ResultCode) and (ResultCode = 0) then
+    Log('The natural reading voices are installed.')
+  else
+    SuppressibleMsgBox('The natural reading voices were downloaded but couldn''t be installed (code '
+      + IntToStr(ResultCode) + '). PlanetPDF is installed and reads with the Windows voices. To add the '
+      + 'voices later, run PlanetPDF-Voices-Setup.exe from software.planet.net.', mbError, MB_OK, IDOK);
+end;
+
 procedure InitializeWizard;
 var
   Page: TNewNotebookPage;
   Gauge: TNewProgressBar;
 begin
+  VoicesPage := CreateDownloadPage('Downloading the natural reading voices',
+    'Setup is downloading PlanetPDF''s natural reading voices ({#VoicesMB} MB). PlanetPDF itself is installed next.', nil);
   AddTip('Press F1 in PlanetPDF for the full user manual, with contents, an index and search.');
   AddTip('Open several PDFs at once: each gets its own tab. Drag a tab out of the window to give that document a window of its own.');
   AddTip('Fill & Sign: draw, type or import your signature once, then place it on any document with one click.');
@@ -417,17 +655,62 @@ begin
   end;
 end;
 
+// The PlanetPDF printer (the PlanetPDF Print Service, its pipe port, the printer): only where
+// PlanetPDF's folder is closed to other users, since its service runs with system rights. If it
+// can't be added (another program holds its pipe: security review 2026-11-27, finding 4), Setup says
+// why and ends with exit code 10, so a silent install shows it too.
+var
+  PrinterFailed: Boolean;
+
+procedure AddPrinter;
+var
+  Code, I: Integer;
+  Output: TExecOutput;
+  Why: String;
+begin
+  if not WizardIsComponentSelected('printer') or not FolderProtected then
+    exit;
+  WizardForm.StatusLabel.Caption := 'Adding the PlanetPDF printer...';
+  WizardForm.StatusLabel.Update;
+  if ExecAndCaptureOutput(ExpandConstant('{app}\printer\planetpdf-printer-setup.exe'), 'install', '', SW_HIDE,
+                          ewWaitUntilTerminated, Code, Output) and (Code = 0) then
+  begin
+    Log('The PlanetPDF printer is ready.');
+    exit;
+  end;
+  PrinterFailed := True;
+  Why := '';
+  for I := 0 to GetArrayLength(Output.StdErr) - 1 do
+    Why := Why + Output.StdErr[I] + #13#10;
+  Log('The PlanetPDF printer wasn''t added (exit code ' + IntToStr(Code) + '): ' + Why);
+  SuppressibleMsgBox('PlanetPDF is installed, but the PlanetPDF printer wasn''t added:' + #13#10#13#10 + Why,
+    mbError, MB_OK, IDOK);
+end;
+
+function GetCustomSetupExitCode: Integer;
+begin
+  if PrinterFailed then
+    Result := 10
+  else
+    Result := 0;
+end;
+
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssInstall then
   begin
     ShowTip(0);
-    ProtectFolder;  { (before the files are copied: they inherit the folder's permissions) }
+    if not FolderProtected then
+      ProtectFolder;  { (PrepareToInstall closed it; again here if that didn't run) }
   end;
   if CurStep = ssPostInstall then
   begin
     SetCurrentVersion;  { (again: with no [Run] entry chosen, this is the first time) }
+    AddPrinter;
+    SetAsideSettings;
     RemoveOldVersions;
+    if VoicesDownloaded then
+      InstallVoices;
     if not FolderProtected then
       SuppressibleMsgBox('Setup couldn''t close PlanetPDF''s folder to other users of this computer:' + #13#10
         + ExpandConstant('{app}') + #13#10#13#10

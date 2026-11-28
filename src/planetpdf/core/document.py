@@ -77,9 +77,16 @@ def _check_opened(doc: pymupdf.Document, name: str, password: str | None) -> pym
         if password is None:
             doc.close()
             raise PasswordRequired(f"{name} is password protected.")
-        if not doc.authenticate(password):
+        doc._ppdf_needed_password = True
+        role = doc.authenticate(password)
+        if not role:
             doc.close()
             raise WrongPassword("The password is incorrect.")
+        doc._ppdf_password_role = role
+    elif password and doc.is_encrypted:
+        # (a file that opens without a password but limits what may be done: the password given may
+        # be its permissions password, which lifts the limits)
+        doc._ppdf_password_role = doc.authenticate(password)
     if doc.page_count == 0:  # only meaningful after authentication
         doc.close()
         raise NotAPdf(f"{name} has no pages.")
@@ -373,8 +380,24 @@ class PdfSession:
             return self.certificate_protection, True
         if pending == REMOVE_PROTECTION or not self.is_protected:
             return None, True
+        # Which password it was opened with decides its role in a new file (security review
+        # 2026-11-27: the permissions password became the copy's open password, and the real open
+        # password stopped working). MuPDF says: 2 = the open password, 4 = the permissions password.
         flags = self._doc.permissions
-        return Protection.from_permission_flags(flags, self._password or ""), False
+        password = self._password or ""
+        role = getattr(self._doc, "_ppdf_password_role", 0) or 0
+        if role & 2 and role & 4:  # (the same password opens it and lifts its limits)
+            return Protection.from_permission_flags(flags, password, password), True
+        if role & 4:  # (the permissions password: an open password, if it has one, isn't known)
+            return Protection.from_permission_flags(flags, "", password), not self.open_password_unknown
+        return Protection.from_permission_flags(flags, password), False
+
+    @property
+    def open_password_unknown(self) -> bool:
+        """It needs a password to open and was opened with its permissions password: the open
+        password isn't known (a new file can't be given the same protection without asking)."""
+        role = getattr(self._doc, "_ppdf_password_role", 0) or 0
+        return bool(getattr(self._doc, "_ppdf_needed_password", False)) and bool(role & 4) and not role & 2
 
     @property
     def has_digital_signatures(self) -> bool:

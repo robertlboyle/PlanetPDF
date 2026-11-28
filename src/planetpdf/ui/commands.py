@@ -276,6 +276,12 @@ class RemoveMarkupCommand(QUndoCommand):
         self._removed = None
         self._page = 0
 
+    def check(self) -> None:
+        """Raises before anything is pushed when the item can't be told apart (twin ids): a redo
+        that fails leaves the document marked changed with an undo step that did nothing (security
+        review 2026-11-27)."""
+        K.find_item(self._window.session, self._id)
+
     def redo(self) -> None:
         session = self._window.session
         item = K.find_item(session, self._id)

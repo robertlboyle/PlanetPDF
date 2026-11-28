@@ -203,23 +203,76 @@ def validate_signatures(path: Path, trust: TrustStore | None = None, *,
             signatures = list(reader.embedded_signatures)
         except Exception as exc:
             raise PdfError(f"The signatures couldn't be read: {exc}") from exc
+        if not signatures:
+            removed = _removed_signature(f)
+            if removed is not None:
+                results.append(removed)
         for sig in signatures:
             context = ValidationContext(trust_roots=roots, other_certs=intermediates,
                                         allow_fetching=check_revocation, revocation_mode="soft-fail")
             try:
-                status = validate_pdf_signature(sig, context)
+                with _quiet_validation():  # (its stack traces went to the command line's stderr)
+                    status = validate_pdf_signature(sig, context)
             except Exception as exc:
                 results.append(
                     SignatureStatus(sig.field_name, "Unknown", None, False, False, False, False, "", Verdict.INVALID,
                                     f"The signature couldn't be checked: {exc}")
                 )
                 continue
-            results.append(_summarize(sig.field_name, status, getattr(sig, "docmdp_level", None),
-                                      check_revocation))
+            # "Checked" only when a revocation server answered (security review 2026-11-27, finding
+            # 15: an OCSP address with nothing listening, or none at all, said "checked online")
+            answered = check_revocation and _revocation_answered(context)
+            results.append(_summarize(sig.field_name, status, getattr(sig, "docmdp_level", None), answered,
+                                      asked=check_revocation))
     return results
 
 
-def _summarize(field_name: str, status, mdp=None, revocation_checked: bool = False) -> SignatureStatus:
+def _revocation_answered(context) -> bool:
+    try:
+        return bool(list(context.ocsps) or list(context.crls))
+    except Exception:  # noqa: BLE001 (not known: not claimed)
+        return False
+
+
+class _quiet_validation:
+    """pyHanko's validation logs each failed path with its stack trace; PlanetPDF says what it means."""
+
+    NAMES = ("pyhanko", "pyhanko_certvalidator")
+
+    def __enter__(self):
+        import logging
+
+        self._levels = {n: logging.getLogger(n).level for n in self.NAMES}
+        for name in self.NAMES:
+            logging.getLogger(name).setLevel(logging.CRITICAL)
+
+    def __exit__(self, *exc):
+        import logging
+
+        for name, level in self._levels.items():
+            logging.getLogger(name).setLevel(level)
+        return False
+
+
+REMOVED_SUMMARY = ("This file was signed, but a later change removed the signature (for example, the page it was "
+                   "on was deleted). The signed version is still inside the file; the document as it is now isn't "
+                   "signed.")
+
+
+def _removed_signature(f) -> SignatureStatus | None:
+    """A file whose current version shows no signature but which holds a signed earlier version
+    (security review 2026-11-27: after the signed page was deleted and saved, ``signatures`` listed
+    none at all, as if the file had never been signed)."""
+    f.seek(0)
+    data = f.read()
+    if b"/ByteRange" not in data or b"/Contents" not in data or data.count(b"%%EOF") < 2:
+        return None
+    return SignatureStatus("(removed)", "Unknown", None, False, False, False, False, "other changes", Verdict.MODIFIED,
+                           REMOVED_SUMMARY)
+
+
+def _summarize(field_name: str, status, mdp=None, revocation_checked: bool = False, *,
+               asked: bool = False) -> SignatureStatus:
     from pyhanko.sign.diff_analysis import ModificationLevel
     from pyhanko.sign.validation.status import SignatureCoverageLevel
 
@@ -264,6 +317,12 @@ def _summarize(field_name: str, status, mdp=None, revocation_checked: bool = Fal
     # or VALID_UNTRUSTED depending on the trust store. Allowed later changes (form
     # filling, comments) are mentioned but don't change the verdict.
     allowed_note = f" Later changes ({changes}) are allowed by the signer." if changes in ("form filling", "annotations") else ""
+    if not whole and not allowed_note:
+        # (saved again after signing, with no change to the signed pages, fields, or comments: the
+        # document's information, such as its title, which pyHanko counts with validation data; it
+        # said "not changed since signing", security review 2026-11-27)
+        allowed_note = (" Saved again after signing, without changes to its pages, form fields, or comments (for "
+                        "example, a new title, or validation data added).")
     if not intact:
         verdict, summary = Verdict.INVALID, "INVALID: the signed content has been altered, or the signature is damaged."
     elif revoked:
@@ -281,7 +340,8 @@ def _summarize(field_name: str, status, mdp=None, revocation_checked: bool = Fal
         )
     if verdict in (Verdict.VALID, Verdict.VALID_UNTRUSTED):
         notes.append("Revocation was checked online." if revocation_checked else
-                     "Whether the certificate was revoked wasn't checked (Preferences ▸ Signatures).")
+                     "Whether the certificate was revoked couldn't be checked: no revocation server answered."
+                     if asked else "Whether the certificate was revoked wasn't checked (Preferences ▸ Signatures).")
     if notes:
         summary += " " + " ".join(notes)
     certified = ""

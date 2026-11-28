@@ -31,7 +31,7 @@ def win(qapp, tmp_path, monkeypatch):
 
 def test_suggests_once_per_run_and_downloads(win, monkeypatch):
     asked, fetched = [], []
-    monkeypatch.setattr(win.extras, "ask_download", lambda: asked.append(1) or True)
+    monkeypatch.setattr(win.extras, "ask_voices", lambda installer, just_me: asked.append((installer, just_me)) or "download")
 
     def fake_download(url, target, progress=None, **kw):
         fetched.append((url, target))
@@ -44,11 +44,11 @@ def test_suggests_once_per_run_and_downloads(win, monkeypatch):
     monkeypatch.setenv("PLANETPDF_UPDATE_URL", "https://software.example/PDF/")  # (tests never reach the real one)
     assert win.extras.suggest_natural_voices()
     assert fetched == [("https://software.example/PDF/", NS.USER_MODELS)]
-    assert not win.extras.suggest_natural_voices() and len(asked) == 1  # (once per run)
+    assert not win.extras.suggest_natural_voices() and asked == [(False, True)]  # (once per run; from source: no installer)
 
 
 def test_not_now_keeps_the_fallback_and_doesnt_ask_again(win, monkeypatch):
-    monkeypatch.setattr(win.extras, "ask_download", lambda: False)
+    monkeypatch.setattr(win.extras, "ask_voices", lambda installer, just_me: None)
     monkeypatch.setattr(V, "download", lambda *a, **k: pytest.fail("downloaded"))
     assert not win.extras.suggest_natural_voices()
     assert ExtrasUi._suggested
@@ -76,3 +76,48 @@ def test_preferences_offer_macos_voices_and_the_download(win):
     keys = [dialog.read_engine.itemData(i) for i in range(dialog.read_engine.count())]
     assert "mac" in keys and dialog.voice_boxes["mac"].count() > 3
     assert dialog.download_voices is not None and "354 MB" in dialog.download_voices.text()
+
+
+def test_installed_on_windows_offers_the_voices_installer(win, monkeypatch):
+    """2026-11-27: the voices have their own installer, for everyone on the computer; over Remote
+    Desktop (a terminal server) no copy just for one user is offered."""
+    from planetpdf.ui import phase_d_ui, windows_shell
+
+    monkeypatch.setattr(phase_d_ui, "voices_installer_offered", lambda: True)
+    monkeypatch.setattr(windows_shell, "is_remote_session", lambda: True, raising=False)
+    asked, opened = [], []
+    monkeypatch.setattr(win.extras, "ask_voices", lambda installer, just_me: asked.append((installer, just_me)) or "install")
+    monkeypatch.setattr(win.extras, "open_voices_page", lambda: opened.append(1))
+    monkeypatch.setattr(V, "download", lambda *a, **k: pytest.fail("downloaded just for one user"))
+    assert not win.extras.suggest_natural_voices()
+    assert asked == [(True, False)] and opened == [1]
+
+
+def test_per_user_download_only_away_from_remote_desktop(monkeypatch, tmp_path):
+    from planetpdf.ui import phase_d_ui, windows_shell
+
+    monkeypatch.setattr(NS, "USER_MODELS", tmp_path / "models")
+    monkeypatch.setattr(phase_d_ui, "voices_installer_offered", lambda: True)
+    monkeypatch.setattr(windows_shell, "is_remote_session", lambda: False, raising=False)
+    assert phase_d_ui.per_user_voices_offered()
+    monkeypatch.setattr(windows_shell, "is_remote_session", lambda: True, raising=False)
+    assert not phase_d_ui.per_user_voices_offered()
+    monkeypatch.setattr(phase_d_ui, "voices_installer_offered", lambda: False)  # (Mac, Linux, from source)
+    assert phase_d_ui.per_user_voices_offered()
+    monkeypatch.setattr(NS, "USER_MODELS", None)
+    assert not phase_d_ui.per_user_voices_offered()
+
+
+def test_preferences_offer_the_voices_installer_when_installed(win, monkeypatch):
+    from planetpdf.ui import phase_d_ui, windows_shell
+    from planetpdf.ui.dialogs.preferences import PreferencesDialog
+
+    monkeypatch.setattr(NS, "kokoro_available", lambda root=None: False)
+    monkeypatch.setattr(phase_d_ui, "voices_installer_offered", lambda: True)
+    monkeypatch.setattr(windows_shell, "is_remote_session", lambda: True, raising=False)
+    opened = []
+    monkeypatch.setattr(win.extras, "open_voices_page", lambda: opened.append(1))
+    dialog = PreferencesDialog(win)
+    assert dialog.install_voices is not None and dialog.download_voices is None  # (Remote Desktop)
+    dialog.install_voices.click()
+    assert opened == [1]

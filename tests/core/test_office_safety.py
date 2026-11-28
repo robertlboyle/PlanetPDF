@@ -23,7 +23,8 @@ RELS = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
 
 
 def test_outside_links_are_pointed_nowhere_but_hyperlinks_stay():
-    text, count = S.unlinked_rels(RELS)
+    data, count = S.unlinked_rels(RELS)
+    text = data.decode("utf-8")
     assert count == 2
     assert "SERVER" not in text and "example.com/pic.png" not in text
     assert text.count(S.REMOVED_TARGET) == 2
@@ -58,7 +59,8 @@ def test_a_downloaded_older_format_file_is_refused(tmp_path):
     old.write_bytes(b"\xd0\xcf\x11\xe0 not really a Word file")
     folder = tmp_path / "private"
     folder.mkdir()
-    assert S.safe_copy(old, folder).exists()  # (the user's own file: converted as it is)
+    with pytest.raises(S.OfficeRefused):  # (the user's own file goes through Office's converter, which can't read this)
+        S.safe_copy(old, folder)
     with open(f"{old}:Zone.Identifier", "w", encoding="utf-8") as mark:
         mark.write("[ZoneTransfer]\nZoneId=3\n")
     assert S.downloaded(old)

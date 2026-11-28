@@ -424,3 +424,25 @@ def test_line_color_recolors_the_selected_comment(window, monkeypatch):
     window.undo_stack.undo()
     [item] = _items(window)
     assert tuple(round(c, 2) for c in item.spec.style.color) != (0.0, 0.0, 1.0)
+
+
+def test_canceling_the_signed_question_after_retyping_shows_the_text_again(window, test_certs, tmp_path, monkeypatch):
+    """Security review 2026-11-27, finding 12: retyping placed text on a signed PDF, then Cancel,
+    left the text hidden until the file was reopened."""
+    from PySide6.QtWidgets import QMessageBox
+
+    window.markup.add(K.placed_text(window.session, 0, (100, 300), "ORIGINALTEXT", window.markup.style_for(Kind.TEXT)))
+    window.session.save()  # (the text is in the file that is signed)
+    window.undo_stack.setClean()
+    window.finish_digital_sign(Pkcs12Provider(test_certs.pfx, PFX_PASSWORD), 0, (72, 650, 300, 720), False,
+                               tmp_path / "s.pdf")
+    [item] = [i for i in _items(window) if i.kind is Kind.TEXT]
+    monkeypatch.setattr(QMessageBox, "warning", lambda *a, **k: QMessageBox.StandardButton.Cancel)
+    monkeypatch.setattr(window.markup, "_open_editor",
+                        lambda page, rect, text, **k: k["on_commit"]("CHANGEDTEXT", rect))
+    window.markup._edit_placed_text(item)
+    [again] = [i for i in _items(window) if i.kind is Kind.TEXT]
+    assert again.text == "ORIGINALTEXT"
+    page = window.session.doc[0]  # (kept: annotations hold only a weak reference to their page)
+    annot = next(a for a in page.annots() if a.xref == again.xref)
+    assert not annot.flags & pymupdf.PDF_ANNOT_IS_HIDDEN

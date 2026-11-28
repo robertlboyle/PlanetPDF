@@ -64,13 +64,34 @@ def to_pdf(source: Path, target: Path) -> None:
     backend = _backend()
     if backend is None:
         raise PdfError("Turning Office files into PDFs needs Microsoft Office (Windows or Mac).")
+    if no_desktop():
+        raise PdfError(NO_DESKTOP)
     with private_folder() as folder:
+        # (the copy may be in another format: an old .doc or .xls turned into .docx / .xlsx, a CSV
+        # into a workbook of PlanetPDF's own; office_safety)
         backend.to_pdf(safe_copy(Path(source), folder), target)
+
+
+NO_DESKTOP = ("Word, Excel, and PowerPoint can't convert files here: this runs without a desktop (as a service, "
+              "or a scheduled task that runs whether or not anyone is signed in), where Office stops on questions "
+              "nobody can answer. Run it while signed in.")
+
+
+def no_desktop() -> bool:
+    """Windows: this process runs in session 0, the services' session, where Office has no desktop and
+    hangs on its first question (security review 2026-11-27)."""
+    if sys.platform != "win32":
+        return False
+    from planetpdf.core import windows_office
+
+    return windows_office.in_services_session()
 
 
 def word_save_as(source: Path, target: Path, file_format: int = WORD_97_2003) -> None:
     if _turned_off():
         raise PdfError(_turned_off())
+    if no_desktop():
+        raise PdfError(NO_DESKTOP)
     backend = _backend()
     if backend is None:
         raise PdfError("This needs Microsoft Word (Windows or Mac).")

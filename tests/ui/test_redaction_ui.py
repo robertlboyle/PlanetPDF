@@ -144,9 +144,11 @@ def test_apply_writes_verified_copy_and_keeps_original(window, tmp_path):
     assert report is not None
 
 
-def test_apply_over_original_reloads(window):
+def test_apply_over_original_reloads(window, monkeypatch):
     window.add_marks([M.make_spec(0, [tuple(window.session.doc[0].search_for(g.SSN)[0])], "Area")])
     path = window.session.path
+    # (the number is on other pages too, unmarked: a warning, so the report asks first; Replace)
+    monkeypatch.setattr(window, "_show_report", lambda dialog: setattr(dialog, "keep_requested", True))
     assert window.redact_to(path, SanitizeOptions())
     assert window.undo_stack.count() == 0
     assert not window.is_dirty()
@@ -231,3 +233,31 @@ def test_long_searches_count_pages_across_patterns_and_can_be_canceled(window, m
     panel.search_edit.setText(g.EMAIL)
     panel.find_text()
     assert panel.results_label.text() == "Search canceled." and panel.results.topLevelItemCount() == 2 * pages
+
+
+def _warning_checks(monkeypatch):
+    from planetpdf.core.redaction import apply as A
+    from planetpdf.core.redaction.verify import Check, Status, VerificationReport
+
+    def warned(path, *args, **kwargs):
+        return VerificationReport(path, [Check(Status.PASS, "No text under the boxes"),
+                                         Check(Status.WARN, 'Term "ZE*****RD" still appears where it wasn\'t marked')])
+
+    monkeypatch.setattr(A, "verify_redaction", warned)
+
+
+def test_warnings_are_shown_before_the_original_is_replaced(window, monkeypatch):
+    """Security review 2026-11-27, finding 9: with a warning, the original was replaced first and the
+    report came after. Now the report comes first, and Don't Replace (its default) keeps it."""
+    _warning_checks(monkeypatch)
+    window.add_marks([M.make_spec(0, [tuple(window.session.doc[0].search_for(g.SSN)[0])], "Area")])
+    path, original = window.session.path, window.session.path.read_bytes()
+    assert not window.redact_to(path, SanitizeOptions())  # (the report's default: Don't Replace)
+    assert path.read_bytes() == original and _marks(window)
+    asked = window.reports[0]
+    assert any(b.text() == "Replace the Original" for b in asked.findChildren(QPushButton))
+    monkeypatch.setattr(window, "_show_report", lambda dialog: (window.reports.append(dialog),
+                                                                setattr(dialog, "keep_requested", True)))
+    assert window.redact_to(path, SanitizeOptions())  # (Replace the Original: the report isn't shown twice)
+    assert path.read_bytes() != original and _marks(window) == []
+    assert len(window.reports) == 2

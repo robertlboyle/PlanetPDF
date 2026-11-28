@@ -18,7 +18,7 @@ SRC = Path(planetpdf.__file__).parents[1]
 
 def test_only_the_installing_steps_are_cleaned():
     # every step that runs as administrator or SYSTEM (not --finish-update: it starts the new PlanetPDF)
-    assert set(C.HELPER_FLAGS) == {H.APPLY, H.INSTALL, H.REFRESH} == set(H.FLAGS) - {H.FINISH}
+    assert set(C.HELPER_FLAGS) == {H.APPLY, H.INSTALL, H.REFRESH, H.TIDY} == set(H.FLAGS) - {H.FINISH}
     env = {"OPENSSL_CONF": "x", "PATH": "user-folder"}
     assert C.scrub(["planetpdf", "file.pdf"], env) == [] and env == {"OPENSSL_CONF": "x", "PATH": "user-folder"}
     assert C.scrub(["planetpdf", H.FINISH, "a"], env) == []

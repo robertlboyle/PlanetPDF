@@ -25,7 +25,8 @@ planetpdf sign contract.pdf --id <thumbprint from signing-ids> --out contract_si
 - **Output:** a readable summary, or the result as JSON with `--json`. Progress ("Reading page 3
   of 10") goes to stderr; `--quiet` turns it off.
 - **Exit codes:** 0 done · 1 it failed (the message says why) · 2 the command was used wrongly ·
-  3 signing wasn't approved · 4 done, but a check failed (redaction verification, compliance) ·
+  3 signing wasn't approved · 4 done, but a check failed (redaction verification, compliance, a
+  signature that is invalid or was changed after signing) ·
   130 stopped (Ctrl+C).
 - **Files:** a command never writes over an existing file unless you add `--overwrite`; it writes
   over its own input only when `--out` names it.
@@ -50,8 +51,8 @@ network port.
   file only you can read. Before `planetpdf.hello`, send
   `{"jsonrpc":"2.0","id":0,"method":"planetpdf.prove","params":{"nonce":"<32 random hex digits>"}}`
   and check that the result's `proof` is HMAC-SHA-256, as hex, of the text `PlanetPDF server|<nonce>`
-  with the file's `key` (as UTF-8 text) for its key. If it isn't, close the connection and say
-  nothing more: after a crash, another user of the same computer could be listening at the old
+  with the file's `key` (as UTF-8 text) for its key. If it isn't, or you have no key, close the
+  connection and say nothing more (the Python client refuses without a key): after a crash, another user of the same computer could be listening at the old
   address. On Windows, open the pipe with `SECURITY_SQOS_PRESENT | SECURITY_IDENTIFICATION`, so
   whatever is at the other end can learn who is calling but can't act as you.
 - **Python:** copy `resources/sdk/planetpdf_client.py` (standard library only):

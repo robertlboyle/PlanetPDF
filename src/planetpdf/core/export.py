@@ -154,6 +154,14 @@ def _render(doc: pymupdf.Document, index: int, dpi: int) -> pymupdf.Pixmap:
 # --- images -------------------------------------------------------------------------------------
 
 
+def output_files(target: Path, pages: Sequence[int], fmt: ExportFormat) -> list[Path]:
+    """The files an export writes: a picture per page for PNG, JPG, and TIFF (one per page), else
+    the one file named."""
+    if fmt in (ExportFormat.PNG, ExportFormat.JPG, ExportFormat.TIFF):
+        return image_file_names(Path(target), list(pages), fmt)
+    return [Path(target)]
+
+
 def export_images(
     doc: pymupdf.Document,
     pages: Sequence[int],

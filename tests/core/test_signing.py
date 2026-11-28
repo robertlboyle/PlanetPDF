@@ -238,3 +238,36 @@ def test_file_trust_store_rejects_non_certificates(tmp_path):
     bogus.write_text("not a cert")
     with pytest.raises(PdfError):
         FileTrustStore(tmp_path / "t").import_certificate(bogus)
+
+
+def test_a_new_title_after_signing_is_not_called_unchanged(pdf_copy, provider, tmp_path):
+    """Security review 2026-11-27: with a title changed and saved after signing, the signature was
+    "Not changed since signing"."""
+    _source, target = _sign(pdf_copy, provider, tmp_path)
+    session = PdfSession.open(target)
+    session.doc.set_metadata({**session.doc.metadata, "title": "A new title"})
+    session.mark_modified()
+    session.save()
+    session.close()
+    [status] = validate_signatures(target, FileTrustStore(tmp_path / "t"))
+    assert status.intact and not status.covers_whole_file
+    assert "not changed since signing" not in status.summary.lower()
+    assert "Saved again after signing" in status.summary or "changed" in status.summary
+
+
+def test_a_signature_removed_by_a_later_change_is_still_reported(pdf_copy, provider, tmp_path):
+    """Security review 2026-11-27: after the signed page was deleted and the file saved, no signature
+    was listed at all, though the signed version is still in the file."""
+    from planetpdf.core.signing.digital import REMOVED_SUMMARY
+
+    _source, target = _sign(pdf_copy, provider, tmp_path)
+    session = PdfSession.open(target)
+    session.doc.delete_page(0)
+    session.mark_modified()
+    session.save()
+    session.close()
+    statuses = validate_signatures(target, FileTrustStore(tmp_path / "t"))
+    if statuses and statuses[0].field_name != "(removed)":  # (the field outlived its page: reported as changed)
+        assert statuses[0].verdict is not Verdict.VALID
+    else:
+        assert [s.summary for s in statuses] == [REMOVED_SUMMARY] and statuses[0].verdict is Verdict.MODIFIED

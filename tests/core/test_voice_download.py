@@ -126,3 +126,19 @@ def test_a_voice_file_that_isnt_the_pinned_one_isnt_loaded(tmp_path):
     root = NS.models_dir()
     if root is not None and (root / "piper" / "en_US-joe-medium.onnx").is_file():
         assert NS.check_model(root, "piper/en_US-joe-medium.onnx").is_file()  # (the real one passes)
+
+
+def test_models_dir_prefers_a_folder_that_holds_voices(tmp_path, monkeypatch):
+    """A user's own voices folder left empty (a canceled download) mustn't hide the voices that
+    their own installer put in PlanetPDF's folder for everyone (2026-11-27)."""
+    from planetpdf.core import neural_speech as NS
+
+    empty, voices = tmp_path / "empty", tmp_path / "voices"
+    empty.mkdir()
+    (voices / "piper").mkdir(parents=True)
+    (voices / "piper" / "en_US-joe-medium.onnx").write_bytes(b"x")
+    (voices / "piper" / "en_US-joe-medium.onnx.json").write_text("{}")
+    monkeypatch.setenv("PLANETPDF_MODELS", str(empty))  # (the first place looked)
+    monkeypatch.setattr(NS, "USER_MODELS", voices)
+    assert NS.models_dir() == voices
+

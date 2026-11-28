@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
 )
 
 from planetpdf.core.document import PdfError
+from planetpdf.ui import plain
 
 if TYPE_CHECKING:
     from planetpdf.ui.main_window import MainWindow
@@ -397,29 +398,65 @@ class ExtrasUi:
     _suggested = False  # (asked once per run)
 
     def suggest_natural_voices(self) -> bool:
-        """Read Out Loud without Kokoro: suggest downloading it, once per run. True when downloaded."""
+        """Read Out Loud without Kokoro: suggest the natural voices, once per run. True when downloaded.
+
+        Windows, installed: their own installer, for everyone on the computer (the web page that has
+        it; 2026-11-27); a copy just for this user too, except over Remote Desktop (a terminal
+        server would get one per user). Elsewhere: the download just for this user, as before."""
         from planetpdf.core import neural_speech as NS
         from planetpdf.core import voice_download as V
 
-        if NS.kokoro_available() or ExtrasUi._suggested or NS.USER_MODELS is None or V.turned_off():
+        if NS.kokoro_available() or ExtrasUi._suggested or V.turned_off():
+            return False
+        installer, just_me = voices_installer_offered(), per_user_voices_offered()
+        if not installer and not just_me:
             return False
         ExtrasUi._suggested = True
-        if not self.ask_download():
+        choice = self.ask_voices(installer, just_me)
+        if choice == "install":
+            self.open_voices_page()
             return False
-        return self.download_natural_voices()
+        if choice == "download":
+            return self.download_natural_voices()
+        return False
 
-    def ask_download(self) -> bool:  # (tests replace this)
+    def ask_voices(self, installer: bool, just_me: bool) -> str | None:  # (tests replace this)
+        """"install" (the voices' installer, for everyone), "download" (just for this user), or None."""
         box = QMessageBox(self.w)
         box.setIcon(QMessageBox.Icon.Question)
         box.setWindowTitle("Read Out Loud")
         box.setText("Read Out Loud sounds most natural with PlanetPDF's natural voices.")
-        box.setInformativeText(f"They're a one-time download of about 354 MB. Download them now?\n\n"
-                               f"Until then, PlanetPDF reads with the {fallback_voices()}.")
-        download = box.addButton("Download", QMessageBox.ButtonRole.AcceptRole)
+        lines = []
+        if installer:
+            lines.append("Install for Everyone opens the download page of PlanetPDF Natural Voices, an installer "
+                         "that adds them for everyone on this computer (it needs an administrator's OK).")
+        if just_me and installer:
+            lines.append("Download Just for Me gets them for you alone (about 354 MB).")
+        elif just_me:
+            lines.append("They're a one-time download of about 354 MB. Download them now?")
+        lines.append(f"Until then, PlanetPDF reads with the {fallback_voices()}.")
+        box.setInformativeText("\n\n".join(lines))
+        buttons = {}
+        if installer:
+            buttons["install"] = box.addButton("Install for Everyone…", QMessageBox.ButtonRole.AcceptRole)
+        if just_me:
+            buttons["download"] = box.addButton("Download Just for Me" if installer else "Download",
+                                                QMessageBox.ButtonRole.AcceptRole)
         box.addButton("Not Now", QMessageBox.ButtonRole.RejectRole)
-        box.setDefaultButton(download)
+        box.setDefaultButton(next(iter(buttons.values())))
         box.exec()
-        return box.clickedButton() is download
+        return next((choice for choice, button in buttons.items() if box.clickedButton() is button), None)
+
+    def open_voices_page(self) -> None:
+        """The web page with the natural voices' installer (Windows), in the browser."""
+        from PySide6.QtCore import QUrl
+        from PySide6.QtGui import QDesktopServices
+
+        from planetpdf import VOICES_PAGE
+
+        QDesktopServices.openUrl(QUrl(VOICES_PAGE))
+        self.w.statusBar().showMessage("The natural voices' installer is on the page that opened: run it, then "
+                                       "restart PlanetPDF.", 10000)
 
     def download_natural_voices(self) -> bool:
         """Download Kokoro into the downloaded-voices folder (counted in MB, Cancel); then read with it."""
@@ -591,7 +628,7 @@ class SpellingDialog(QDialog):
         self.include_pages.toggled.connect(lambda _on: self.start())
         self.issues_list = QListWidget(self)
         self.issues_list.currentRowChanged.connect(self._show)
-        self.context = QLabel(self)
+        self.context = plain.plain(QLabel(self))  # (the document's words around the word: as written; review 2026-11-27)
         self.context.setWordWrap(True)
         self.suggestions = QListWidget(self)
         self.suggestions.itemDoubleClicked.connect(lambda _i: self.change())
@@ -1015,7 +1052,7 @@ class DictionaryDialog(QDialog):
         for wl in self._speller.word_lists():
             item = QListWidgetItem(wl.name if wl.builtin else f"{wl.name} (imported)", self.lists)
             item.setData(Qt.ItemDataRole.UserRole, wl)
-            item.setToolTip(wl.about)
+            item.setToolTip(plain.tip(wl.about))  # (an imported word list's own words)
             item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
             item.setCheckState(Qt.CheckState.Unchecked if wl.key in self._speller.off else Qt.CheckState.Checked)
         self.lists.blockSignals(False)
@@ -1089,6 +1126,28 @@ class DictionaryDialog(QDialog):
 def fallback_voices() -> str:
     """What reads when the natural voices aren't there."""
     return "macOS voices" if sys.platform == "darwin" else "Windows voices"
+
+
+def voices_installer_offered() -> bool:
+    """Windows, an installed copy: the natural voices come with their own installer, into
+    PlanetPDF's folder for everyone (2026-11-27)."""
+    from planetpdf.core import update as U
+
+    return sys.platform == "win32" and U.install_root() is not None
+
+
+def per_user_voices_offered() -> bool:
+    """The download just for this user (its own folder in local app data). Not over Remote Desktop
+    on an installed Windows copy: on a terminal server every user would get their own 354 MB."""
+    from planetpdf.core import neural_speech as NS
+
+    if NS.USER_MODELS is None:
+        return False
+    if voices_installer_offered():
+        from planetpdf.ui.windows_shell import is_remote_session
+
+        return not is_remote_session()
+    return True
 
 
 def read_out_loud_available() -> bool:

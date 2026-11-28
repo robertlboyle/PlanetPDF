@@ -3,6 +3,7 @@ the print service's (printer/src/acl.rs), on security descriptors as text, so it
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -105,3 +106,19 @@ def test_the_updates_administrator_step_closes_an_open_install_folder(tmp_path, 
     assert H.close_install_folder(root).startswith("WARNING:")
     closed[0] = True
     assert H.close_install_folder(root) == ""  # (already closed: left alone)
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows permissions")
+def test_a_tree_is_open_if_anything_in_it_is(tmp_path):
+    """Security review 2026-11-27, finding 3: the whole install folder counts, every file and
+    folder in it, and a junction anywhere in it is never PlanetPDF's."""
+    closed = Path(os.environ.get("SystemRoot", r"C:\Windows")) / "System32" / "drivers" / "etc"
+    assert A.open_in_tree(closed) == []
+    (tmp_path / "versions" / "1.0").mkdir(parents=True)
+    (tmp_path / "versions" / "1.0" / "x.dll").write_bytes(b"x")
+    found = A.open_in_tree(tmp_path, most=50)
+    assert any("x.dll" in line and "its owner" in line for line in found)  # (the user's own file)
+    link = tmp_path / "jtop"
+    subprocess.run(["cmd", "/c", "mklink", "/J", str(link), str(closed)], check=True, capture_output=True)
+    assert any(line.startswith(str(link)) and "a link to another place" in line
+               for line in A.open_in_tree(tmp_path, most=50))

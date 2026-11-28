@@ -141,8 +141,14 @@ class PlanetPDF:
             key = known_key if key is None else key
         self._pipe = _Pipe(address)
         self._ids = itertools.count(1)
-        if key:  # (first of all: is this PlanetPDF? Nothing else is said until it has proved it)
-            self._prove(key)
+        if not key:
+            # (without a key nothing proves this is PlanetPDF, and the token would go to whatever
+            # answered: security review 2026-11-27, the client sent its token unchecked)
+            self._pipe.close()
+            raise PlanetPDFError(-32098, "There's no key to check that it is PlanetPDF at that address, so nothing "
+                                         "was sent. Use the address and key in PlanetPDF's api.json (PlanetPDF "
+                                         "1.0.8 or later), or PLANETPDF_API_KEY for a plugin.")
+        self._prove(key)  # (first of all: is this PlanetPDF? Nothing else is said until it has proved it)
         hello = self.call("planetpdf.hello", token=token) if token else \
             self.call("planetpdf.hello", name=name, publisher=publisher)
         if "token" in hello:

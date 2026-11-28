@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
 )
 
 from planetpdf.core import api, commands, plugins
+from planetpdf.ui import plain
 
 if TYPE_CHECKING:
     from planetpdf.ui.main_window import MainWindow
@@ -114,7 +115,7 @@ class ScriptingPage(QWidget):
             item = QTreeWidgetItem([f"{kind}{client.label}", _when(client.last_used), state])
             item.setData(0, Qt.ItemDataRole.UserRole, client.id)
             if client.program:  # (the program file allowed: security review 2026-11-21)
-                item.setToolTip(0, client.program)
+                item.setToolTip(0, plain.tip(client.program))
             self.programs.addTopLevelItem(item)
         self.programs.resizeColumnToContents(0)
         self._update_buttons()
@@ -182,7 +183,7 @@ class ScriptingPage(QWidget):
             item = QTreeWidgetItem([plugin.label + (f" ({plugin.publisher})" if plugin.publisher else ""),
                                     plugin.problem or asks])
             item.setData(0, Qt.ItemDataRole.UserRole, plugin.id)
-            item.setToolTip(0, f"{plugin.description}\n{plugin.folder}".strip())
+            item.setToolTip(0, plain.tip(f"{plugin.description}\n{plugin.folder}".strip()))  # (the plugin's words)
             if plugin.problem or self.plugins_off():
                 item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEnabled)
                 if not plugin.problem:

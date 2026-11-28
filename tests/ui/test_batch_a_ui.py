@@ -241,8 +241,31 @@ def test_combine_asks_for_passwords(window, fixture_dir, tmp_path, monkeypatch):
     from PySide6.QtWidgets import QInputDialog
 
     monkeypatch.setattr(QInputDialog, "getText", lambda *a, **k: (g.ENCRYPTED_USER_PW, True))
+    asked = []
+    monkeypatch.setattr(window, "ask_three", lambda title, text: asked.append(text) or False)  # (No: unprotected)
     assert window.combine_files([fixture_dir / "encrypted.pdf", fixture_dir / "text.pdf"], tmp_path / "c.pdf", CombineOptions())
     assert window.session.page_count == 1 + g.TEXT_PAGE_COUNT
+    assert asked and "Protect the combined PDF too?" in asked[0]
+
+
+def test_a_combined_pdf_of_protected_files_is_protected_as_asked(window, fixture_dir, tmp_path, monkeypatch):
+    """Security review 2026-11-27: Combine Files wrote the result unprotected without asking."""
+    from PySide6.QtWidgets import QInputDialog
+
+    from planetpdf.core.document import Protection
+
+    monkeypatch.setattr(QInputDialog, "getText", lambda *a, **k: (g.ENCRYPTED_USER_PW, True))
+    monkeypatch.setattr(window, "ask_three", lambda title, text: None)  # (Cancel: nothing made)
+    assert not window.combine_files([fixture_dir / "encrypted.pdf"], tmp_path / "c.pdf", CombineOptions())
+    assert not (tmp_path / "c.pdf").exists()
+    monkeypatch.setattr(window, "ask_combined_protection", lambda files: Protection(open_password="combined-pw"))
+    window.undo_stack.setClean()
+    monkeypatch.setattr(QInputDialog, "getText", lambda *a, **k: ("combined-pw" if "c2" in str(a) else g.ENCRYPTED_USER_PW, True))
+    window.combine_files([fixture_dir / "encrypted.pdf", fixture_dir / "text.pdf"], tmp_path / "c2.pdf", CombineOptions())
+    import pymupdf
+
+    with pymupdf.open(tmp_path / "c2.pdf") as doc:
+        assert doc.needs_pass and doc.authenticate("combined-pw")
 
 
 def test_a_long_save_shows_its_steps(qapp, tmp_path, monkeypatch):

@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
 
 from planetpdf.ui import fa
 from planetpdf.ui.edit_panel import _heading
+from planetpdf.ui import plain
 
 if TYPE_CHECKING:
     from planetpdf.ui.main_window import MainWindow
@@ -223,7 +224,7 @@ class FormPanel(QWidget):
                 parent = pages[page] = QTreeWidgetItem([f"Page {page + 1}"])
             item = QTreeWidgetItem(parent, [f.name])
             item.setData(0, Qt.ItemDataRole.UserRole, f.name)
-            item.setToolTip(0, f"{f.kind.value.title()} field: {f.name} (double-click for its properties)")
+            item.setToolTip(0, plain.tip(f"{f.kind.value.title()} field: {f.name} (double-click for its properties)"))
         for page in sorted(pages):
             self.fields.addTopLevelItem(pages[page])
             pages[page].setExpanded(True)

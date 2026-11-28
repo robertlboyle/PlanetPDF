@@ -38,6 +38,8 @@ fn show_error(text: &str) {
 }
 
 fn main() -> ExitCode {
+    #[cfg(windows)]
+    common::system32_libraries_only();
     let root = match std::env::current_exe() {
         Ok(exe) => exe.parent().map(Path::to_path_buf).unwrap_or_default(),
         Err(e) => {

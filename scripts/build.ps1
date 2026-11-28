@@ -4,10 +4,13 @@ Build PlanetPDF and its installer (packaging, 2026-10-04).
     powershell -ExecutionPolicy Bypass -File scripts\build.ps1            # build + installer + update files
     powershell -ExecutionPolicy Bypass -File scripts\build.ps1 -NoUpdate  # without the signed update files
     powershell -ExecutionPolicy Bypass -File scripts\build.ps1 -SkipAdvisoryCheck  # offline: a trial build, not a release
+    powershell -ExecutionPolicy Bypass -File scripts\build.ps1 -NoSign  # not signed: a build never published
 
 Steps: third-party notices -> PyInstaller (the program) + cargo (the native launcher) -> staging folder laid out
-as installed (launcher, versions\<version> with Ghostscript) -> the built program's own
-self-test -> Inno Setup -> the signed update for https://software.planet.net/PDF/.
+as installed (launcher, versions\<version> with Ghostscript; our programs signed) -> the built program's own
+self-test -> Inno Setup (Setup and its uninstaller signed) -> the signed update for
+https://software.planet.net/PDF/. Signing: scripts\sign.ps1, Planet Networks' certificate through
+Microsoft's Artifact Signing (az login first; user 2026-11-27).
 
 Work files go to %LOCALAPPDATA%\PlanetPDF-build (outside Dropbox: ~2 GB of churn and file
 locks); the results go to dist\: PlanetPDF-Setup-<version>.exe and update-site\.
@@ -16,8 +19,10 @@ Ghostscript 10.08.0, models\ (scripts\download_voices.py), and for the update fi
 private key from scripts\release_update.py keygen.
 #>
 # -SkipCompile: reuse the last staging (steps 5-7 only). -SkipAdvisoryCheck: don't ask the advisory
-# databases first (a trial build without a network; never for a release).
-param([switch]$NoUpdate, [switch]$SkipCompile, [switch]$SkipAdvisoryCheck)
+# databases first (a trial build without a network; never for a release). -NoSign (or
+# PLANETPDF_NO_SIGN=1): nothing signed, for a build on a computer without the signing tools that's
+# never published.
+param([switch]$NoUpdate, [switch]$SkipCompile, [switch]$SkipAdvisoryCheck, [switch]$NoSign)
 $ErrorActionPreference = "Stop"
 $root = Split-Path $PSScriptRoot -Parent
 Set-Location $root
@@ -36,10 +41,19 @@ $cargo = @((Get-Command cargo -ErrorAction SilentlyContinue).Source, "$env:USERP
     Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
 if (-not $cargo -and -not $SkipCompile) { throw "Rust isn't installed (rustup, stable MSVC; for the launcher)." }
 if (-not (Test-Path "$gsHome\bin\gswin64c.exe")) { throw "Ghostscript 10.08.0 isn't in $gsHome." }
+# signing (user 2026-11-27): checked now, so a missing tool or sign-in stops the build before the long steps
+$sign = -not ($NoSign -or $env:PLANETPDF_NO_SIGN -eq "1")
+$signScript = Join-Path $PSScriptRoot "sign.ps1"
+if ($sign) { & $signScript -Check }
+else { Write-Host "Not signing (-NoSign or PLANETPDF_NO_SIGN): never publish this build." -ForegroundColor Yellow }
 if (-not (Test-Path "models\kokoro") -or -not (Test-Path "models\piper")) { throw "models\ is missing: run scripts\download_voices.py." }
-# Only the pinned voice files go into the installer (security review 2026-11-25)
+# Only the pinned voice files are used (security review 2026-11-25): here for the self-test; they're
+# shipped in their own installer (scripts\build_voices.ps1), which Setup downloads when they're ticked
 & ".venv\Scripts\python.exe" scripts\download_voices.py --check | Out-Null
 if ($LASTEXITCODE -ne 0) { throw "models\ doesn't hold the pinned voice files: run scripts\download_voices.py." }
+if (-not (Test-Path (Join-Path $root "packaging\voices-installer.json"))) {
+    throw "The voices installer isn't built: run scripts\build_voices.ps1 first (it pins the file Setup downloads)."
+}
 # Ghostscript's folder and the OCR language files are the pinned ones too (security list 2026-11-26,
 # item 9: they went into the installer as found on this computer, unchecked)
 $tessdata = if ($env:PLANETPDF_TESSDATA) { $env:PLANETPDF_TESSDATA } else { Join-Path $env:ProgramFiles "Tesseract-OCR\tessdata" }
@@ -60,6 +74,11 @@ if ($SkipAdvisoryCheck) {
 Write-Host "Building PlanetPDF $version"
 $app = Join-Path $stage "app"
 $program = Join-Path $stage "versions\$version"
+$rootFiles = Join-Path $program "install-root"
+# our own programs, signed before anything is packed (Ghostscript's are Artifex's, left as they are)
+$programs = @((Join-Path $app "PlanetPDF.exe"), (Join-Path $app "PlanetPDF.com"),
+              (Join-Path $app "printer\planetpdf-print-service.exe"), (Join-Path $app "printer\planetpdf-printer-setup.exe"),
+              (Join-Path $program "PlanetPDF.exe"), (Join-Path $program "planetpdf-cli.exe"))
 if ($SkipCompile) {
     if (-not (Test-Path (Join-Path $program "PlanetPDF.exe"))) { throw "No staged build of $version to reuse." }
     Write-Host "Reusing the staged build in $stage (steps 1-4 skipped)."
@@ -110,15 +129,16 @@ New-Item -ItemType Directory -Force $printer | Out-Null
 foreach ($part in "planetpdf-print-service.exe", "planetpdf-printer-setup.exe") {
     Copy-Item (Join-Path $work "printer-target\release\$part") $printer
 }
-# copies the update carries, which it puts in the install folder (core\update.py update_root_files;
-# security review 2026-11-25: updates replaced only the program, never the print service or launchers)
-$rootFiles = Join-Path $program "install-root"
-New-Item -ItemType Directory -Force (Join-Path $rootFiles "printer") | Out-Null
-Copy-Item (Join-Path $app "PlanetPDF.exe"), (Join-Path $app "PlanetPDF.com") $rootFiles
-Copy-Item (Join-Path $printer "*") (Join-Path $rootFiles "printer")
 Copy-Item "src\planetpdf\resources\icons\planetpdf.ico" $app
 Set-Content -Encoding ascii (Join-Path $app "current.txt") $version
 Copy-Item -Recurse "$work\dist\PlanetPDF\*" $program
+# signed now: before the self-test runs them, and before the copies below, the installer, and the update
+if ($sign) { & $signScript @programs }
+# copies the update carries, which it puts in the install folder (core\update.py update_root_files;
+# security review 2026-11-25: updates replaced only the program, never the print service or launchers)
+New-Item -ItemType Directory -Force (Join-Path $rootFiles "printer") | Out-Null
+Copy-Item (Join-Path $app "PlanetPDF.exe"), (Join-Path $app "PlanetPDF.com") $rootFiles
+Copy-Item (Join-Path $printer "*") (Join-Path $rootFiles "printer")
 $gs = Join-Path $program "ghostscript"
 New-Item -ItemType Directory -Force "$gs\doc" | Out-Null
 foreach ($part in "bin", "lib", "Resource", "iccprofiles") { Copy-Item -Recurse "$gsHome\$part" $gs }
@@ -156,6 +176,13 @@ if (-not (Test-Path $report)) { throw "The launcher didn't start the program (no
 Get-Content $report | ForEach-Object { if ($_ -like "FAIL*") { Write-Host $_ -ForegroundColor Red } else { Write-Host $_ } }
 if (-not (Select-String -Path $report -Pattern "^RESULT: all passed" -Quiet)) { throw "The built program failed its self-test (see above)." }
 }
+# every program the installer and the update carry is signed, the update's copies too; a staging
+# reused from a build that wasn't signed (-SkipCompile after -NoSign) is signed here
+if ($sign) {
+    $carried = @(Get-ChildItem $rootFiles -Recurse -Include *.exe, *.com -File | ForEach-Object FullName)
+    $unsigned = @($programs + $carried | Where-Object { (Get-AuthenticodeSignature $_).Status -ne "Valid" })
+    if ($unsigned.Count) { & $signScript @unsigned }
+}
 
 Step 5 "installer (Inno Setup)"
 New-Item -ItemType Directory -Force $dist | Out-Null
@@ -163,7 +190,16 @@ New-Item -ItemType Directory -Force $dist | Out-Null
 #  last step, writing the setup's resources, then failed with EndUpdateResource error 110)
 $output = Join-Path $work "output"
 New-Item -ItemType Directory -Force $output | Out-Null
-& $iscc /Q "/DAppVersion=$version" "/DStage=$stage" "/DModels=$root\models" "/DOutput=$output" packaging\PlanetPDF.iss
+# Setup and its uninstaller are signed by Inno Setup through the sign tool "planet" (= sign.ps1;
+# Inno Setup puts the file's quoted name for $f)
+$signing = @()
+if ($sign) { $signing = @("/DSign", "/Splanet=powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$signScript`" `$f") }
+# the natural voices aren't in Setup: ticking them downloads the signed voices installer that
+# scripts\build_voices.ps1 pinned (its name and SHA-256; user 2026-11-27)
+$voices = Get-Content -Raw (Join-Path $root "packaging\voices-installer.json") | ConvertFrom-Json
+$voicesArgs = @("/DVoicesFile=$($voices.file)", "/DVoicesSha256=$($voices.sha256)",
+                "/DVoicesMB=$([math]::Round($voices.size / 1000000))")  # (MB as the app counts them: 354 MB)
+& $iscc /Q "/DAppVersion=$version" "/DStage=$stage" "/DOutput=$output" @voicesArgs @signing packaging\PlanetPDF.iss
 if ($LASTEXITCODE) { throw "Inno Setup failed" }
 Copy-Item -Force "$output\PlanetPDF-Setup-$version.exe" $dist
 
@@ -177,4 +213,10 @@ else {
 Step 7 "done"
 $setup = Get-Item "$dist\PlanetPDF-Setup-$version.exe"
 Write-Host ("Installer: {0} ({1:N0} MB)" -f $setup.FullName, ($setup.Length / 1MB)) -ForegroundColor Green
+if ($sign) {
+    $signature = Get-AuthenticodeSignature $setup.FullName
+    if ($signature.Status -ne "Valid") { throw "The installer's signature isn't valid: $($signature.StatusMessage)" }
+    if (-not $signature.TimeStamperCertificate) { throw "The installer's signature has no timestamp." }
+    Write-Host "Signed by $($signature.SignerCertificate.GetNameInfo('SimpleName', $false)), timestamped" -ForegroundColor Green
+} else { Write-Host "NOT signed (-NoSign): never publish this build." -ForegroundColor Yellow }
 if (-not $NoUpdate) { Write-Host "Update files: $dist\update-site (upload the zip first, then latest.json and latest.json.sig)" -ForegroundColor Green }

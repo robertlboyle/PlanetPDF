@@ -77,7 +77,7 @@ def test_a_feature_turned_off_says_so_before_asking_anything(under_policy, win, 
     monkeypatch.setattr(win.extras, "ask_address", lambda: pytest.fail("no address is asked for"))
     assert win.extras.create_from_web() is False and win.extras.insert_from_web() is False
     assert len(said) == 2 and all(P.BY_ADMINISTRATOR in text for text in said)
-    monkeypatch.setattr(win.extras, "ask_download", lambda: pytest.fail("the voices aren't offered"))
+    monkeypatch.setattr(win.extras, "ask_voices", lambda *a: pytest.fail("the voices aren't offered"))
     assert win.extras.suggest_natural_voices() is False
     assert win.extras.download_natural_voices() is False and P.BY_ADMINISTRATOR in said[-1]
 

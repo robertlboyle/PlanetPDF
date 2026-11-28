@@ -95,3 +95,23 @@ def test_canceling_the_signed_document_question_takes_the_change_back(win, signe
     win.push_command(command)  # (asks "This document is digitally signed … Continue?": Cancel)
     assert win.undo_stack.count() == 0
     assert win.session.doc.metadata["title"] != "Changed"  # (was left changed, with nothing to undo)
+
+
+def test_a_protected_documents_sanitized_copy_is_protected_as_asked(win, signed, tmp_path, monkeypatch, test_certs):
+    """Security review 2026-11-27, finding 6: a signed, certificate-encrypted file's sanitized copy
+    was written unencrypted, with no question. It is asked like every other new file made from a
+    protected document, and written encrypted."""
+    from planetpdf.core import cert_encryption as CE
+
+    protection = CE.CertificateProtection((CE.certificate_from_pfx(test_certs.pfx, PFX_PASSWORD),))
+    out = tmp_path / "copy.pdf"
+    monkeypatch.setattr(QFileDialog, "getSaveFileName", staticmethod(lambda *a, **k: (str(out), "")))
+    monkeypatch.setattr(win, "ask_output_protection", lambda what: False)  # (Cancel)
+    assert not win.save_sanitized_copy(SanitizeOptions()) and not out.exists()
+    asked = []
+    monkeypatch.setattr(win, "ask_output_protection", lambda what: asked.append(what) or protection)
+    assert win.save_sanitized_copy(SanitizeOptions())
+    assert asked == ["sanitized copy"]
+    assert CE.is_certificate_encrypted(out) and SECRET not in out.read_bytes()
+    plain, _again = CE.decrypt_with_pfx(out.read_bytes(), test_certs.pfx, PFX_PASSWORD)
+    assert SECRET not in plain

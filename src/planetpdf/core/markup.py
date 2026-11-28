@@ -840,6 +840,10 @@ def renew_ids(doc: pymupdf.Document, pages, salt: str) -> int:
             doc.xref_set_key(annot.xref, "NM", pymupdf.get_pdf_str(f"{NM_PREFIX}{new}"))
             kind, raw = doc.xref_get_key(annot.xref, SPEC_KEY)
             if kind == "string":
+                # (only an item this user's PlanetPDF made is sealed again: one from someone else's
+                # file stays theirs, security review 2026-11-27, finding 13: Insert Pages and Combine
+                # Files sealed a crafted file's page-sized "PlanetPDF" item as made here)
+                ours = _made_here(doc, annot.xref, raw)
                 try:
                     data = json.loads(raw)
                 except ValueError:
@@ -847,7 +851,10 @@ def renew_ids(doc: pymupdf.Document, pages, salt: str) -> int:
                 if isinstance(data, dict) and data.get("mark_id") == old:
                     data["mark_id"] = new
                     doc.xref_set_key(annot.xref, SPEC_KEY, pymupdf.get_pdf_str(json.dumps(data)))
-                    _seal(doc, annot.xref)
+                    if ours:
+                        _seal(doc, annot.xref)
+                    else:
+                        doc.xref_set_key(annot.xref, CHECK_KEY, "null")
         for annot in page.annots():  # (companions, e.g. Replace Text's caret, follow their item)
             nm = _nm(doc, annot.xref)
             if nm.startswith(COMPANION_PREFIX) and nm[len(COMPANION_PREFIX):] in renewed:

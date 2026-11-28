@@ -502,3 +502,69 @@ unsafe extern "system" {
 unsafe extern "system" {
     pub fn GetCurrentThread() -> HANDLE;
 }
+
+// --- a spool folder that is ours, and a pipe that is ours (security review 2026-11-27) -----------
+
+pub const INVALID_FILE_ATTRIBUTES: DWORD = 0xFFFF_FFFF;
+pub const FILE_ATTRIBUTE_DIRECTORY: DWORD = 0x10;
+pub const FILE_ATTRIBUTE_REPARSE_POINT: DWORD = 0x400;
+pub const PROTECTED_DACL_SECURITY_INFORMATION: DWORD = 0x8000_0000;
+pub const BCRYPT_USE_SYSTEM_PREFERRED_RNG: DWORD = 0x2;
+pub const EVENTLOG_WARNING_TYPE: u16 = 0x2;
+pub const FILE_READ_ATTRIBUTES: DWORD = 0x80;
+pub const OPEN_EXISTING: DWORD = 3;
+pub const ERROR_PIPE_BUSY: DWORD = 231;
+pub const ERROR_FILE_NOT_FOUND: DWORD = 2;
+
+#[repr(C)]
+pub struct PRINTER_INFO_5W {
+    pub pPrinterName: LPWSTR,
+    pub pPortName: LPWSTR,
+    pub Attributes: DWORD,
+    pub DeviceNotSelectedTimeout: DWORD,
+    pub TransmissionRetryTimeout: DWORD,
+}
+
+#[link(name = "kernel32")]
+unsafe extern "system" {
+    pub fn GetFileAttributesW(lpFileName: LPCWSTR) -> DWORD;
+    pub fn CreateFileW(lpFileName: LPCWSTR, dwDesiredAccess: DWORD, dwShareMode: DWORD,
+                       lpSecurityAttributes: *const SECURITY_ATTRIBUTES, dwCreationDisposition: DWORD,
+                       dwFlagsAndAttributes: DWORD, hTemplateFile: HANDLE) -> HANDLE;
+    pub fn GetNamedPipeServerProcessId(Pipe: HANDLE, ServerProcessId: *mut u32) -> BOOL;
+}
+
+#[link(name = "advapi32")]
+unsafe extern "system" {
+    pub fn SetNamedSecurityInfoW(pObjectName: LPWSTR, ObjectType: i32, SecurityInfo: DWORD, psidOwner: *mut c_void,
+                                 psidGroup: *mut c_void, pDacl: *mut c_void, pSacl: *mut c_void) -> DWORD;
+    pub fn GetSecurityDescriptorDacl(pSecurityDescriptor: *mut c_void, lpbDaclPresent: *mut BOOL,
+                                     pDacl: *mut *mut c_void, lpbDaclDefaulted: *mut BOOL) -> BOOL;
+    pub fn RegisterEventSourceW(lpUNCServerName: LPCWSTR, lpSourceName: LPCWSTR) -> HANDLE;
+    pub fn ReportEventW(hEventLog: HANDLE, wType: u16, wCategory: u16, dwEventID: DWORD, lpUserSid: *mut c_void,
+                        wNumStrings: u16, dwDataSize: DWORD, lpStrings: *const LPCWSTR, lpRawData: *mut c_void)
+        -> BOOL;
+    pub fn DeregisterEventSource(hEventLog: HANDLE) -> BOOL;
+}
+
+#[link(name = "advapi32")]
+unsafe extern "system" {
+    pub fn LookupAccountNameW(lpSystemName: LPCWSTR, lpAccountName: LPCWSTR, Sid: *mut c_void, cbSid: *mut DWORD,
+                              ReferencedDomainName: LPWSTR, cchReferencedDomainName: *mut DWORD, peUse: *mut i32)
+        -> BOOL;
+}
+
+#[link(name = "kernel32")]
+unsafe extern "system" {
+    pub fn GetComputerNameExW(NameType: i32, lpBuffer: LPWSTR, nSize: *mut DWORD) -> BOOL;
+}
+
+#[link(name = "bcrypt")]
+unsafe extern "system" {
+    pub fn BCryptGenRandom(hAlgorithm: HANDLE, pbBuffer: *mut u8, cbBuffer: u32, dwFlags: DWORD) -> i32;
+}
+
+#[link(name = "winspool")]
+unsafe extern "system" {
+    pub fn GetPrinterW(hPrinter: HANDLE, Level: DWORD, pPrinter: *mut u8, cbBuf: DWORD, pcbNeeded: *mut DWORD) -> BOOL;
+}

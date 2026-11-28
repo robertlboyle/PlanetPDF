@@ -107,13 +107,18 @@
 
 <h2 id="new-files-protection">New files made from a protected document</h2>
 <!-- index: keep protection; protect the copy too; protected copy; extract pages protection -->
-<p>When you make a new PDF from a protected document (a redacted copy, extracted or split pages, a smaller copy, an image-only PDF), PlanetPDF asks, for example, "Protect the redacted copy too?":</p>
+<p>When you make a new PDF from a protected document (a redacted copy, a sanitized copy, extracted or split pages, a smaller copy, an image-only PDF, or a PDF combined from files of which any is protected), PlanetPDF asks, for example, "Protect the redacted copy too?":</p>
 <ul>
   <li><b>Yes</b>: the new file gets the same protection. Passwords you set in this session are reused. Otherwise the password window opens filled in with what is known (the open password and the permissions); the original's permissions password can't be read from the file, so type one. A certificate-encrypted document asks whether to encrypt for the same people.</li>
   <li><b>No</b>: the new file is not protected.</li>
   <li><b>Cancel</b>: nothing is made.</li>
 </ul>
-<p>A protected new file is encrypted as it is written, so its folder never holds an unprotected copy, not even for a moment (a redacted copy is checked first in a folder only you can open). On the command line, <code>redact</code>, <code>compress</code>, <code>extract</code>, <code>split</code>, and <code>export --format image_pdf</code> keep a protected file's password on the new files; add <code>--no-protect</code> to leave it off on purpose.</p>
+<p>A protected new file is encrypted as it is written, so its folder never holds an unprotected copy, not even for a moment (a redacted copy is checked first in a folder only you can open). On the command line, <code>redact</code>, <code>compress</code>, <code>extract</code>, <code>split</code>, and <code>export --format image_pdf</code> keep a protected file's password on the new files; add <code>--no-protect</code> to leave it off on purpose. Each password keeps its role:</p>
+<ul>
+  <li>Given the <b>open password</b>, the new file opens with that same password, and keeps the original's limits on printing, copying, and changes.</li>
+  <li>When the original's <b>permissions password</b> isn't known (a file that opens without a password but limits what may be done, or one opened with its open password), the limits are kept under a new permissions password that nobody knows, and the result says so. To choose your own, run <code>protect</code> on the new file.</li>
+  <li>Given the <b>permissions password</b> of a file that also needs an open password, the command stops: the open password isn't known, so the new file can't be protected the same way. Give the open password with <code>--password</code>, or add <code>--no-protect</code>.</li>
+</ul>
 
 <h2 id="redact">Redacting</h2>
 <!-- index: redaction; black out; remove sensitive information; Redact Text & Images; censor -->
@@ -169,7 +174,7 @@
 </ol>
 <p class="note"><b>A copy that fails its checks is not saved.</b> If any check fails, nothing is written and nothing is replaced: the report says "The redacted file was not saved" and offers <b>Discard</b>. Fix what it lists and apply again. When the copy was going to a new file, <b>Save Anyway…</b> saves it after a second question (for example, to look at it); a failed copy is never saved over the original.</p>
 <p>Your open document doesn't change: it keeps its marks, so you can fix something and apply again. The report's <b>Open Redacted File</b> button opens the result.</p>
-<p class="note"><b>Overwriting the original:</b> if you choose the original file's own name, PlanetPDF asks a second time ("Overwrite the Original?"), because the unredacted original is then gone for good and the undo history is cleared. Saving a separate copy is safer.</p>
+<p class="note"><b>Overwriting the original:</b> if you choose the original file's own name, PlanetPDF asks a second time ("Overwrite the Original?"), because the unredacted original is then gone for good and the undo history is cleared. If the checks pass with warnings (for example, a word you marked still appears somewhere you didn't mark), the report comes first and the original isn't replaced unless you click <b>Replace the Original</b>; its default, <b>Don't Replace</b>, keeps it. Saving a separate copy is safer.</p>
 
 <h3 id="verification-report">The verification report</h3>
 <!-- index: redaction verification; PASS; WARNING; FAIL; check redaction; leftover text; Copy Report -->
@@ -200,22 +205,22 @@
   <tr><td><b>Bookmarks</b></td><td>The outline shown in the Bookmarks panel.</td></tr>
   <tr><td><b>Attachments</b></td><td>Embedded files and file-attachment comments.</td></tr>
   <tr><td><b>JavaScript</b></td><td>Document, page, and form-field scripts, including field formatting.</td></tr>
-  <tr><td><b>Hidden layers</b></td><td>Content in layers that are turned off. It can't be searched, so it's easy to miss.</td></tr>
+  <tr><td><b>Hidden layers</b></td><td>Content in layers that are turned off, or hidden by a layer rule (a rule such as "show only when layer A is on and layer B is off"). It can't be searched, so it's easy to miss. Pictures that only a hidden layer drew leave the file too.</td></tr>
   <tr><td><b>Comments and markup</b></td><td>Notes, highlights, drawings, and stamps that haven't been flattened.</td></tr>
   <tr><td><b>Form field values</b></td><td>Every field's value and default value, including XFA form data.</td></tr>
-  <tr><td><b>Tags and alternate text</b></td><td>The accessibility tags, with the alternate text of pictures and replacement text (also where it is written into the pages themselves), which can describe what was redacted. Screen readers then read the pages without tags.</td></tr>
+  <tr><td><b>Tags and alternate text</b></td><td>The accessibility tags, with the alternate text of pictures and replacement text, wherever it is written: in the tags, in the pages themselves, in the pages' resources, and in comments' and pictures' own content. It can describe what was redacted. Screen readers then read the pages without tags.</td></tr>
 </table>
 
 <h3 id="sanitize-signed">Signed documents</h3>
 <!-- index: sanitize signed document; signatures removed; sanitized copy -->
 <p>A signed PDF is saved by adding the changes to the end of the file, which keeps the signatures valid but also keeps everything before the changes. Removed items would still be in the file's earlier, signed version, where anyone can dig them out. So on a signed document the Sanitize window says that the signatures are removed too, and offers two buttons:</p>
 <ul>
-  <li><b>Save Sanitized Copy…</b> (the default): saves a sanitized copy under a new name, as a whole new file without the signatures. The signed document stays as it is.</li>
+  <li><b>Save Sanitized Copy…</b> (the default): saves a sanitized copy under a new name, as a whole new file without the signatures. The signed document stays as it is. If the document is protected (with a password, or encrypted for certain people), PlanetPDF asks whether to protect the copy too, as for other new files made from it.</li>
   <li><b>Remove Signatures and Sanitize</b>: sanitizes the open document and removes its signatures. When you save, PlanetPDF writes the whole file again, so nothing of the signed version is left. Undo puts the signed document back.</li>
 </ul>
 <p>On the command line, <code>planetpdf sanitize</code> refuses a signed file unless you add <code>--remove-signatures</code>.</p>
 
 <h3 id="sanitize-layers">Hidden layers</h3>
 <!-- index: hidden layers; layers not removed -->
-<p>PlanetPDF never shows what a hidden layer holds. If it can't tell which content belongs to a hidden layer, or removing the layers would make hidden words appear, it stops, changes nothing, and says so. Untick <b>Hidden layers</b> to remove everything else.</p>
+<p>PlanetPDF never shows what a hidden layer holds. It follows the layers' own rules, as Adobe Reader does, to know what is hidden. If it can't tell which content belongs to a hidden layer, can't read a layer's rule, or removing the layers would make hidden words appear, it stops, changes nothing, and says so. Untick <b>Hidden layers</b> to remove everything else.</p>
 </body></html>

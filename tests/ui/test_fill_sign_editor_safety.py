@@ -153,3 +153,64 @@ def test_items_another_planetpdf_made_dont_take_add_texts_clicks(qapp, tmp_path)
         second.markup.set_tool(None)
         second.undo_stack.setClean()
         second.close()
+
+
+def test_inserting_or_combining_someone_elses_pages_doesnt_seal_their_items(qapp, tmp_path):
+    """Security review 2026-11-27, finding 13: Insert Pages and Combine Files gave another user's
+    (or a crafted file's) "PlanetPDF" items this user's seal, so they took Add Text's clicks."""
+    from planetpdf.core.combine import CombineOptions, combine_files
+
+    first = _window(tmp_path, "profile-a", _blank(tmp_path / "theirs.pdf"))
+    try:
+        _add_text(first, qapp, 100, 200, "Theirs")
+        first.markup.set_tool(None)
+        first.session.save()
+        first.undo_stack.setClean()
+    finally:
+        first.close()
+    second = _window(tmp_path, "profile-b", _blank(tmp_path / "mine.pdf"))  # (another user's PlanetPDF)
+    try:
+        _add_text(second, qapp, 100, 300, "Mine")
+        second.markup.set_tool(None)
+        P.insert_pdf_pages(second.session, (tmp_path / "theirs.pdf").read_bytes(), 1)
+        by_text = {i.text: i for i in _texts(second)}
+        assert by_text["Mine"].made_here and not by_text["Theirs"].made_here
+        P.insert_pdf_pages(second.session, second.session.doc.tobytes(), 2)  # (its own pages again)
+        assert sorted(i.made_here for i in _texts(second) if i.text == "Mine") == [True, True]
+        combined = tmp_path / "combined.pdf"
+        combine_files([tmp_path / "mine.pdf", tmp_path / "theirs.pdf"], combined, CombineOptions())
+        session = PdfSession.open(combined)
+        try:
+            assert [i.made_here for i in list_markup(session) if i.kind is Kind.TEXT and i.text == "Theirs"] == [False]
+        finally:
+            session.close()
+    finally:
+        second.undo_stack.setClean()
+        second.close()
+
+
+def test_deleting_one_of_twin_items_changes_nothing(qapp, tmp_path):
+    """Security review 2026-11-27: the delete failed with "share the same identity", yet the document
+    was marked changed, with "Undo Delete Rectangle" in the Edit menu."""
+    from planetpdf.ui.commands import RemoveMarkupCommand
+
+    source = _window(tmp_path, "profile-twin", _blank(tmp_path / "one.pdf"))
+    try:
+        _add_text(source, qapp, 100, 200, "Twin")
+        data = source.session.doc.tobytes()
+        source.undo_stack.setClean()
+    finally:
+        source.close()
+    twins = pymupdf.open()
+    twins.insert_pdf(pymupdf.open("pdf", data))
+    twins.insert_pdf(pymupdf.open("pdf", data))  # (another program: the same id twice)
+    twins.save(tmp_path / "twins.pdf")
+    win = _window(tmp_path, "profile-twin", tmp_path / "twins.pdf")
+    try:
+        twin = next(i for i in list_markup(win.session) if i.kind is Kind.TEXT)
+        with pytest.raises(PdfError, match="share the same identity"):
+            win.push_command(RemoveMarkupCommand(win, twin.item_id, "Text"))
+        assert win.undo_stack.count() == 0 and win.undo_stack.isClean()
+    finally:
+        win.undo_stack.setClean()
+        win.close()

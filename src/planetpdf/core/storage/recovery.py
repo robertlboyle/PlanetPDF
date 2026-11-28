@@ -81,16 +81,22 @@ class RecoveryStore:
         for path in (self._pdf(entry_id), self._meta(entry_id)):
             remove_quietly(path)
 
-    def restore_to(self, entry: RecoveryEntry, fallback_dir: Path) -> Path:
-        """Copy the recovered document next to the original as "<name> (recovered).pdf"
-        (or into ``fallback_dir`` if that folder is gone). The original is never touched."""
-        folder = entry.original.parent if entry.original.parent.is_dir() else Path(fallback_dir)
+    def restore_to(self, entry: RecoveryEntry, fallback_dir: Path, target: Path | None = None) -> Path:
+        """Copy the recovered document next to the original as "<name> (recovered).pdf" (or into
+        ``fallback_dir`` if that folder is gone, or is a temporary folder whose files are deleted
+        without asking: security review 2026-11-27), or to ``target`` when one was chosen. The
+        original is never touched."""
+        from planetpdf.core.temp_folders import is_temporary
+
+        original = entry.original.parent
+        folder = original if original.is_dir() and not is_temporary(original) else Path(fallback_dir)
         stem = entry.original.stem or "Document"
-        target = folder / f"{stem} (recovered).pdf"
-        n = 2
-        while target.exists():
-            target = folder / f"{stem} (recovered {n}).pdf"
-            n += 1
+        if target is None:
+            target = folder / f"{stem} (recovered).pdf"
+            n = 2
+            while target.exists():
+                target = folder / f"{stem} (recovered {n}).pdf"
+                n += 1
         write_bytes_atomic(target, entry.pdf.read_bytes())
         self.discard(entry.entry_id)
         return target

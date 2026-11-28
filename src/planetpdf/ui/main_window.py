@@ -1675,7 +1675,8 @@ class MainWindow(QMainWindow):
             )
         elif session is not None and session.has_digital_signatures:
             self.statusBar().showMessage(
-                "This document is digitally signed. Edits will be saved as changes after signing.",
+                "This document is digitally signed. Edits are saved after the signed version, which stays in the "
+                "file as it was.",
                 10000,
             )
 
@@ -1737,6 +1738,17 @@ class MainWindow(QMainWindow):
         if answer == QMessageBox.StandardButton.Cancel:
             return None
         return answer == QMessageBox.StandardButton.Yes
+
+    def replace_files(self, paths, title: str) -> bool:
+        """Files a command writes besides the one chosen in a Save dialog (split parts, a picture per
+        page): when some are already there, asks before replacing them (security review 2026-11-27:
+        they were written over without a word). True: go on."""
+        taken = [p for p in paths if Path(p).exists()]
+        if not taken:
+            return True
+        names = "\n".join(f"  {Path(p).name}" for p in taken[:6]) + ("\n  …" if len(taken) > 6 else "")
+        return self.ask(title, f"{len(taken)} of the files to be written are already in {Path(taken[0]).parent}:\n"
+                               f"{names}\n\nReplace them?")
 
     def ask_output_protection(self, what: str):
         """A new PDF made from a password-protected document (redacted copy, exported or
@@ -1930,8 +1942,10 @@ class MainWindow(QMainWindow):
 
     def save_sanitized_copy(self, options) -> bool:
         """A signed document's sanitized copy, as a whole new file without the signatures (the
-        signed file stays as it is; its password is kept)."""
-        from planetpdf.core.document import write_whole
+        signed file stays as it is). Protected like the other new files made from a protected
+        document: asked first (security review 2026-11-27, finding 6: a certificate-encrypted file's
+        copy was written unencrypted, without a word)."""
+        from planetpdf.core.document import WHOLE_FILE, save_pdf, write_whole
         from planetpdf.core.redaction.ocg import LayerError
         from planetpdf.core.redaction.sanitize import REMOVED_LABELS, sanitize
 
@@ -1942,10 +1956,16 @@ class MainWindow(QMainWindow):
         if target.resolve() == session.path.resolve():
             self.show_message("Save Sanitized Copy", "Choose another name: the signed file stays as it is.")
             return False
+        protection = self.ask_output_protection("sanitized copy")
+        if protection is False:
+            return False
         copy = session.work_copy()
         try:
             removed = sanitize(copy.doc, options, remove_signatures=True).removed
-            write_whole(copy.doc, target)
+            if protection is None:
+                write_whole(copy.doc, target, encryption=pymupdf.PDF_ENCRYPT_NONE)
+            else:  # (encrypted as it is written)
+                save_pdf(copy.doc, target, protection, **WHOLE_FILE)
         except LayerError as exc:
             self.show_message("Save Sanitized Copy", f"No copy was saved. {exc}\n\nPlanetPDF stopped rather than "
                               "show what the hidden layers hold. To remove everything else, untick Hidden layers.")
@@ -2159,7 +2179,13 @@ class MainWindow(QMainWindow):
         except OSError as exc:
             QMessageBox.critical(self, "Save Attachment", f"The file could not be saved:\n\n{exc}")
             return None
-        self.statusBar().showMessage(f"Saved {Path(path).name}.", 5000)
+        from planetpdf.core.zone_mark import carry_mark
+
+        # (the PDF's own "came from the internet" mark goes with it, so the system warns before the
+        # file is opened, as for the PDF; security review 2026-11-27)
+        marked = carry_mark(self.session.path if self.session is not None else None, Path(path))
+        self.statusBar().showMessage(f"Saved {Path(path).name}" + (
+            ", marked as from the internet, like the PDF it came from." if marked else "."), 8000)
         return Path(path)
 
     # --- Organize ▸ Replace, ▸ More ▸ Page Labels ------------------------------------------
@@ -2377,6 +2403,8 @@ class MainWindow(QMainWindow):
     def split_to(self, groups, folder: Path) -> list[Path]:
         from planetpdf.ui.tasks import run_in_background
 
+        if not self.replace_files(P.split_names(groups, folder, self.session.path.stem), "Split Document"):
+            return []
         written: list[Path] = []
         protection = self.ask_output_protection("new files")
         if protection is False:
@@ -2527,13 +2555,18 @@ class MainWindow(QMainWindow):
             self.run_ocr(list(range(self.session.page_count)), self.settings.ocr_language, self.settings.ocr_dpi)
 
     def combine_files(self, files: list[Path], target: Path, options) -> bool:
-        """Combine into ``target`` (asking for passwords as needed) and open the result."""
+        """Combine into ``target`` (asking for passwords as needed) and open the result. When any of
+        the files is protected, asks whether to protect the combined PDF too, as for other new files
+        made from protected ones (security review 2026-11-27: it was written unprotected unasked)."""
         options.passwords = dict(options.passwords or {})
+        protection = self.ask_combined_protection(files)
+        if protection is False:
+            return False
         while True:
             try:
                 run_in_background(
                     self, "Combine Files", f"Creating {target.name}",
-                    lambda progress: combine_files(files, target, options, progress),
+                    lambda progress: combine_files(files, target, options, progress, protection),
                     describe=lambda d, t: f"Creating {target.name}\nAdding file {min(d + 1, t)} of {t}",
                 )
                 break
@@ -2549,6 +2582,33 @@ class MainWindow(QMainWindow):
                 return False
         self.settings.last_directory = str(target.parent)
         return self.open_file(target)
+
+    def ask_combined_protection(self, files: list[Path]):
+        """Protection for a PDF combined from ``files``: None when none is protected or the answer is
+        No, False on Cancel."""
+        protected = []
+        for path in files:
+            if Path(path).suffix.lower() != ".pdf":
+                continue
+            try:
+                with pymupdf.open(path) as doc:
+                    if doc.is_encrypted:
+                        protected.append(Path(path).name)
+            except Exception:  # noqa: BLE001 (not readable: combining says why)
+                continue
+        if not protected:
+            return None
+        which = protected[0] if len(protected) == 1 else f"{protected[0]} and {len(protected) - 1} more"
+        answer = self.ask_three("Protection", f"{which} {'is' if len(protected) == 1 else 'are'} password "
+                                              "protected.\n\nProtect the combined PDF too?")
+        if answer is None:
+            return False
+        if not answer:
+            return None
+        dialog = ProtectDialog(self)
+        if dialog.exec() != ProtectDialog.DialogCode.Accepted:
+            return False
+        return dialog.protection()
 
     def create_signature(self, kind: str) -> bool:
         """Capture a new signature/initials and save it to the profile."""
@@ -2631,6 +2691,10 @@ class MainWindow(QMainWindow):
         if target.resolve() == self.session.path:
             self.show_message(name, "Choose a new file name: the converted copy can't replace the open document.")
             return None
+        if self.session.is_protected and not self.ask(
+                name, f"{self.session.path.name} is protected, but {name} files can't be encrypted: the new file will "
+                      "open without a password and have none of its limits.\n\nSave it anyway?"):
+            return None  # (it was dropped without a word: security review 2026-11-27)
         snapshot = self.session.doc.tobytes(encryption=pymupdf.PDF_ENCRYPT_NONE)
 
         def work(progress):
@@ -2843,6 +2907,18 @@ class MainWindow(QMainWindow):
                 self.settings.last_directory = str(result.output.parent)
                 self.statusBar().showMessage(f"Saved {result.output.name}, which FAILED its checks.", 10000)
                 return False
+            shown = False
+            if overwrite and finished.result.report.warnings:
+                # The original can't be got back: the warnings first (security review 2026-11-27)
+                asked = VerificationReportDialog(finished.result, can_open=False, parent=self, held=True,
+                                                 replacing=True)
+                self._show_report(asked)
+                self.last_redaction = finished.result
+                if not asked.keep_requested:
+                    finished.discard()
+                    self.statusBar().showMessage("The original wasn't replaced; nothing was saved.", 10000)
+                    return False
+                shown = True
             result = finish_redaction(self.session, finished)
         except (TaskCanceled, RedactionCanceled):
             self.statusBar().showMessage("Redaction canceled; nothing was written.", 5000)
@@ -2862,6 +2938,8 @@ class MainWindow(QMainWindow):
             self.pages_changed(list(range(self.session.page_count)), 0)
             self._update_title()
         self.last_redaction = result
+        if shown:
+            return result.report.passed
         dialog = VerificationReportDialog(result, can_open=not overwrite, parent=self)
         self._show_report(dialog)
         if dialog.open_requested:
@@ -2973,6 +3051,9 @@ class MainWindow(QMainWindow):
         return pages[-1] + 1 if pages else (self.session.page_count if self.session else 0)
 
     def _push(self, command: QUndoCommand) -> bool:
+        check = getattr(command, "check", None)
+        if check is not None:
+            check()  # (a command that would fail in redo raises here, with nothing pushed or changed)
         if not self._confirm_signature_change():
             # A command already done (``applied``) is taken back, so the document isn't left
             # changed with nothing to undo (security review 2026-11-25).
@@ -2990,8 +3071,10 @@ class MainWindow(QMainWindow):
         answer = QMessageBox.warning(
             self,
             "Signed Document",
-            "This document is digitally signed. Adding, removing, or moving pages will "
-            "invalidate its signatures.\n\nContinue?",
+            "This document is digitally signed. Changes are saved after its signed version, which stays in the "
+            "file as it was: what you delete or change can still be read there. Adding, removing, or moving pages "
+            "invalidates its signatures.\n\nTo keep nothing of the signed version, use Protect ▸ Remove Hidden "
+            "Information ▸ Remove Signatures and Sanitize instead.\n\nContinue?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
             QMessageBox.StandardButton.Cancel,
         )
@@ -3190,6 +3273,11 @@ class MainWindow(QMainWindow):
         """Run an export (in the background for anything but plain PDF)."""
         if fmt is ExportFormat.PDF:
             return [target] if self.export_pages(pages, target) else []
+        from planetpdf.core.export import output_files
+
+        files = output_files(target, pages, fmt)
+        if len(files) > 1 and not self.replace_files(files[1:] if files[0] == target else files, "Export"):
+            return []  # (the file named was asked about by the Save dialog; a picture per page wasn't)
         protection = self.ask_output_protection("image-only PDF") if fmt is ExportFormat.IMAGE_PDF else None
         if protection is False:
             return []

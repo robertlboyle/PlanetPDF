@@ -2,12 +2,19 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, fields
 
 import pymupdf
 
 from planetpdf.core.contents import replace_contents
-from planetpdf.core.redaction.ocg import _dict_entries, _page_resources_xref_key, remove_hidden_layers, tokenize
+from planetpdf.core.redaction.ocg import (
+    _dict_entries,
+    _page_resources_xref_key,
+    _refs,
+    remove_hidden_layers,
+    tokenize,
+)
 
 # Markup annotations ("comments"). Widgets (form fields) and links are handled separately.
 _COMMENT_TYPES = {
@@ -195,9 +202,17 @@ def _remove_structure(doc: pymupdf.Document) -> int:
 MARKED_TEXT_KEYS = (b"/Alt", b"/ActualText", b"/E")
 
 
-def _strip_marked_text(data: bytes) -> tuple[bytes, int]:
+def _plain_name(value: bytes) -> bytes:
+    """A PDF name as it reads: ``/Act#75alText`` is ``/ActualText`` (security review 2026-11-27,
+    finding 8: the escaped spelling was left by Sanitize)."""
+    return re.sub(rb"#([0-9A-Fa-f]{2})", lambda m: bytes([int(m.group(1), 16)]), value)
+
+
+def _strip_marked_text(data: bytes, depth_from: int = 1) -> tuple[bytes, int]:
     """Content with every /Alt, /ActualText, and /E (and its text) taken out of marked-content
-    property lists (``/Span << /ActualText (…) >> BDC``): the only dictionaries in page content."""
+    property lists (``/Span << /ActualText (…) >> BDC``): the only dictionaries in page content.
+    ``depth_from``: how deep in dictionaries such a list starts (2 for a /Properties dictionary,
+    whose own keys are the lists' names). The text may be a string or a reference to one."""
     cuts, depth = [], 0
     tokens = list(tokenize(data))
     for i, tok in enumerate(tokens):
@@ -205,9 +220,13 @@ def _strip_marked_text(data: bytes) -> tuple[bytes, int]:
             depth += 1
         elif tok.kind == "dict_end":
             depth = max(0, depth - 1)
-        elif depth and tok.kind == "name" and tok.value in MARKED_TEXT_KEYS and i + 1 < len(tokens) \
-                and tokens[i + 1].kind in ("str", "hex"):
-            cuts.append((tok.start, tokens[i + 1].end))
+        elif depth >= depth_from and tok.kind == "name" and _plain_name(tok.value) in MARKED_TEXT_KEYS \
+                and i + 1 < len(tokens):
+            after = tokens[i + 1]
+            if after.kind in ("str", "hex"):
+                cuts.append((tok.start, after.end))
+            elif after.kind == "num" and i + 3 < len(tokens) and tokens[i + 3].value == b"R":
+                cuts.append((tok.start, tokens[i + 3].end))
     if not cuts:
         return data, 0
     out, pos = bytearray(), 0
@@ -218,13 +237,27 @@ def _strip_marked_text(data: bytes) -> tuple[bytes, int]:
 
 
 def _strip_properties(doc: pymupdf.Document, owner: int, key: str) -> int:
-    """The same keys in the named property lists of a resource dictionary (``/Properties``)."""
+    """The same keys in the named property lists of a resource dictionary (``/Properties``): lists
+    kept as objects of their own, and lists written into the dictionary itself (security review
+    2026-11-27, finding 8: ``/Properties << /P1 << /ActualText (…) >> >>`` was left)."""
     count = 0
     for _name, xref in _dict_entries(doc, owner, f"{key}/Properties").items():
         for k in ("Alt", "ActualText", "E"):
             if doc.xref_get_key(xref, k)[0] != "null":
                 doc.xref_set_key(xref, k, "null")
                 count += 1
+    kind, value = doc.xref_get_key(owner, f"{key}/Properties")
+    if kind == "dict":
+        data, cut = _strip_marked_text(value.encode("utf-8"), depth_from=2)
+        if cut:
+            doc.xref_set_key(owner, f"{key}/Properties", data.decode("utf-8"))
+            count += cut
+    elif kind == "xref" and _refs(value):
+        target = _refs(value)[0]
+        data, cut = _strip_marked_text(doc.xref_object(target).encode("utf-8"), depth_from=2)
+        if cut:
+            doc.update_object(target, data.decode("utf-8"))
+            count += cut
     return count
 
 
@@ -254,6 +287,21 @@ def _remove_marked_text(doc: pymupdf.Document) -> int:
             removed += count
         owner, key = _page_resources_xref_key(doc, page.xref)
         forms(owner, key)
+    # Then every other object in the file that has resources or is a form (comments' looks,
+    # patterns, Type 3 fonts): not only what the pages lead to (security review 2026-11-27).
+    for xref in range(1, doc.xref_length()):
+        try:
+            if doc.xref_get_key(xref, "Resources")[0] != "null":
+                removed += _strip_properties(doc, xref, "Resources")
+            if xref not in seen and doc.xref_is_stream(xref) and (
+                    doc.xref_get_key(xref, "Subtype")[1] == "/Form" or doc.xref_get_key(xref, "PatternType")[1] == "1"):
+                seen.add(xref)
+                data, count = _strip_marked_text(doc.xref_stream(xref) or b"")
+                if count:
+                    doc.update_stream(xref, data)
+                    removed += count
+        except Exception:  # noqa: BLE001 (a free or broken object, FzErrorFormat: nothing of it is shown either)
+            continue
     return removed
 
 

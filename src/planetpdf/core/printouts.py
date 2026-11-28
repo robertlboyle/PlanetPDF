@@ -48,16 +48,27 @@ def waiting(inbox: Path) -> list[Path]:
     return sorted(found, key=lambda p: p.stat().st_mtime)
 
 
+def _from_environment(name: str) -> bool:
+    """Whether the environment may give this setting: not when IT's policy decides it (security review
+    2026-11-27, finding 14: a user's own PLANETPDF_PRINT_FOLDER beat a policy that said "ask")."""
+    from planetpdf.core import policy
+
+    return not policy.current().locks(name)
+
+
 def default_folder(setting: str) -> Path | None:
-    """Where printouts go without asking: the Preferences folder, else the environment's."""
-    text = (setting or "").strip() or os.environ.get(ENV_FOLDER, "").strip()
+    """Where printouts go without asking: the Preferences folder, else the environment's (unless
+    the policy decides it)."""
+    text = (setting or "").strip() or (os.environ.get(ENV_FOLDER, "").strip() if _from_environment("print_folder")
+                                       else "")
     if not text:
         return None
     return Path(os.path.expandvars(os.path.expanduser(text)))
 
 
 def template(setting: str) -> str:
-    return (setting or "").strip() or os.environ.get(ENV_NAME, "").strip() or DEFAULT_TEMPLATE
+    from_env = os.environ.get(ENV_NAME, "").strip() if _from_environment("print_name_template") else ""
+    return (setting or "").strip() or from_env or DEFAULT_TEMPLATE
 
 
 def safe_name(text: str) -> str:

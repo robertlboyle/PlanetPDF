@@ -1,0 +1,14 @@
+# Our Windows programs in Rust (the launcher and the PlanetPDF printer's service and setup).
+# Cargo reads this file for any build started inside this repository (scripts\build.ps1 runs
+# cargo from the project folder with --manifest-path).
+#
+# Security review 2026-11-27, finding 3: the print service (SYSTEM) loaded a vcruntime140.dll a
+# user had put beside it in a folder users could write. So:
+# - the C runtime is linked in (+crt-static): no vcruntime140.dll is looked for at all;
+# - every DLL the programs import is loaded from System32 only (/DEPENDENTLOADFLAG:0x800 =
+#   LOAD_LIBRARY_SEARCH_SYSTEM32), never from the program's own folder.
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static", "-C", "link-arg=/DEPENDENTLOADFLAG:0x800"]
+
+[target.aarch64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static", "-C", "link-arg=/DEPENDENTLOADFLAG:0x800"]

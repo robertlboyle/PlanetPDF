@@ -12,7 +12,7 @@
 <!-- index: crash; recover unsaved work; Recover Unsaved Work; auto-save; recovered.pdf; lost changes -->
 <p>While a document has unsaved changes, PlanetPDF keeps a recovery copy every few minutes (every 5 minutes unless you changed it in <a href="preferences.html#auto-save">Preferences ▸ Documents</a>). If PlanetPDF closes unexpectedly, the next start shows <b>Recover Unsaved Work</b> with each document and when it was auto-saved:</p>
 <ul>
-  <li><b>Restore</b> saves the recovered copy as "<i>name</i> (recovered).pdf" next to the original (in your Documents folder if that folder is gone) and opens it. The original file is not changed. To see what differs, open both and use <b>View ▸ Compare Files</b>.</li>
+  <li><b>Restore</b> saves the recovered copy as "<i>name</i> (recovered).pdf" next to the original (in your Documents folder if that folder is gone; if it was a temporary folder, PlanetPDF asks where to save it) and opens it. The original file is not changed. To see what differs, open both and use <b>View ▸ Compare Files</b>.</li>
   <li><b>Discard</b> throws the unsaved changes away (it asks first).</li>
   <li><b>Decide Later</b> keeps the copies and asks again at the next start.</li>
 </ul>
@@ -95,7 +95,7 @@ with an older version:</p>
   <li><b>The first words take a while.</b> The first time, the voice has to load ("Please wait…" in the status bar). The natural voices take a few seconds.</li>
   <li><b>The voice pauses between sentences.</b> The Kokoro voices need a fast computer. Choose <b>Automatic</b> or <b>Piper</b> in <a href="preferences.html#read-out-loud">Preferences ▸ Read Out Loud</a>; Automatic measures this computer and uses Kokoro only when it reads smoothly.</li>
   <li><b>No sound.</b> Check the volume slider on the Read Out Loud toolbar, your computer's volume, and which speakers or headset are in use. If a voice can't be used, PlanetPDF shows a message saying why rather than staying silent; try another engine in Preferences.</li>
-  <li><b>Natural voices aren't listed.</b> They are a separate download: <b>Download Natural Voices (354 MB)…</b> in Preferences ▸ Read Out Loud.</li>
+  <li><b>Natural voices aren't listed.</b> They are a separate download. On Windows, install PlanetPDF Natural Voices (<b>Install Natural Voices for Everyone…</b> in Preferences ▸ Read Out Loud, or from software.planet.net), then restart PlanetPDF; or use <b>Download Natural Voices (354 MB)…</b> there, just for you. See <a href="viewing.html#download-voices">Getting the natural voices</a>.</li>
 </ul>
 
 <h2 id="office">Office conversions fail</h2>
@@ -157,6 +157,7 @@ with an older version:</p>
 <ul>
   <li>If you can approve Windows' administrator prompt, click <b>Update Now</b> and answer the prompt: PlanetPDF replaces them with the ones this version came with and tells you when it's done. <b>Not Now</b>, or closing the question, changes nothing.</li>
   <li>If you can't, the message says to ask whoever looks after the computer. They can run PlanetPDF's installer for this version, or, as administrator, <code>PlanetPDF.exe --refresh-install "C:\Program Files\PlanetPDF"</code>.</li>
+  <li>If PlanetPDF's folder can be changed by other users of the computer, there is no <b>Update Now</b>: PlanetPDF won't run a program from such a folder as administrator, since someone could have replaced it. The message names what others can change; run PlanetPDF's installer instead (see <a href="administrators.html#it-folder">The install folder is protected</a>).</li>
 </ul>
 <p>PlanetPDF itself works as usual meanwhile; what's missing are the newer print service's and launcher's own fixes.</p>
 

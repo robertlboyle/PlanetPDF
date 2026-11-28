@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
 from planetpdf.core.redaction.apply import RedactionResult
 from planetpdf.core.redaction.sanitize import LABELS
 from planetpdf.core.redaction.verify import Status
+from planetpdf.ui import plain
 
 _STATUS_STYLE = {
     Status.PASS: ("PASS", QColor(0x1E, 0x84, 0x49)),
@@ -31,10 +32,15 @@ class VerificationReportDialog(QDialog):
     ``held``: the checks failed, so the redacted file was *not* saved yet (user 2026-11-21, a
     security review: a failed redaction must never quietly replace anything). The choices are
     Discard (the default) and, when ``can_keep``, Save Anyway after a second question
-    (``keep_requested``)."""
+    (``keep_requested``).
+
+    ``replacing``: the checks passed with warnings and the redacted file would replace the original,
+    which can't be undone, so it is shown first (security review 2026-11-27, finding 9: the original
+    was replaced, and the report with its warning came after). Don't Replace (the default) or
+    Replace the Original (``keep_requested``)."""
 
     def __init__(self, result: RedactionResult, can_open: bool, parent: QWidget | None = None, *,
-                 held: bool = False, can_keep: bool = True) -> None:
+                 held: bool = False, can_keep: bool = True, replacing: bool = False) -> None:
         super().__init__(parent)
         self.setWindowTitle("Redaction Verification")
         self.resize(640, 480)
@@ -47,7 +53,13 @@ class VerificationReportDialog(QDialog):
         headline = QLabel(f"<h3 style='color:{color}'>{report.summary()}</h3>", self)
         headline.setWordWrap(True)
         layout.addWidget(headline)
-        if held:
+        if replacing:
+            note = QLabel("<b>The original hasn't been replaced yet.</b> The checks passed, with the warnings "
+                          "below. Replacing the original can't be undone: what the warnings name stays in the "
+                          "file you keep.", self)
+            note.setWordWrap(True)
+            layout.addWidget(note)
+        elif held:
             note = QLabel("<b>The redacted file was not saved</b>, and nothing was replaced. Fix the problems "
                           "below (for example, mark what is left, or turn on “Also remove shapes that touch "
                           "the box”) and apply the redactions again.", self)
@@ -77,14 +89,19 @@ class VerificationReportDialog(QDialog):
             text, color = _STATUS_STYLE[check.status]
             item = QTreeWidgetItem([text, check.title, check.detail])
             item.setForeground(0, color)
-            item.setToolTip(2, check.detail)
+            item.setToolTip(2, plain.tip(check.detail))  # (may quote the document)
             tree.addTopLevelItem(item)
         tree.resizeColumnToContents(0)
         tree.resizeColumnToContents(1)
         layout.addWidget(tree, 1)
 
         buttons = QDialogButtonBox(self)
-        if held:
+        if replacing:
+            keep_original = buttons.addButton("Don't Replace", QDialogButtonBox.ButtonRole.RejectRole)
+            keep_original.setDefault(True)
+            replace = buttons.addButton("Replace the Original", QDialogButtonBox.ButtonRole.DestructiveRole)
+            replace.clicked.connect(self._replace)
+        elif held:
             discard = buttons.addButton("Discard", QDialogButtonBox.ButtonRole.RejectRole)
             discard.setDefault(True)
             if can_keep:
@@ -111,6 +128,10 @@ class VerificationReportDialog(QDialog):
         if answer == QMessageBox.StandardButton.Save:
             self.keep_requested = True
             self.accept()
+
+    def _replace(self) -> None:
+        self.keep_requested = True
+        self.accept()
 
     def _open(self) -> None:
         self.open_requested = True

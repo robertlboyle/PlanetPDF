@@ -80,7 +80,7 @@ def test_the_python_client_runs_commands_with_progress(server, client_module, tm
 
     def work():
         with client_module.PlanetPDF("Test Client", publisher="Tests", token_file=token_file,
-                                     address=server.address) as pdf_api:
+                                     address=server.address, key=server.key) as pdf_api:
             info = pdf_api.call("info", file=str(pdf))
             out = pdf_api.call("rotate", file=str(pdf), out=str(tmp_path / "r.pdf"), degrees="90")
             text = pdf_api.call("text", file=str(pdf), on_progress=progress.append)
@@ -92,7 +92,7 @@ def test_the_python_client_runs_commands_with_progress(server, client_module, tm
     assert token_file.read_text(encoding="utf-8").strip()
 
     def again():  # (the saved token: the same program, no new record)
-        with client_module.PlanetPDF("Test Client", token_file=token_file, address=server.address) as pdf_api:
+        with client_module.PlanetPDF("Test Client", token_file=token_file, address=server.address, key=server.key) as pdf_api:
             return pdf_api.call("planetpdf.commands")
 
     assert in_thread(again)["commands"]
@@ -101,7 +101,7 @@ def test_the_python_client_runs_commands_with_progress(server, client_module, tm
 
 def test_errors_reach_the_client(server, client_module, tmp_path):
     def work():
-        with client_module.PlanetPDF("Test Client", address=server.address) as pdf_api:
+        with client_module.PlanetPDF("Test Client", address=server.address, key=server.key) as pdf_api:
             try:
                 pdf_api.call("info", file=str(tmp_path / "missing.pdf"))
             except client_module.PlanetPDFError as e:
@@ -121,7 +121,7 @@ def test_signing_is_asked_on_the_gui_thread(server, client_module, tmp_path, mon
     pdf = make_text_pdf(tmp_path / "a.pdf")
 
     def work():
-        with client_module.PlanetPDF("Signer", address=server.address) as pdf_api:
+        with client_module.PlanetPDF("Signer", address=server.address, key=server.key) as pdf_api:
             try:
                 pdf_api.call("sign", file=str(pdf), pfx=str(pdf), out=str(tmp_path / "s.pdf"))
             except client_module.PlanetPDFError as e:
@@ -141,7 +141,7 @@ def test_a_new_program_is_asked_about_by_its_real_program_file(server, client_mo
 
     def work():
         with client_module.PlanetPDF("Adobe Acrobat", publisher="Adobe", token_file=tmp_path / "t.txt",
-                                     address=server.address) as pdf_api:
+                                     address=server.address, key=server.key) as pdf_api:
             return pdf_api.call("planetpdf.commands")
 
     in_thread(work)
@@ -152,7 +152,7 @@ def test_a_new_program_is_asked_about_by_its_real_program_file(server, client_mo
     monkeypatch.setattr(approval, "ask_to_connect", lambda *args: server.asked.append(args) or False)
 
     def refused():
-        with client_module.PlanetPDF("Other", token_file=tmp_path / "u.txt", address=server.address) as pdf_api:
+        with client_module.PlanetPDF("Other", token_file=tmp_path / "u.txt", address=server.address, key=server.key) as pdf_api:
             return pdf_api.call("planetpdf.commands")
 
     with pytest.raises(Exception, match="didn't allow"):
@@ -245,3 +245,15 @@ def test_a_plugin_is_given_the_key(server, tmp_path, monkeypatch):
                             log_folder=tmp_path / "logs")
     assert process.wait(30) == 0
     assert (folder / "key.txt").read_text(encoding="utf-8") == server.key
+
+
+def test_the_client_sends_nothing_without_a_key(server, client_module, tmp_path):
+    """Security review 2026-11-27: without a key the client skipped the proof and sent its token to
+    whatever answered at the address."""
+    def work():
+        with client_module.PlanetPDF("Test Client", token="made-up", address=server.address, key=""):
+            pass
+
+    with pytest.raises(client_module.PlanetPDFError) as error:
+        in_thread(work)
+    assert "no key" in str(error.value)

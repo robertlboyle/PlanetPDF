@@ -6,8 +6,10 @@
 <!-- index: silent install; unattended install; VERYSILENT; SUPPRESSMSGBOXES; COMPONENTS; deploy; rollout; terminal server install; Remote Desktop; Citrix -->
 <p>The Windows installer installs PlanetPDF once for everyone who uses the computer, and needs an administrator. To install with no windows and no questions, run it with these switches from a command prompt or your deployment tool:</p>
 <p><code>PlanetPDF-Setup.exe /VERYSILENT /SUPPRESSMSGBOXES</code></p>
-<p>Add <code>/COMPONENTS="main,printer"</code> to leave out the natural reading voices (about 460 MB), or <code>/COMPONENTS="main"</code> to leave out the PlanetPDF printer as well. <code>/DIR="D:\Apps\PlanetPDF"</code> chooses another folder. A silent install doesn't ask which app opens PDF files; set that with your default-apps policy.</p>
+<p>Setup leaves out the natural reading voices unless you ask for them: add <code>/COMPONENTS="main,printer,voices"</code> to download them during setup (436 MB from software.planet.net, checked against the checksum built into Setup), or install them afterwards from a copy you keep, with no internet needed: <code>PlanetPDF-Voices-Setup.exe /VERYSILENT /SUPPRESSMSGBOXES</code> (download it from the PlanetPDF page on software.planet.net). <code>/COMPONENTS="main"</code> leaves out the PlanetPDF printer. <code>/DIR="D:\Apps\PlanetPDF"</code> chooses another folder. A silent install doesn't ask which app opens PDF files; set that with your default-apps policy.</p>
+<p>Setup's exit code is 0 when everything asked for was installed, and <b>10</b> when PlanetPDF was installed but the PlanetPDF printer couldn't be added (for example, another program holds the printer's connection). The reason is in Setup's log (<code>/LOG="C:\path\setup.log"</code>) and in <code>printer\planetpdf-printer-setup.exe status</code>.</p>
 <p>Each person who signs in gets a PlanetPDF of their own: their own window, settings, signatures, and stamps. On a terminal server, people working at the same time never share one.</p>
+<p>The natural voices go into PlanetPDF's folder, one copy for everyone. On a terminal server, install them that way if people will use Read Out Loud: over Remote Desktop PlanetPDF doesn't offer anyone a download of their own (354 MB each), only the page with the voices' installer. Each person reading aloud with the most natural voice (Kokoro) uses about 300 MB of memory while it reads; Piper's voices and the Windows voices use much less.</p>
 
 <h3 id="it-folder">The install folder is protected</h3>
 <!-- index: install folder permissions; Program Files; icacls; folder protected; write access; other users; system rights -->
@@ -17,6 +19,12 @@
   <li>If Setup can't (a drive that doesn't keep Windows permissions), it says so at the end and doesn't add the PlanetPDF printer.</li>
   <li>To check later, run <code>planetpdf-printer-setup.exe status</code> from the <code>printer</code> folder of the install folder. It lists the service, port, and printer, and whether only administrators can change the service's program and PlanetPDF's folder.</li>
   <li>If you change the folder's permissions yourself, keep write access to administrators and SYSTEM only. The printer's service notes in its log (<code>%ProgramData%\PlanetPDF\Spool\printer.log</code>) when it finds itself somewhere others can write.</li>
+  <li>PlanetPDF's own small programs (the launchers and the printer's service and setup) load the Windows libraries they need only from Windows' System32 folder, never a file of the same name beside them.</li>
+</ul>
+<p><b>A folder others could change.</b> A folder that other users could write to at any time (installed by version 1.0.6 or older outside Program Files, or a folder that existed before) can't be trusted just by closing it: what someone put there while it was open, a program or a library in place of PlanetPDF's, would still be there. So:</p>
+<ul>
+  <li><b>Run PlanetPDF's installer</b> on such a computer. It closes the folder before it runs anything in it (it stops the printer's service with its own copy of the setup program), removes what it didn't install from the folder, the <code>printer</code> folder, and the version it installs (programs, libraries, and links to other places), and then copies PlanetPDF's files.</li>
+  <li><b>PlanetPDF never asks for administrator rights to run its programs from such a folder.</b> It checks every file and folder in it first. There it offers neither to install an update nor to bring the printer's service up to date, and says to run the installer instead, with the download page one click away.</li>
 </ul>
 
 <h2 id="policy">Deciding settings for everyone: the policy file</h2>
@@ -63,7 +71,7 @@
   <tr><td><code>web_capture</code></td><td>Making a PDF from a web page (which starts Microsoft Edge or Chrome and goes online).</td></tr>
   <tr><td><code>office_conversion</code></td><td>Starting Word, Excel, or PowerPoint to turn their files into PDFs, and saving as Word 97-2003.</td></tr>
   <tr><td><code>ai_reader</code></td><td>AI text reading for exports.</td></tr>
-  <tr><td><code>voice_download</code></td><td>Downloading the natural reading voices from inside PlanetPDF (install them with the installer instead).</td></tr>
+  <tr><td><code>voice_download</code></td><td>Downloading the natural reading voices from inside PlanetPDF, and its offer to open the page with their installer (install them with <code>PlanetPDF-Voices-Setup.exe</code> instead).</td></tr>
 </table>
 <p>To turn the local API off for everyone, set <code>"api_enabled": false</code> under <code>"settings"</code>; plugins need it, so they are off then too, and <code>planetpdf serve</code> refuses to start.</p>
 
@@ -80,7 +88,7 @@
 <p>Installing an update needs an administrator. A person without administrator rights is told once that a new version is out; PlanetPDF doesn't download it for them. You have three ways to handle updates on such computers:</p>
 <ul>
   <li><b>Install each new version with the full installer</b>, as you installed the first. This also brings the newest PlanetPDF printer service, and is the way to move a shared computer up from version 1.0.6 or older: updates installed by those versions replaced only the program, not the printer's service or the program that starts PlanetPDF. (PlanetPDF says so when it starts on such an install; see <a href="troubleshooting.html#update-older-parts">"…is still from an older version"</a>.)</li>
-  <li><b>Let PlanetPDF update itself unattended.</b> Run this as an administrator, or as a scheduled task under the SYSTEM account; it checks, downloads, and installs with no questions (exit code 0 = up to date or updated):<br><code>&amp; "C:\Program Files\PlanetPDF\PlanetPDF.exe" --install-updates</code></li>
+  <li><b>Let PlanetPDF update itself unattended.</b> Run this as an administrator, or as a scheduled task under the SYSTEM account; it checks, downloads, and installs with no questions (exit code 0 = up to date or updated; 1 = it failed; 3 = not installed, because other users can change PlanetPDF's folder: run the installer instead, see <a href="#it-folder">The install folder is protected</a>):<br><code>&amp; "C:\Program Files\PlanetPDF\PlanetPDF.exe" --install-updates</code></li>
   <li><b>Leave it to administrators who use the computer:</b> a person who can approve Windows' administrator prompt is offered updates as on their own PC.</li>
 </ul>
 <p>A file named <b>update.json</b> beside PlanetPDF.exe changes how PlanetPDF checks, for everyone on the computer:</p>
@@ -92,7 +100,7 @@
 
 <h2 id="it-variables">Environment variables</h2>
 <!-- index: environment variables; PLANETPDF_PROFILE_DIR; PLANETPDF_PRINT_FOLDER; PLANETPDF_PRINT_NAME; PLANETPDF_PLUGINS; PLANETPDF_UPDATE_URL; system variables -->
-<p>Set these for the whole computer (system variables) or for a person:</p>
+<p>Set these for the whole computer (system variables) or for a person. A setting the policy file decides wins over a variable: a person's own <code>PLANETPDF_PRINT_FOLDER</code> doesn't change where printouts go when the policy sets <code>print_folder</code>, and <code>PLANETPDF_UPDATE_URL</code> doesn't make PlanetPDF check for updates when the policy turns updates off (IT's own <code>--install-updates</code> still uses it). <code>planetpdf signatures</code> follows the policy's <code>check_revocation</code> as the window does.</p>
 <table>
   <tr><th>Variable</th><th>What it does</th></tr>
   <tr><td><code>PLANETPDF_PROFILE_DIR</code></td><td>Puts each person's profile folder (settings, signatures, stamps) somewhere else, for example on a home drive: <code>H:\PlanetPDF</code>.</td></tr>
@@ -108,7 +116,7 @@
   <tr><td>The install folder (<code>C:\Program Files\PlanetPDF</code>)</td><td>The program, one folder per version; the PlanetPDF printer's service; <code>policy.json</code> and <code>update.json</code> if you made them. Changed only by administrators.</td></tr>
   <tr><td>Each person's roaming profile (<code>%APPDATA%\Planet Networks\PlanetPDF</code>)</td><td>Their settings, saved signatures and initials, stamps, trusted certificates, plugins, word lists, remembered text, and logs. It follows them between computers. Saved signatures are ordinary picture files there, so protect the share your roaming or redirected profiles live on as you would any folder of personal papers.</td></tr>
   <tr><td>Each person's local app data (<code>%LOCALAPPDATA%\Planet Networks\PlanetPDF</code>)</td><td>What belongs to this computer: recovery copies of unsaved work, downloaded updates and voices, printouts waiting to be saved, and the small files a running PlanetPDF uses to find its other windows.</td></tr>
-  <tr><td><code>%ProgramData%\PlanetPDF\Spool</code></td><td>The printer service's working folder and log. Administrators and SYSTEM only.</td></tr>
+  <tr><td><code>%ProgramData%\PlanetPDF\Spool</code></td><td>The printer service's working folder and log. Administrators and SYSTEM only. If someone else made that folder first and it can't be moved aside, the service uses <code>%ProgramData%\PlanetPDF-Spool-…</code> instead (Windows' Application event log and <code>planetpdf-printer-setup.exe status</code> say which).</td></tr>
 </table>
 
 <h2 id="it-shared">What people on a shared computer can't do to each other</h2>

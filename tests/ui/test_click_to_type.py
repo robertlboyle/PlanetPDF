@@ -149,3 +149,17 @@ def test_preferences_option_for_private_numbers(win):
     assert win.settings.remember_private_numbers
     win.markup._remember_text("SSN 123-45-6789")
     assert win.text_history.entries[0] == "SSN 123-45-6789"
+
+
+def test_a_click_on_an_item_the_arrow_cant_select_doesnt_add_text(win, qapp):
+    """Review 2026-11-27 (seen while testing): a click on an item that keeps only its look (or another
+    program's comment) started a new text box on top of it."""
+    page = win.session.doc[0]
+    page.add_rect_annot(pymupdf.Rect(100, 150, 300, 250))  # (another program's: not ours)
+    win.session.mark_modified()
+    win.markup.refresh()
+    QCoreApplication.processEvents()
+    _click(win, 200, 200)
+    assert win.view.editor is None and _texts(win) == []
+    _click(win, 200, 500)  # (empty paper: as before)
+    assert win.view.editor is not None

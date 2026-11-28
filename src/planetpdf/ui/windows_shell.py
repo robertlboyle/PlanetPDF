@@ -32,6 +32,19 @@ def session_id() -> int:
     return 0
 
 
+SM_REMOTESESSION = 0x1000
+
+
+def is_remote_session() -> bool:
+    """This user is working over Remote Desktop: on a terminal server, or a PC reached from
+    elsewhere. PlanetPDF then doesn't offer per-user copies of big downloads (each user would get
+    their own: the natural voices, 2026-11-27)."""
+    try:
+        return bool(ctypes.windll.user32.GetSystemMetrics(SM_REMOTESESSION))
+    except (AttributeError, OSError):
+        return False
+
+
 GENERIC_READ, GENERIC_WRITE, FILE_READ_ATTRIBUTES = 0x80000000, 0x40000000, 0x0080
 OPEN_EXISTING = 3
 FILE_FLAG_OVERLAPPED = 0x40000000

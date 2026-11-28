@@ -414,6 +414,14 @@ class MarkupController(QObject):
         if (self.session is None or not self._window.settings.click_adds_text or self.tool is not None
                 or self._one_shot_box is not None or self._window.text_tools.active):
             return
+        # (a click on an item the arrow can't select, such as one that keeps only its look or another
+        # program's comment, isn't a click on empty paper: no new text on top of it; review 2026-11-27)
+        page = self.session.doc[page_index]
+        if any(item.page == page_index and _qrect(to_display(page, item.rect)).contains(point) for item in self.items):
+            self._window.statusBar().showMessage(
+                "That's an item on the page: open the Comment tool to select it, or click empty space to add text.",
+                8000)
+            return
         deselect(self._window.view)
         self.new_placed_text(page_index, point)
 
@@ -829,11 +837,13 @@ class MarkupController(QObject):
             self._hidden = None
             typed = self._typed_style(spec.style)
             if not text.strip():
-                self._window.push_command(RemoveMarkupCommand(self._window, spec.mark_id, "Text"))
+                self._push_or_show(RemoveMarkupCommand(self._window, spec.mark_id, "Text"), item.item_id, item.page)
             elif text != spec.text or typed != spec.style:
                 new = K.restyled_text(self.session, spec, text=text, font_size=typed.font_size, color=typed.color,
                                       runs=typed.runs, **typed.text_format)
-                self._window.push_command(ReplaceMarkupCommand(self._window, spec, self._signed(spec, new), "Edit Text"))
+                if not self._push_or_show(ReplaceMarkupCommand(self._window, spec, self._signed(spec, new), "Edit Text"),
+                                          item.item_id, item.page):
+                    return
                 self._note_missing_letters(typed, text)
                 if text != spec.text:
                     self._remember_text(text)
@@ -1094,14 +1104,15 @@ class MarkupController(QObject):
             def commit(text: str, final: QRectF) -> None:
                 self._hidden = None
                 if not text.strip():
-                    self._window.push_command(RemoveMarkupCommand(self._window, spec.mark_id, item.type_name))
+                    self._push_or_show(RemoveMarkupCommand(self._window, spec.mark_id, item.type_name), item_id, item.page)
                     return
                 typed = self._typed_style(spec.style)
                 new = self._refit_box(spec, typed, text, final)
                 if new == spec:
                     self._show(item_id, item.page)
                     return
-                self._window.push_command(ReplaceMarkupCommand(self._window, spec, self._signed(spec, new), "Edit Text"))
+                self._push_or_show(ReplaceMarkupCommand(self._window, spec, self._signed(spec, new), "Edit Text"),
+                                   item_id, item.page)
 
             self._open_editor(item.page, _qrect(box), spec.text, note=False, font_size=spec.style.font_size,
                               color=QColor.fromRgbF(*spec.style.color), on_commit=commit,
@@ -1138,6 +1149,16 @@ class MarkupController(QObject):
         K.set_hidden(self.session, item_id, False)
         self._hidden = None
         self._window.view.refresh_page(page)
+
+    def _push_or_show(self, command, item_id: str, page: int) -> bool:
+        """Pushes the change to an item that was hidden while it was retyped. Canceled (a signed
+        document's question): the item is shown again as it was (security review 2026-11-27,
+        finding 12: it stayed hidden until the file was reopened)."""
+        if self._window.push_command(command):
+            return True
+        self._show(item_id, page)
+        self.refresh()
+        return False
 
     def _lift(self, item_id: str) -> None:
         """A drag started: show the item itself under the mouse, and take it off the page."""

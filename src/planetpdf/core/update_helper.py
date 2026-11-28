@@ -40,7 +40,10 @@ FINISH = "--finish-update"
 APPLY = "--apply-update"
 INSTALL = "--install-updates"
 REFRESH = "--refresh-install"  # (as administrator: the install folder's own programs, from this version's copies)
-FLAGS = (FINISH, APPLY, INSTALL, REFRESH)
+# (as administrator, started by the installing step from the new version: the old version folders
+# once the old program has ended, which couldn't remove its own; review 2026-11-27)
+TIDY = "--remove-old-versions"
+FLAGS = (FINISH, APPLY, INSTALL, REFRESH, TIDY)
 REFRESH_LOG = "refresh.log"
 RESULT_FILE = "result.json"
 LOG_FILE = "update.log"  # what the helper did, step by step, beside the downloaded update
@@ -158,6 +161,8 @@ def helper_main(argv: list[str]) -> int:
             return _apply(argv[argv.index(APPLY) + 1 :])
         if REFRESH in argv:
             return _refresh(argv[argv.index(REFRESH) + 1 :])
+        if TIDY in argv:
+            return _tidy(argv[argv.index(TIDY) + 1 :])
         return _install_updates()
     except IndexError:
         return 2
@@ -324,6 +329,48 @@ def _install(root: Path, zip_path: Path, manifest: Path, signature: Path, result
         return 1
     log(log_to, f"installing step done: version {version}")
     _write_result(result, True, f"PlanetPDF was updated to version {version}.", version)
+    if sys.platform == "win32" and _is_admin():
+        _after_install_windows(root, version, log_to)
+    return 0
+
+
+def _after_install_windows(root: Path, version: str, log_to: Path) -> None:
+    """Apps & features names the version now installed (it kept the one Setup installed), and the
+    new version removes the old version folders once this program has ended (it can't remove its
+    own). Security review 2026-11-27. Never in the way of the update itself."""
+    from planetpdf.core import windows_elevate as E
+
+    try:
+        if E.set_installed_version(version):
+            log(log_to, f"Apps & features now says {version}")
+    except Exception as exc:  # noqa: BLE001
+        log(log_to, f"Apps & features' version couldn't be changed: {exc}")
+    program = root / U.VERSIONS / version / U.EXE_NAME
+    if program.is_file():
+        try:
+            start_detached([str(program), TIDY, str(root), "--wait-pid", str(os.getpid())])
+        except OSError as exc:
+            log(log_to, f"the old version folders weren't removed: {exc}")
+
+
+def _tidy(args: list[str]) -> int:
+    """``--remove-old-versions ROOT --wait-pid PID``, as administrator: when the old program has
+    ended, every version folder but the current one that nobody runs is removed."""
+    if not _is_admin():
+        return 1
+    try:
+        root = trusted_root(Path(args[0]))
+    except U.UpdateError:
+        return 1
+    if "--wait-pid" in args and sys.platform == "win32":
+        from planetpdf.core import windows_elevate as E
+
+        E.wait_for_process(int(args[args.index("--wait-pid") + 1]), WAIT_FOR_EXIT_MS)
+    current = U.current_version(root)
+    if current is None:
+        return 1
+    removed = U.remove_old_versions(root, keep={str(current)})
+    log(status_folder(root), "old version folders removed: " + (", ".join(removed) or "none"))
     return 0
 
 
@@ -372,24 +419,31 @@ def _finish(args: list[str]) -> int:
 
         if pid:
             E.wait_for_process(pid, WAIT_FOR_EXIT_MS)
-        try:
-            code = subprocess.call(apply_command) if E.is_admin() else E.run_elevated(apply_command)
-            log(folder, f"installing step ended: exit code {code}")
-            if code == -1:  # (started, with nothing to wait on: its result says how it went)
-                done = _wait_for_result(results, INSTALL_TIMEOUT_SECONDS, since)
-                code = 0 if done and done.get("ok") else 1
-        except E.ElevationCanceled:
-            # Windows also says "canceled" after its own prompt failed: the installing step may
-            # have run all the same, and its result is the truth (user 2026-10-26)
-            log(folder, "Windows reported the administrator prompt as canceled")
-            code = _settle(root, result, since, "The update wasn't installed: Windows' administrator prompt was "
-                           "canceled. PlanetPDF will offer it again.", manual=False, target=_target(manifest))
-        except OSError as exc:
-            log(folder, f"Windows couldn't start the installing step as administrator: {exc}")
-            code = _settle(root, result, since,
-                           f"Windows couldn't start the update's installer as administrator ({exc}). The update "
-                           "is downloaded; you can also install it with the full installer from the download page.",
-                           manual=True, target=_target(manifest))
+        refusal = U.elevation_refusal(root)
+        if refusal:  # (security review 2026-11-27, finding 3: never run as administrator from there)
+            log(folder, f"not installed: {refusal}")
+            _write_result(result, False, f"The update wasn't installed. {refusal}", manual=True,
+                          target=_target(manifest))
+            code = 1
+        else:
+            try:
+                code = subprocess.call(apply_command) if E.is_admin() else E.run_elevated(apply_command)
+                log(folder, f"installing step ended: exit code {code}")
+                if code == -1:  # (started, with nothing to wait on: its result says how it went)
+                    done = _wait_for_result(results, INSTALL_TIMEOUT_SECONDS, since)
+                    code = 0 if done and done.get("ok") else 1
+            except E.ElevationCanceled:
+                # Windows also says "canceled" after its own prompt failed: the installing step may
+                # have run all the same, and its result is the truth (user 2026-10-26)
+                log(folder, "Windows reported the administrator prompt as canceled")
+                code = _settle(root, result, since, "The update wasn't installed: Windows' administrator prompt was "
+                               "canceled. PlanetPDF will offer it again.", manual=False, target=_target(manifest))
+            except OSError as exc:
+                log(folder, f"Windows couldn't start the installing step as administrator: {exc}")
+                code = _settle(root, result, since,
+                               f"Windows couldn't start the update's installer as administrator ({exc}). The update "
+                               "is downloaded; you can also install it with the full installer from the download page.",
+                               manual=True, target=_target(manifest))
     elif sys.platform == "darwin":
         if pid:
             _wait_for_exit(pid, WAIT_FOR_EXIT_MS)
@@ -546,6 +600,10 @@ def _install_updates() -> int:
         return 2
     current = U.current_version(root) or __version__
     url = U.configured_url(root, UPDATE_URL, even_if_off=True)  # (IT's own update: whatever users' checks are)
+    refusal = U.elevation_refusal(root)
+    if refusal:  # (security review 2026-11-27, finding 3: nothing installed into a folder others can change)
+        print(f"Not updated. {refusal}")
+        return 3
     said = close_install_folder(root)
     if said:
         print(said)

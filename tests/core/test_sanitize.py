@@ -193,3 +193,84 @@ def test_alternate_text_inside_page_content_goes_too():
         assert not g.bytes_contain_text(data, secret), secret
     assert result.removed["structure"] >= 3
     assert "Visible words" in pymupdf.open("pdf", doc.tobytes())[0].get_text()
+
+
+def test_layers_hidden_by_a_visibility_rule_are_removed_not_shown(tmp_path):
+    """Security review 2026-11-27, finding 7: an OCMD's /VE rule decides, and was ignored; Sanitize
+    dropped the layer settings, and viewers that obey /VE (Firefox, Adobe Reader) then showed the
+    words and pictures it had hidden."""
+    doc = pymupdf.open()
+    page = doc.new_page()
+    on = doc.add_ocg("L1 on", on=True)
+    off = doc.add_ocg("L2 off", on=False)
+    page.insert_text((72, 72), "VISIBLE-TEXT")
+    page.insert_text((72, 100), "VE-AND-HIDDEN", oc=doc.set_ocmd(ocgs=[on, off], ve=["and", on, off]))
+    page.insert_text((72, 130), "VE-NOT-HIDDEN", oc=doc.set_ocmd(ve=["not", on]))
+    page.insert_text((72, 160), "VE-OR-SHOWN", oc=doc.set_ocmd(ve=["or", on, off]))
+    page.insert_text((72, 190), "VE-NESTED-HIDDEN", oc=doc.set_ocmd(ve=["and", on, ["not", ["or", on, off]]]))
+    path = tmp_path / "ve.pdf"
+    doc.save(path)
+    doc.close()
+
+    doc = pymupdf.open(path)
+    assert remove_hidden_layers(doc) == 3
+    data = _saved_bytes(doc)
+    for gone in ("VE-AND-HIDDEN", "VE-NOT-HIDDEN", "VE-NESTED-HIDDEN"):
+        assert not g.bytes_contain_text(data, gone), gone
+    assert "VE-OR-SHOWN" in _everything(data) and "VISIBLE-TEXT" in _everything(data)
+
+
+def test_a_visibility_rule_that_cant_be_read_stops_sanitize(tmp_path):
+    from planetpdf.core.redaction.ocg import LayerError
+
+    doc = pymupdf.open()
+    page = doc.new_page()
+    on = doc.add_ocg("L1 on", on=True)
+    ocmd = doc.set_ocmd(ve=["and", on, on])
+    doc.xref_set_key(ocmd, "VE", f"[/Xor {on} 0 R]")  # (no such operator)
+    page.insert_text((72, 100), "UNKNOWN-RULE", oc=ocmd)
+    with pytest.raises(LayerError):
+        remove_hidden_layers(doc)
+
+
+def test_alternate_text_in_every_spelling_goes():
+    """Security review 2026-11-27, finding 8: /ActualText in a property list written straight into
+    /Properties, and under an escaped name (/Act#75alText), were left by Sanitize."""
+    doc = pymupdf.open()
+    page = doc.new_page(width=612, height=792)
+    page.insert_text((72, 100), "Visible words", fontsize=12)
+    indirect = doc.get_new_xref()
+    doc.update_object(indirect, "<< /ActualText (ALT-INDIRECT) >>")
+    owner, key = page.xref, "Resources"
+    kind, value = doc.xref_get_key(page.xref, "Resources")
+    if kind == "xref":
+        owner, key = int(value.split()[0]), ""
+    prefix = f"{key}/" if key else ""
+    doc.xref_set_key(owner, f"{prefix}Properties", f"<< /P1 << /ActualText (ALT-DIRECT) >> /P2 {indirect} 0 R >>")
+    xref = page.get_contents()[-1]
+    doc.update_stream(xref, doc.xref_stream(xref) + b"\n/Span /P1 BDC EMC /Span /P2 BDC EMC"
+                      b"\n/Span << /Act#75alText (ALT-ESCAPED) >> BDC EMC\n/Span << /ActualText (ALT-INLINE) >> BDC EMC\n")
+    sanitize(doc, _only("structure"))
+    data = _saved_bytes(doc)
+    for secret in ("ALT-DIRECT", "ALT-ESCAPED", "ALT-INLINE", "ALT-INDIRECT"):
+        assert not g.bytes_contain_text(data, secret), secret
+    assert "Visible words" in pymupdf.open("pdf", doc.tobytes())[0].get_text()
+
+
+def test_a_hidden_pictures_data_leaves_the_file(tmp_path):
+    """Not only undrawn: the picture's data goes too (security review 2026-11-27)."""
+    doc = pymupdf.open()
+    page = doc.new_page()
+    off = doc.add_ocg("Off", on=False)
+    picture = pymupdf.Pixmap(pymupdf.csRGB, pymupdf.IRect(0, 0, 8, 8), 0)
+    picture.set_rect(picture.irect, (255, 0, 0))
+    page.insert_image(pymupdf.Rect(100, 100, 200, 200), pixmap=picture, oc=off)
+    page.insert_text((72, 72), "VISIBLE-TEXT")
+    path = tmp_path / "picture.pdf"
+    doc.save(path)
+    doc.close()
+    doc = pymupdf.open(path)
+    assert remove_hidden_layers(doc) == 1
+    saved = pymupdf.open("pdf", doc.tobytes(garbage=4))
+    assert saved[0].get_images() == []
+    assert b"/Image" not in saved.tobytes(garbage=4, expand=255)

@@ -178,3 +178,28 @@ def test_every_setting_a_policy_can_set_is_a_real_setting():
     defaults = Settings()
     for name in P.SETTINGS:
         assert hasattr(defaults, name), name
+
+
+def test_the_policy_wins_over_the_users_own_variables(tmp_path, monkeypatch):
+    """Security review 2026-11-27, finding 14: a user's PLANETPDF_UPDATE_URL made checks happen with
+    updates turned off, and PLANETPDF_PRINT_FOLDER saved printouts where the policy said "ask"."""
+    import json
+
+    from planetpdf.core import policy as POL
+    from planetpdf.core import printouts as PR
+    from planetpdf.core import update as U
+
+    (tmp_path / U.CONFIG_FILE).write_text(json.dumps({"check": False}), encoding="utf-8")
+    monkeypatch.setenv(U.URL_ENV_VAR, "https://users-own.example.com/")
+    assert U.configured_url(tmp_path, "https://software.example.com/") == ""
+    assert U.configured_url(tmp_path, "https://software.example.com/", even_if_off=True) == \
+        "https://users-own.example.com/"  # (IT's own update, run as the administrator, may)
+    monkeypatch.setenv(PR.ENV_FOLDER, str(tmp_path / "users-folder"))
+    monkeypatch.setenv(PR.ENV_NAME, "{user} x")
+    try:
+        POL.reset(POL.Policy(path=tmp_path / "policy.json", settings={"print_folder": "", "print_name_template": ""}))
+        assert PR.default_folder("") is None and PR.template("") == PR.DEFAULT_TEMPLATE
+        POL.reset(POL.Policy())
+        assert PR.default_folder("") == tmp_path / "users-folder"  # (no policy: the variable counts)
+    finally:
+        POL.reset()

@@ -191,20 +191,36 @@ def _pages(args: dict, count: int, key: str = "pages") -> list[int]:
 def _kept_protection(session: PdfSession, args: dict, result: dict | None = None) -> Protection | None:
     """The input's password protection, for a new file made from it, unless --no-protect (security
     review 2026-11-25: redacted and compressed copies of a protected PDF came out unprotected).
-    A file that only limits what may be done (no password to open it) can't be given the same
-    limits again without its permissions password: ``result`` then gets a note saying so."""
+
+    Security review 2026-11-27: each password keeps its role (the permissions password became the
+    open password), and limits on what may be done are kept even when the input's permissions
+    password isn't known (a permissions-only file came out unrestricted): the new file gets a new
+    permissions password nobody knows, and ``result`` a note saying so. A file opened with its
+    permissions password whose open password isn't known can't be protected the same way:
+    ``CommandError``, unless --no-protect."""
+    import secrets
+    from dataclasses import replace
+
     if args.get("no_protect"):
         return None
     known, _complete = session.known_protection()
     if known is None:
         return None
+    if session.open_password_unknown:
+        raise CommandError("The input needs a password to open, and it was opened with its permissions password, so "
+                           "its open password isn't known and the new file can't be protected the same way. Give "
+                           "the open password with --password, or add --no-protect.")
+    limited = not all((known.allow_print, known.allow_copy, known.allow_edit, known.allow_comments, known.allow_forms))
+    if limited and not known.permissions_password:
+        known = replace(known, permissions_password=secrets.token_urlsafe(24))
+        if result is not None:
+            result["note"] = ("The input's limits on what may be done are kept, under a new permissions password "
+                              "that nobody knows (the input's own isn't known). To choose one, run protect on the "
+                              "new file with the input's permissions password, or use --no-protect.")
     try:
         known.validate()
     except PdfError:
-        if result is not None:
-            result["note"] = ("The input's permission limits weren't kept: they need its permissions password, "
-                              "which PlanetPDF doesn't know.")
-        return None
+        return None  # (nothing to keep: no password and no limits)
     return known
 
 
@@ -222,6 +238,16 @@ def _target(args: dict, key: str = "out", *, replaces_input: bool = True) -> Pat
         raise PdfError(f"{target} already exists (overwrite replaces it).")
     target.parent.mkdir(parents=True, exist_ok=True)
     return target
+
+
+def _all_free(paths, args: dict) -> None:
+    """Several files about to be written (split, a picture per page): none may already be there
+    unless --overwrite (security review 2026-11-27: split and multi-file exports wrote over files
+    without a word; only the single --out file was checked)."""
+    taken = [Path(p) for p in paths if Path(p).exists()]
+    if taken and not args.get("overwrite"):
+        more = f" and {len(taken) - 1} more" if len(taken) > 1 else ""
+        raise PdfError(f"{taken[0]}{more} already there (overwrite replaces them).")
 
 
 def _save(session: PdfSession, args: dict) -> dict:
@@ -387,17 +413,23 @@ def _trust(ctx: Context):
 def _signatures(args, ctx):
     from planetpdf.core.signing.digital import validate_signatures
 
+    from planetpdf.core import policy
+
     if not args["file"].is_file():
         raise PdfError(f"There's no file {args['file']}.")
     out = []
-    for s in validate_signatures(args["file"], _trust(ctx), check_revocation=args["check_revocation"]):
+    check = args["check_revocation"]
+    rules = policy.current()
+    if rules.locks("check_revocation"):  # (IT's policy decides, here as in the window: finding 14)
+        check = bool(rules.settings["check_revocation"])
+    for s in validate_signatures(args["file"], _trust(ctx), check_revocation=check):
         out.append({"field": s.field_name, "signer": s.signer,
                     "signed": s.signing_time.isoformat() if s.signing_time else None,
                     "timestamped": s.timestamped, "intact": s.intact, "trusted": s.trusted,
                     "covers_whole_file": s.covers_whole_file, "changes_after": s.changes_after,
                     "verdict": s.verdict.name.lower(), "summary": s.summary, "certified": s.certified,
                     "revocation_checked": s.revocation_checked, "revoked": s.revoked})
-    return {"signatures": out}
+    return {"signatures": out, "revocation_asked": check}
 
 
 @command("signing-ids", "The Digital IDs in Windows' certificate store or the Mac Keychain that can sign", READ,
@@ -506,6 +538,7 @@ def _export(args, ctx):
                 raise PdfError(ready.reason)
         options = export.ExportOptions(dpi=args["dpi"], jpeg_quality=args["quality"], ocr_missing_text=args["ocr"],
                                        ai_reading=args["ai"])
+        _all_free(export.output_files(target, pages, fmt), args)
         notes: list[str] = []
         files = export.export(session.doc, pages, target, fmt, options, ctx.progress, notes)
         return {"outputs": [str(f) for f in files], "pages": len(pages), "notes": notes}
@@ -547,7 +580,7 @@ QUALITY = {"high": (200, 85), "balanced": (150, 75), "small": (100, 60)}
 @command("compress", "Make a PDF smaller (pictures resampled, scans in black and white or gray, fonts cut down)",
          WRITE, "Optimize", FILE, OUT, PASSWORD,
          Param("quality", "choice", "high, balanced, or small", default="balanced", choices=tuple(QUALITY)),
-         Param("keep_scan_colors", "flag", "Don't turn scans into black and white or gray"), OVERWRITE)
+         Param("keep_scan_colors", "flag", "Don't turn scans into black and white or gray"), NO_PROTECT, OVERWRITE)
 def _compress(args, ctx):
     import pymupdf
 
@@ -654,7 +687,7 @@ def _web(args, ctx):
          FILE, PASSWORD, Param("folder", "folder", "Where to put the files", required=True),
          Param("every", "int", "A new file every N pages"),
          Param("ranges", "texts", 'Page ranges, one file each, e.g. "1-3" "4-9"'),
-         Param("bookmarks", "flag", "One file per top-level bookmark"), NO_PROTECT)
+         Param("bookmarks", "flag", "One file per top-level bookmark"), NO_PROTECT, OVERWRITE)
 def _split(args, ctx):
     from planetpdf.core import pages as page_ops
 
@@ -669,6 +702,7 @@ def _split(args, ctx):
             groups = page_ops.split_groups_by_bookmarks(session)
         else:
             raise CommandError("Say how to split: every, ranges, or bookmarks.")
+        _all_free(page_ops.split_names(groups, args["folder"], session.path.stem), args)
         result: dict = {}
         protection = _kept_protection(session, args, result)
         files = page_ops.split_document(session, groups, args["folder"], session.path.stem, ctx.progress,
@@ -1049,6 +1083,10 @@ def _flatten(args, ctx):
         raise
 
 
+NO_ENCRYPTION_NOTE = ("PDF/A, PDF/X, and PDF/E files can't be encrypted, so the new file opens without the "
+                      "input's password and has none of its limits.")
+
+
 @command("save-as-standard", "Save as PDF/A, PDF/X, or PDF/E (through Ghostscript)", WRITE, "Standards",
          FILE, OUT, PASSWORD, STANDARD, OVERWRITE)
 def _standard(args, ctx):
@@ -1058,6 +1096,7 @@ def _standard(args, ctx):
 
     session = _open(args)
     try:
+        protected = session.is_protected
         doc = pymupdf.open(stream=session.doc.tobytes(encryption=pymupdf.PDF_ENCRYPT_NONE), filetype="pdf")
         target = _target(args)
     finally:
@@ -1067,6 +1106,8 @@ def _standard(args, ctx):
         notes = ghostscript.convert_standard(doc, target, args["standard"], ctx.progress)
     finally:
         doc.close()
+    if protected:  # (security review 2026-11-27: the password was dropped, and nothing said so)
+        notes = [*notes, NO_ENCRYPTION_NOTE]
     return {"output": str(target), "changed": changed, "notes": notes}
 
 

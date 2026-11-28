@@ -51,8 +51,10 @@ def combine_files(
     target: Path,
     options: CombineOptions | None = None,
     progress: Progress | None = None,
+    protection=None,
 ) -> int:
-    """Write ``files`` (in order) into ``target``. Returns the number of pages."""
+    """Write ``files`` (in order) into ``target`` (encrypted as it is written with ``protection``).
+    Returns the number of pages."""
     options = options or CombineOptions()
     files = [Path(f) for f in files]
     if not files:
@@ -92,8 +94,13 @@ def combine_files(
             from planetpdf.core.font_embedding import embed_quietly
 
             embed_quietly(out)  # (fonts it only names, from this computer)
-            out.save(str(tmp), garbage=3, deflate=True)
-            replace_with_retry(tmp, Path(target))
+            if protection is not None:
+                from planetpdf.core.document import save_pdf
+
+                save_pdf(out, Path(target), protection)
+            else:
+                out.save(str(tmp), garbage=3, deflate=True)
+                replace_with_retry(tmp, Path(target))
         finally:
             remove_quietly(tmp)
         if progress is not None:

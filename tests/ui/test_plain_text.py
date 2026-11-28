@@ -67,7 +67,10 @@ def _labels_hold_no_rich_document_text() -> list[str]:
     for widget in QApplication.allWidgets():
         if isinstance(widget, QLabel) and "planetpdf-no-such" in widget.text():
             widget.ensurePolished()  # (what Qt does before it lays a label out)
-            if widget.textFormat() != Qt.TextFormat.PlainText and GuiQt.mightBeRichText(widget.text()):
+            # (rich text is fine when the document's words in it are escaped: no tag of theirs, nothing
+            # beyond PlanetPDF's own formatting)
+            rich = widget.textFormat() != Qt.TextFormat.PlainText and GuiQt.mightBeRichText(widget.text())
+            if rich and ("<img" in widget.text().lower() or plain.clean(widget.text()) is None):
                 problems.append(f"{type(widget.parentWidget()).__name__}: {widget.text()[:80]}")
     return problems
 
@@ -137,3 +140,97 @@ def test_an_item_lists_tooltip_from_the_document_is_shown_escaped(win, qapp):
     shown = _tooltip_at(view.viewport(), view.visualItemRect(item).center())
     assert "<img src" not in shown
     view.close()
+
+
+# --- the 1.0.9 review (2026-11-27, finding 2): past the old list of risky patterns -----------------
+
+# The reviewer's three forms (a picture by style in entities, by style in CSS escapes, and a plain
+# picture), and Check Spelling's context line; each named a server Windows then signed in to.
+FORMS = [
+    '<table><tr><td style="background-image&#58;url&#40;file:///C:/planetpdf-no-such-folder/e.png&#41;">x</td></tr></table>',
+    '<p style="backgroun' + chr(92) + '64-image:u' + chr(92) + '72l(file:///C:/planetpdf-no-such-folder/c.png)">x',
+    '<img src="file:///C:/planetpdf-no-such-folder/p.png">',
+    '<img zzqx src=file:///C:/planetpdf-no-such-folder/s.png>',
+]
+
+
+def test_only_plain_formatting_counts_as_planetpdfs_own():
+    for form in FORMS:
+        assert plain.risky(form) and plain.clean(form) is None, form
+    own = "<b>Comments</b> <span style='color:gray; font-size:9pt'>3</span> <a href='https://example.com'>site</a>"
+    assert plain.clean(own) == ('<b>Comments</b> <span style="color:gray; font-size:9pt">3</span> '
+                                '<a href="https://example.com">site</a>')
+    assert not plain.risky(own)
+    assert plain.clean('<a href="file://server/share">x</a>') is None  # (a link to a file is not ours)
+    assert plain.clean("<b onclick=x>y</b>") is None and plain.clean("<!-- x -->") is None
+
+
+def test_the_1_0_9_forms_show_as_written_in_tooltips_and_labels(qapp):
+    plain.install(qapp)
+    for form in FORMS:
+        holder = QLabel("x")
+        holder.setToolTip("Field: " + form)
+        holder.show()
+        QCoreApplication.processEvents()
+        assert _tooltip_at(holder, QPoint(2, 2)) == plain.tip("Field: " + form)
+        holder.setText(form)  # (after it was shown: Check Spelling's context line)
+        assert holder.textFormat() == Qt.TextFormat.PlainText and holder.text() == form
+        holder.close()
+
+
+def test_what_qt_is_given_loads_nothing(qapp):
+    """What the guard lets Qt show asks for no resource at all; the same text given to Qt directly
+    does (so this test would see a load)."""
+    from PySide6.QtGui import QTextDocument
+
+    class Recorder(QTextDocument):
+        def __init__(self):
+            super().__init__()
+            self.asked = []
+
+        def loadResource(self, kind, url):  # noqa: N802 (Qt)
+            self.asked.append(url.toString())
+            return None
+
+    control = Recorder()
+    control.setHtml(FORMS[2])
+    control.size()  # (laid out: pictures are asked for)
+    assert control.asked
+    for form in FORMS:
+        shown = Recorder()
+        shown.setHtml(plain.clean(form) or plain.tip(form))
+        shown.size()
+        assert shown.asked == [], form
+
+
+def test_check_spellings_context_line_is_plain(win, qapp):
+    from planetpdf.ui.phase_d_ui import SpellingDialog
+
+    dialog = SpellingDialog(win, win.extras.speller)
+    assert dialog.context.textFormat() == Qt.TextFormat.PlainText
+    dialog.context.setText(FORMS[3])
+    assert dialog.context.text() == FORMS[3]
+    dialog.close()
+
+
+def test_planetpdfs_own_formatted_text_stays_formatted(qapp, tmp_path):
+    """The guard checks every label (finding 2): PlanetPDF's own formatting must pass it, or the
+    window would show its tags. A label it turned to plain text that still looks like HTML is one
+    of ours that uses something not on the list (``plain.TAGS``, ``ATTRIBUTES``, ``STYLE``)."""
+    from planetpdf.ui.dialogs.about import AboutDialog
+    from planetpdf.ui.dialogs.preferences import PreferencesDialog
+
+    w = MainWindow(tmp_path / "own-profile")
+    w.show()
+    dialogs = [PreferencesDialog(w), AboutDialog(w)]
+    for dialog in dialogs:
+        dialog.show()
+    QCoreApplication.processEvents()
+    flattened = [f"{type(label.window()).__name__}: {label.text()[:80]}"
+                 for top in [w, *dialogs] for label in top.findChildren(QLabel)
+                 if label.textFormat() == Qt.TextFormat.PlainText and GuiQt.mightBeRichText(label.text())
+                 and label.text().lstrip().startswith("<")]
+    for dialog in dialogs:
+        dialog.close()
+    w.close()
+    assert flattened == []

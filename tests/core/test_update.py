@@ -3,6 +3,7 @@ import io
 import json
 import sys
 import zipfile
+from pathlib import Path
 
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -157,6 +158,9 @@ def finishing(server, tmp_path, monkeypatch):
     monkeypatch.setattr(U, "public_key", lambda path=None: server.key)
     monkeypatch.setattr(E, "START_GRACE_SECONDS", 0.3)
     monkeypatch.setattr(E, "is_admin", lambda: False)
+    # (the test's folder stands in for an install only administrators can change; the check itself
+    # is test_an_install_others_can_change_gets_no_administrator_step)
+    monkeypatch.setattr(U, "elevation_refusal", lambda root: "")
     root = tmp_path / "root"
     server("3.0")
     signed = U.check(BASE, "1.0", key=server.key, opener=server.opener)
@@ -191,6 +195,23 @@ def test_windows_failing_to_start_the_installer_offers_the_download_page(finishi
     result = H.read_result(folder)
     assert result["ok"] is False and result["manual"] is True and "download page" in result["message"]
     assert U.current_version(root) is None
+
+
+def test_an_install_others_can_change_gets_no_administrator_step(finishing, monkeypatch):
+    """Security review 2026-11-27, finding 3: in a folder other users can change, a program of
+    theirs could stand in for PlanetPDF's, and the administrator step ran it. Now nothing is run as
+    administrator there, and the user is told to have the installer run."""
+    H, E, root, folder, args = finishing
+    monkeypatch.undo()  # (the real check: this test's folder is the user's own, so others' to change)
+    monkeypatch.setattr(E, "is_admin", lambda: False)
+    asked = []
+    monkeypatch.setattr(E, "run_elevated", lambda command: asked.append(command) or 0)
+    root.mkdir(exist_ok=True)
+    assert H.helper_main(["planetpdf", H.FINISH, *args]) == 1
+    assert asked == []
+    result = H.read_result(folder)
+    assert result["ok"] is False and result["manual"] is True
+    assert "won't run one there as administrator" in result["message"]
 
 
 def test_a_real_cancel_says_so(finishing, monkeypatch):
@@ -408,3 +429,48 @@ def test_an_install_whose_own_programs_are_older_is_noticed_and_brought_up_to_da
     log = (H.status_folder(root) / H.REFRESH_LOG).read_text(encoding="utf-8")
     assert "PlanetPDF.exe" in log and "planetpdf-print-service.exe" in log
     assert H.REFRESH in H.FLAGS
+
+
+def test_unattended_updates_refuse_a_folder_others_can_change(tmp_path, monkeypatch, capsys):
+    """Security review 2026-11-27, finding 3: IT's --install-updates (as SYSTEM or an administrator)
+    installs nothing into a folder other users can change, and says why (exit code 3)."""
+    import sys
+
+    from planetpdf.core import update_helper as H
+
+    if sys.platform != "win32":
+        pytest.skip("Windows permissions")
+    root = tmp_path / "PlanetPDF"
+    (root / U.VERSIONS / "1.0").mkdir(parents=True)  # (this user's own folder: others' to change)
+    monkeypatch.setattr(U, "install_root", lambda executable=None: root)
+    monkeypatch.setattr(U, "check", lambda *a, **k: pytest.fail("nothing may be asked of the server"))
+    assert H._install_updates() == 3
+    assert "Not updated" in capsys.readouterr().out
+
+
+def test_after_an_update_the_old_version_folder_goes_and_apps_says_the_new_version(tmp_path, monkeypatch):
+    """Review 2026-11-27: after an in-app update, Apps & features still named the old version and
+    the old version's folder stayed (the installing step runs from it, so it can't remove it)."""
+    import sys
+
+    from planetpdf.core import update_helper as H
+
+    if sys.platform != "win32":
+        pytest.skip("Windows' installing step")
+    from planetpdf.core import windows_elevate as E
+
+    root = tmp_path / "PlanetPDF"
+    for version in ("1.0.8", "1.0.9"):
+        (root / U.VERSIONS / version).mkdir(parents=True)
+        (root / U.VERSIONS / version / U.EXE_NAME).write_bytes(b"exe")
+    (root / U.CURRENT_FILE).write_text("1.0.9", encoding="utf-8")
+    named, started = [], []
+    monkeypatch.setattr(E, "set_installed_version", lambda version: named.append(version) or True)
+    monkeypatch.setattr(H, "start_detached", lambda command: started.append(command))
+    H._after_install_windows(root, "1.0.9", tmp_path)
+    assert named == ["1.0.9"]
+    assert started and started[0][1] == H.TIDY and Path(started[0][0]) == root / U.VERSIONS / "1.0.9" / U.EXE_NAME
+    monkeypatch.setattr(H, "_is_admin", lambda: True)
+    monkeypatch.setattr(H, "trusted_root", lambda claimed: root)
+    assert H._tidy([str(root)]) == 0
+    assert sorted(p.name for p in (root / U.VERSIONS).iterdir()) == ["1.0.9"]

@@ -12,6 +12,7 @@ from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QApplication, QMenu, QMessageBox
 
 from planetpdf.core import plugins
+from planetpdf.ui import plain
 
 if TYPE_CHECKING:
     from planetpdf.ui.main_window import MainWindow
@@ -50,7 +51,7 @@ class PluginMenus:
                 if not any(m is menu for m, _a in self._added):
                     self._added.append((menu, menu.addSeparator()))
                 action = QAction(item.title, menu)
-                action.setToolTip(f"{plugin.label} (a plugin{', ' + plugin.publisher if plugin.publisher else ''})")
+                action.setToolTip(plain.tip(f"{plugin.label} (a plugin{', ' + plugin.publisher if plugin.publisher else ''})"))
                 action.setObjectName(f"plugin:{plugin.id}:{item.command}")
                 action.triggered.connect(lambda _checked=False, p=plugin, i=item: self.run(p, i))
                 menu.addAction(action)

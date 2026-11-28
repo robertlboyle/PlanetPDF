@@ -23,6 +23,21 @@ pub mod log;
 #[cfg(windows)]
 pub mod service;
 
+/// Every library loaded while this program runs (not only the ones it imports: those are
+/// `/DEPENDENTLOADFLAG`, `.cargo/config.toml`) comes from Windows' System32 folder, never from
+/// this program's own folder (security review 2026-11-27, finding 3: the print service loaded a
+/// DLL a user had put beside it). Called first thing in `main`.
+#[cfg(windows)]
+pub fn system32_libraries_only() {
+    const LOAD_LIBRARY_SEARCH_SYSTEM32: u32 = 0x800;
+    #[link(name = "kernel32")]
+    unsafe extern "system" {
+        fn SetDefaultDllDirectories(flags: u32) -> i32;
+    }
+    // SAFETY: a documented flag; it only narrows where Windows looks.
+    unsafe { SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_SYSTEM32) };
+}
+
 pub const PIPE_NAME: &str = r"\\.\pipe\PlanetPDF";
 pub const SERVICE_NAME: &str = "PlanetPDFPrint";
 pub const SERVICE_DISPLAY_NAME: &str = "PlanetPDF Print Service";

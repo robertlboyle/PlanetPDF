@@ -9,6 +9,7 @@ fn main() {
 
 #[cfg(windows)]
 fn main() {
+    planetpdf_printer::system32_libraries_only();
     if std::env::args().any(|a| a == "--console") {
         planetpdf_printer::service::serve(true);
         return;

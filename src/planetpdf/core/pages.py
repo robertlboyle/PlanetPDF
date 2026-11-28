@@ -272,6 +272,17 @@ def _safe_name(text: str) -> str:
     return cleaned[:80] or "part"
 
 
+def split_names(groups: Sequence[tuple[str, Sequence[int]]], directory: Path, base_name: str) -> list[Path]:
+    """The files ``split_document`` writes, in order (to see what is already there first)."""
+    width = len(str(len(groups)))
+    names = []
+    for n, (label, pages) in enumerate(groups, start=1):
+        if pages:
+            suffix = f" - {_safe_name(label)}" if label else ""
+            names.append(Path(directory) / f"{_safe_name(base_name)}_{n:0{width}d}{suffix}.pdf")
+    return names
+
+
 def split_document(
     session: PdfSession, groups: Sequence[tuple[str, Sequence[int]]], directory: Path, base_name: str,
     progress: Progress | None = None, protection=None,
@@ -281,16 +292,15 @@ def split_document(
     written so far."""
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)
-    width = len(str(len(groups)))
+    names = iter(split_names(groups, directory, base_name))
     paths = []
     files = sum(1 for _label, pages in groups if pages)
-    for n, (label, pages) in enumerate(groups, start=1):
+    for _label, pages in groups:
         if not pages:
             continue
         if not report(progress, len(paths), files, "Writing file"):
             break
-        suffix = f" - {_safe_name(label)}" if label else ""
-        target = directory / f"{_safe_name(base_name)}_{n:0{width}d}{suffix}.pdf"
+        target = next(names)
         export_pages(session, list(pages), target, protection)
         paths.append(target)
     return paths

@@ -16,13 +16,15 @@ fn main() {
 
 #[cfg(windows)]
 fn main() {
+    planetpdf_printer::system32_libraries_only();
     let action = std::env::args().nth(1).unwrap_or_default();
     let result = match action.as_str() {
         "install" => windows::install(),
         "uninstall" => windows::uninstall(),
         "stop" => windows::stop_service().map(|_| "The PlanetPDF Print Service is stopped.".to_string()),
         "status" => windows::status(),
-        _ => Err("Use: planetpdf-printer-setup install | uninstall | stop | status".to_string()),
+        "check-folder" => windows::check_folder(std::env::args().nth(2).unwrap_or_default()),
+        _ => Err("Use: planetpdf-printer-setup install | uninstall | stop | status | check-folder FOLDER".to_string()),
     };
     match result {
         Ok(message) => println!("{message}"),
@@ -41,7 +43,8 @@ mod windows {
 
     use planetpdf_printer::acl;
     use planetpdf_printer::ffi::{self, HANDLE};
-    use planetpdf_printer::service::system_dir;
+    use planetpdf_printer::log::spool_report;
+    use planetpdf_printer::service::{describe_holder, pipe_server_pid, system_dir};
     use planetpdf_printer::{DRIVER_NAME, OLD_MONITOR_DLL, OLD_MONITOR_NAME, PIPE_NAME, PRINTER_NAME,
                             SERVICE_DESCRIPTION, SERVICE_DISPLAY_NAME, SERVICE_EXE, SERVICE_NAME};
 
@@ -148,22 +151,6 @@ mod windows {
         }
     }
 
-    /// Whether the service's pipe is there (waiting up to `wait_ms` for it).
-    fn pipe_open(wait_ms: u64) -> bool {
-        let name = ffi::wide(PIPE_NAME);
-        let start = Instant::now();
-        loop {
-            // SAFETY: a NUL-terminated pipe name.
-            if unsafe { ffi::WaitNamedPipeW(name.as_ptr(), 200) } != 0 {
-                return true;
-            }
-            if start.elapsed() >= Duration::from_millis(wait_ms) {
-                return false;
-            }
-            std::thread::sleep(Duration::from_millis(200));
-        }
-    }
-
     // --- the service ---------------------------------------------------------------------------
 
     struct Sc(HANDLE);
@@ -200,6 +187,44 @@ mod windows {
                                       size_of::<ffi::SERVICE_STATUS_PROCESS>() as u32, &mut needed)
         };
         if ok != 0 { status.dwCurrentState } else { 0 }
+    }
+
+    /// The service's process (0 while it isn't running).
+    fn service_pid(service: &Sc) -> u32 {
+        let mut status = ffi::SERVICE_STATUS_PROCESS::default();
+        let mut needed = 0;
+        // SAFETY: a SERVICE_STATUS_PROCESS-sized buffer.
+        let ok = unsafe {
+            ffi::QueryServiceStatusEx(service.0, ffi::SC_STATUS_PROCESS_INFO, &mut status as *mut _ as *mut u8,
+                                      size_of::<ffi::SERVICE_STATUS_PROCESS>() as u32, &mut needed)
+        };
+        if ok != 0 && status.dwCurrentState == ffi::SERVICE_RUNNING { status.dwProcessId } else { 0 }
+    }
+
+    /// Whether the pipe is served by the service's own process, as Windows says (security review
+    /// 2026-11-27, finding 4: a program that held the pipe's name before the first install got
+    /// the printer added for it, and received other people's printouts; "a pipe of that name is
+    /// there" proved nothing).
+    fn pipe_is_services(service: &Sc) -> bool {
+        let pid = service_pid(service);
+        pid != 0 && pipe_server_pid(PIPE_NAME) == Some(pid)
+    }
+
+    /// Waits up to `seconds` for the service to run and hold its pipe. Err says what holds it
+    /// instead.
+    fn wait_for_pipe(service: &Sc, seconds: u64) -> Result<(), String> {
+        let start = Instant::now();
+        while start.elapsed() < Duration::from_secs(seconds) {
+            if pipe_is_services(service) {
+                return Ok(());
+            }
+            std::thread::sleep(Duration::from_millis(200));
+        }
+        Err(match pipe_server_pid(PIPE_NAME) {
+            Some(_) => format!("The PlanetPDF printer wasn't added: another program holds its pipe, {PIPE_NAME}                                 ({}), so printouts would go to that program. End it (or restart the computer),                                 then run PlanetPDF's installer again.", describe_holder(PIPE_NAME)),
+            None => "The PlanetPDF printer wasn't added: the PlanetPDF Print Service didn't open its pipe                      (see %ProgramData%\\PlanetPDF\\Spool\\printer.log, or Windows' Application event log)."
+                .to_string(),
+        })
     }
 
     fn wait_for_state(service: &Sc, state: u32, seconds: u64) -> bool {
@@ -306,10 +331,10 @@ mod windows {
         {
             return Err(format!("the service didn't start: {}", describe(last_error())));
         }
-        if !wait_for_state(&service, ffi::SERVICE_RUNNING, 20) || !pipe_open(10_000) {
-            return Err("the PlanetPDF Print Service started, but its pipe didn't appear".to_string());
+        if !wait_for_state(&service, ffi::SERVICE_RUNNING, 20) {
+            return Err("the PlanetPDF Print Service didn't start".to_string());
         }
-        Ok(())
+        wait_for_pipe(&service, 20)
     }
 
     fn remove_service() -> Result<bool, String> {
@@ -425,18 +450,38 @@ mod windows {
         Ok(if done.is_empty() { "The PlanetPDF printer wasn't installed.".to_string() } else { done.join("; ") + "." })
     }
 
+    /// Whether anyone other than an administrator can change anything in `folder` (exit 0: nobody
+    /// can; 1: the lines say what). The installer asks it, with its own copy of this program, before
+    /// it closes PlanetPDF's folder (security review 2026-11-27, finding 3).
+    pub fn check_folder(folder: String) -> Result<String, String> {
+        let folder = std::path::PathBuf::from(folder);
+        if !folder.is_dir() {
+            return Ok(format!("{} isn't there yet", folder.display()));
+        }
+        let found = acl::open_in_tree(&folder, 20);
+        if found.is_empty() {
+            Ok(format!("only administrators can change {}", folder.display()))
+        } else {
+            Err(found.join("\n"))
+        }
+    }
+
     pub fn status() -> Result<String, String> {
         let manager = manager(ffi::SC_MANAGER_CONNECT)?;
         let service = open_service(&manager, ffi::SERVICE_QUERY_STATUS);
         let running = service.as_ref().is_some_and(|s| service_state(s) == ffi::SERVICE_RUNNING);
-        let pipe = pipe_open(0);
+        let ours = service.as_ref().is_some_and(pipe_is_services);
+        let held_by_other = !ours && pipe_server_pid(PIPE_NAME).is_some();
+        let spool = spool_report();
         let open = std::env::current_exe().map(|e| acl::open_parts(&e.with_file_name(SERVICE_EXE))).unwrap_or_default();
         let checks = [
             ("PlanetPDF Print Service installed", service.is_some()),
             ("PlanetPDF Print Service running", running),
-            ("its pipe open", pipe),
-            // (the pipe there while the service isn't: another program holds it; security review 2026-11-25)
-            ("nothing else holds its pipe", running || !pipe),
+            // (served by the service's own process, as Windows says; security review 2026-11-27)
+            ("its pipe is the service's own", ours),
+            ("nothing else holds its pipe", !held_by_other),
+            // (a folder only SYSTEM and Administrators can use; security review 2026-11-27)
+            ("its spool folder is private", spool.is_ok()),
             // (the service runs as SYSTEM: its program must be out of other users' reach)
             ("only administrators can change its program and PlanetPDF's folder", open.is_empty()),
             ("Microsoft Print To PDF driver", driver_installed()),
@@ -446,6 +491,10 @@ mod windows {
         let mut report: Vec<String> =
             checks.iter().map(|(what, ok)| format!("{}  {what}", if *ok { "OK     " } else { "MISSING" })).collect();
         report.extend(open.iter().map(|line| format!("         {line}")));
+        if held_by_other {
+            report.push(format!("         {PIPE_NAME} is held by {}", describe_holder(PIPE_NAME)));
+        }
+        report.push(format!("         spool folder: {}", spool.clone().unwrap_or_else(|e| e)));
         if checks.iter().all(|(_, ok)| *ok) { Ok(report.join("\n")) } else { Err(report.join("\n")) }
     }
 }

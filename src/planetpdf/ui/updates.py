@@ -72,6 +72,7 @@ class UpdateManager(QObject):
         self.pending: tuple[U.SignedRelease, Path] | None = None  # installs when PlanetPDF closes
         self.restart = False
         self._busy = False
+        self._refusal: str | None = None  # (U.elevation_refusal, once per run: it walks the folder)
         self._found.connect(self._offer)
         self._timer = QTimer(self)
         self._timer.timeout.connect(self.check_quietly)
@@ -85,6 +86,17 @@ class UpdateManager(QObject):
     @property
     def can_install(self) -> bool:
         return self.root is not None
+
+    @property
+    def folder_refusal(self) -> str:
+        """Why no administrator step may run from this install ("": it may; ``U.elevation_refusal``)."""
+        if self._refusal is None:
+            try:
+                self._refusal = U.elevation_refusal(self.root)
+            except Exception as exc:  # noqa: BLE001 (can't be told: counted as open)
+                self._refusal = f"PlanetPDF's folder couldn't be checked ({exc}), so PlanetPDF won't run its " \
+                                "programs as administrator. Run PlanetPDF's installer from the download page."
+        return self._refusal
 
     @property
     def user_can_install(self) -> bool:
@@ -126,6 +138,22 @@ class UpdateManager(QObject):
 
             QDesktopServices.openUrl(QUrl(DOWNLOAD_PAGE))
 
+    def refuse(self, text: str, why: str) -> None:
+        """Says that PlanetPDF won't run its programs as administrator from this folder (``why``),
+        with the download page one click away."""
+        box = QMessageBox(QMessageBox.Icon.Warning, "PlanetPDF Update", text, parent=self.window)
+        box.setInformativeText(why)
+        page = box.addButton("Open Download Page", QMessageBox.ButtonRole.AcceptRole)
+        box.addButton(QMessageBox.StandardButton.Close)
+        self.show_box(box)
+        if box.clickedButton() is page:
+            from PySide6.QtCore import QUrl
+            from PySide6.QtGui import QDesktopServices
+
+            from planetpdf import DOWNLOAD_PAGE
+
+            QDesktopServices.openUrl(QUrl(DOWNLOAD_PAGE))
+
     def show_box(self, box: QMessageBox) -> None:
         """Shows ``box`` (tests replace this)."""
         box.exec()
@@ -146,6 +174,11 @@ class UpdateManager(QObject):
             return False
         self.settings.install_parts_noticed = version
         self.window.save_settings_now()
+        refusal = self.folder_refusal if self.user_can_install else ""
+        if refusal:  # (security review 2026-11-27, finding 3: "Update Now" ran a program from there)
+            self.refuse(f"PlanetPDF {version} is installed, but parts of it on this computer are still from an "
+                        "older version.", refusal)
+            return True
         printer = any(name.startswith("printer") for name in stale)
         launcher = any(not name.startswith("printer") for name in stale)
         what = " and ".join(part for part, there in (("the PlanetPDF printer's service", printer),
@@ -177,6 +210,9 @@ class UpdateManager(QObject):
         """Runs the administrator step that replaces the install folder's own programs with this
         version's (one Windows prompt), and says how it went. True when they're up to date."""
         window = self.window
+        if self.folder_refusal:
+            self.refuse("Nothing was changed.", self.folder_refusal)
+            return False
         try:
             self.run_as_administrator(H.refresh_command(self.root))
         except Exception as exc:  # noqa: BLE001 (the prompt was refused, or Windows couldn't start it)
@@ -241,6 +277,12 @@ class UpdateManager(QObject):
         install it (a standard user on a per-machine install), only say so, once per version.
         Returns the downloaded file, or None."""
         release = signed.release
+        refusal = self.folder_refusal if self.user_can_install else ""
+        if refusal:  # (security review 2026-11-27, finding 3: nothing run as administrator from there)
+            if asked or self.settings.update_noticed != release.version:
+                self.settings.update_noticed = release.version
+                self.refuse(f"PlanetPDF {release.version} is available (you have {self.current}).", refusal)
+            return None
         if not self.user_can_install:
             if asked or self.settings.update_noticed != release.version:
                 self.settings.update_noticed = release.version
@@ -255,7 +297,7 @@ class UpdateManager(QObject):
         box = QMessageBox(QMessageBox.Icon.Information, "PlanetPDF Update",
                           f"PlanetPDF {release.version} is available (you have {self.current}). Download it now?",
                           parent=self.window)
-        info = f"The download is {_mb(release.size)}."
+        info = f"The download is {_mb(release.size)} MB."  # (it said "288.2.": review 2026-11-27)
         if release.notes:
             info = f"What's new:\n{release.notes}\n\n{info}"
         box.setInformativeText(info)

@@ -35,7 +35,9 @@ def win(qapp, tmp_path):
 def _manager(win, tmp_path, **kw):
     kw.setdefault("root", tmp_path / "install")
     kw.setdefault("url", "https://updates.example.com/")
+    refusal = kw.pop("refusal", "")
     m = updates.UpdateManager(win, tmp_path / "updates", current="1.0.0", **kw)
+    m._refusal = refusal  # (the test's folder stands in for one only administrators can change)
     m.setParent(None)
     QApplication.instance().aboutToQuit.disconnect(m.install_on_exit)
     return m
@@ -268,3 +270,34 @@ def test_closing_that_question_changes_nothing_and_someone_who_cannot_install_is
     monkeypatch.setattr(U, "stale_root_files", lambda root, source=None: [])
     win.settings.install_parts_noticed = ""
     assert m.check_install_parts() is False  # (an install that is whole: nothing is said)
+
+
+def test_no_administrator_step_from_a_folder_others_can_change(win, tmp_path, monkeypatch):
+    """Security review 2026-11-27, finding 3: a folder others could change can't be put right from
+    the inside. PlanetPDF offers neither the download to install nor "Update Now" there; it says to
+    run the installer, with the download page one click away."""
+    m = _manager(win, tmp_path, refusal="PlanetPDF's folder can be changed by other users of this computer (X).")
+    monkeypatch.setattr(updates.U, "user_may_install", lambda root: True)
+    shown = []
+    monkeypatch.setattr(m, "show_box", lambda box: shown.append((box.text(), box.informativeText(),
+                                                                  [b.text() for b in box.buttons()])))
+    signed = type("S", (), {"release": type("R", (), {"version": "2.0", "size": 1, "notes": ""})()})()
+    assert m.offer_download(signed, asked=True) is None
+    text, why, buttons = shown[-1]
+    assert "2.0 is available" in text and "other users" in why
+    assert "Open Download Page" in buttons and "Download" not in buttons
+    elevated = []
+    monkeypatch.setattr(m, "run_as_administrator", lambda command: elevated.append(command) or 0)
+    assert m.refresh_install() is False
+    assert elevated == []
+
+
+def test_the_download_question_gives_the_size_in_megabytes(win, tmp_path, monkeypatch):
+    """It said "The download is 288.2." (review 2026-11-27)."""
+    m = _manager(win, tmp_path)
+    monkeypatch.setattr(updates.U, "user_may_install", lambda root: True)
+    shown = []
+    monkeypatch.setattr(m, "show_box", lambda box: shown.append(box.informativeText()))
+    signed = type("S", (), {"release": type("R", (), {"version": "2.0", "size": 288_248_000, "notes": ""})()})()
+    m.offer_download(signed, asked=True)
+    assert "The download is 288.2 MB." in shown[-1]

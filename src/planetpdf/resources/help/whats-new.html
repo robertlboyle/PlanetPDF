@@ -2,6 +2,76 @@
 <h1 id="top">What's New</h1>
 <p>The changes in each version of PlanetPDF, newest first. Help ▸ About PlanetPDF shows the same list.</p>
 
+<h2 id="v1-0-10">Version 1.0.10</h2>
+<!-- index: version 1.0.10; security; shared computers; print service; spool folder; install folder; installer; rich text; tooltips; sanitize; hidden layers; alternate text; redaction; signed documents; protection; passwords; permissions; Office files; RTF; policy; revocation -->
+<p>A third security review, of 1.0.9, tested in a Windows test computer by an outside reviewer. Everything it
+found is fixed:</p>
+<ul>
+  <li><b>Shared computers.</b> The PlanetPDF printer's service uses a working folder only once it is
+    sure only SYSTEM and Administrators can use it (a folder another user made first is moved aside, or
+    a new one of its own is used), and it never lets the printer send to a connection another program
+    took: the printer waits, set to print to a file, until the service holds its connection again.
+    Setup adds the printer only when the connection is the service's own, and otherwise says which
+    program holds it. Two accounts with the same name (the computer's own and the domain's) no longer
+    get each other's printouts, a printout that can't be delivered is kept for an administrator instead
+    of thrown away, and kept printouts are tidied every day.</li>
+  <li><b>The install folder.</b> Setup closes PlanetPDF's folder to everyone but administrators before
+    it runs anything in it, and takes out programs, libraries, and links it didn't put there.
+    PlanetPDF's own small programs load Windows' libraries only from Windows' own folder. PlanetPDF
+    no longer asks for administrator rights to run a program from a folder other users can change:
+    there it says to run the installer. See <a href="administrators.html#it-folder">The install
+    folder is protected</a>.</li>
+  <li><b>Words from a document are always shown as written.</b> A form field's name, a comment, or
+    any other text from a document can no longer make Windows contact a server when it shows in a
+    tooltip or a label (Check Spelling's context line was one place).</li>
+  <li><b>Remove Hidden Information</b> follows a layer's own rules for what it hides, removes the
+    data of pictures only hidden content drew, and removes alternate text however it is written.
+    A sanitized copy of a protected document asks whether to protect the copy.</li>
+  <li><b>Redaction:</b> if the checks pass with warnings, the report comes before the original is
+    replaced, and the original stays unless you click Replace the Original.</li>
+  <li><b>Signed documents:</b> the question before changing one says that the signed version, with
+    what you delete, stays in the file. The Signatures panel and <code>planetpdf signatures</code>
+    report a signature whose page was deleted afterwards, and a file saved again after signing.</li>
+  <li><b>New files from protected documents:</b> each password keeps its role, limits on printing
+    and copying are kept even when the permissions password isn't known, Combine Files asks whether
+    to protect its result, and saving as PDF/A says that the copy can't be encrypted. Split and a
+    picture per page never write over files without asking. Attachments you save carry the PDF's
+    "came from the internet" mark, and a recovered document is never saved into a temporary folder.</li>
+  <li><b>Office files</b> are cleaned by reading them, so no way of writing a link to another place
+    gets past, and RTF files lose their template, field instructions, and objects before Office opens
+    them. Old Word and Excel files (.doc, .xls) are first turned into the newer format by Office's own
+    converter, without opening them, and only that clean copy is converted; a CSV's formulas never
+    run. What can't be cleaned (.ppt, OpenDocument, files from the internet in an older format) is
+    refused, with how to convert it yourself. Office isn't started where nobody is signed in.</li>
+  <li><b>For administrators:</b> the policy file wins over people's own environment variables, the
+    command line follows its revocation setting, "Revocation was checked online" appears only when a
+    certificate authority answered, Setup ends with exit code 10 when the printer couldn't be added,
+    and after an update installed from inside PlanetPDF, Apps &amp; features shows the new version and
+    the old version's folder is removed.</li>
+</ul>
+
+<h2 id="v1-0-9">Version 1.0.9</h2>
+<!-- index: version 1.0.9; code signing; signed; digital signature; verified publisher; Planet Networks Inc; SmartScreen; smaller installer; natural voices installer; PlanetPDF Natural Voices -->
+<p>PlanetPDF for Windows is now signed by Planet Networks, and its installer is less than half
+the size: the natural reading voices became a download of their own.</p>
+<ul>
+  <li><b>Signed by Planet Networks Inc.</b> The installer, its uninstaller, and PlanetPDF's own programs
+    (the program, its command line, the launchers, and the PlanetPDF printer's service and setup
+    program) carry Planet Networks' digital signature, so Windows names <b>Planet Networks Inc</b>
+    as the verified publisher instead of an unknown one. Updating from inside PlanetPDF brings the
+    signed programs too. Windows SmartScreen may still warn about a new version for a while, until
+    enough people have installed it: see <a href="getting-started.html#install-windows">Installing on
+    Windows</a>.</li>
+  <li><b>The natural reading voices are a separate download.</b> They made the Windows installer
+    more than twice as big, and many people never use them. Setup now asks: tick <b>Natural
+    reading voices</b> and it downloads and installs them for you (436 MB); otherwise PlanetPDF
+    reads with the Windows voices until you add them with their own installer, PlanetPDF Natural
+    Voices (Preferences ▸ Read Out Loud, or software.planet.net). It puts them in PlanetPDF's
+    folder for everyone on the computer, so a terminal server needs one copy, and over Remote
+    Desktop PlanetPDF no longer offers each person a copy of their own. Voices already installed
+    stay. See <a href="viewing.html#download-voices">Getting the natural voices</a>.</li>
+</ul>
+
 <h2 id="v1-0-8">Version 1.0.8</h2>
 <!-- index: version 1.0.8; security; shared computers; terminal server; policy.json; policy file; install folder protected; PlanetPDF printer service; Update Now; older version; libraries updated -->
 <p>A second round of security work, this time with computers that several people share (terminal

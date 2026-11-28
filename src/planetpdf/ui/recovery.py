@@ -122,11 +122,21 @@ class AutoSaver(QObject):
             startup_log.log("Recover Unsaved Work dialog closed")
 
     def restore(self, entry: RecoveryEntry) -> Path | None:
+        from planetpdf.core.temp_folders import is_temporary
         from planetpdf.ui.paths import documents_dir
+        from planetpdf.ui.save_path import choose_save_path
 
         documents = documents_dir()
+        chosen = None
+        if is_temporary(entry.original):
+            # (the original was in a temporary folder, whose files are deleted without asking: where
+            # the recovered copy goes is asked, starting in Documents; security review 2026-11-27)
+            stem = entry.original.stem or "Document"
+            chosen = choose_save_path(self._window, "Save the Recovered Document", documents / f"{stem} (recovered).pdf")
+            if not chosen:
+                return None
         try:
-            target = self.store.restore_to(entry, documents)
+            target = self.store.restore_to(entry, documents, chosen)
         except OSError as exc:
             QMessageBox.critical(self._window, "Restore", f"The recovered document couldn't be written:\n\n{exc}")
             return None

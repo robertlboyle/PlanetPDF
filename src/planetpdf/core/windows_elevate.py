@@ -143,6 +143,31 @@ def windows_dir() -> str:
     return _folder(_kernel32.GetSystemWindowsDirectoryW)
 
 
+UNINSTALL_KEY = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\{6F3C2A51-8E4B-4C1D-9A57-2B7D0E9C4F18}_is1"
+
+
+def set_installed_version(version: str) -> bool:
+    """Apps & features' entry for PlanetPDF (Setup's) says ``version`` (an in-app update left the
+    version Setup installed there; review 2026-11-27). As administrator. True when changed."""
+    import winreg
+
+    for view in (winreg.KEY_WOW64_64KEY, winreg.KEY_WOW64_32KEY):
+        try:
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, UNINSTALL_KEY, 0,
+                                winreg.KEY_READ | winreg.KEY_SET_VALUE | view) as key:
+                winreg.SetValueEx(key, "DisplayVersion", 0, winreg.REG_SZ, version)
+                try:
+                    name = str(winreg.QueryValueEx(key, "DisplayName")[0])
+                except OSError:
+                    name = ""
+                if name.startswith("PlanetPDF "):
+                    winreg.SetValueEx(key, "DisplayName", 0, winreg.REG_SZ, f"PlanetPDF {version}")
+                return True
+        except OSError:
+            continue
+    return False
+
+
 def registered_install_dir():
     """Where the installer put PlanetPDF (its InstallDir under HKLM, Software, Planet Networks,
     PlanetPDF), or None: the administrator step installs only there (security review 2026-11-25)."""

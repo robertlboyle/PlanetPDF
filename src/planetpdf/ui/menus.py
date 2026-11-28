@@ -16,6 +16,7 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QMenu, QToolButton, QWidget, 
 
 from planetpdf.core.export import ExportFormat
 from planetpdf.ui import fa
+from planetpdf.ui import plain
 
 if TYPE_CHECKING:
     from planetpdf.ui.main_window import MainWindow
@@ -432,7 +433,7 @@ class _DocumentRow(QWidget):
             font = self.label.font()
             font.setBold(True)
             self.label.setFont(font)
-        self.label.setToolTip(str(action.doc.session.path))
+        self.label.setToolTip(plain.tip(str(action.doc.session.path)))
         layout.addWidget(self.label, 1)
         self.pop = QToolButton(self)
         self.pop.setIcon(fa.icon("arrow-up-right-from-square"))

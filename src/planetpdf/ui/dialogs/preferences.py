@@ -310,9 +310,10 @@ class PreferencesDialog(QDialog):
                 self._lock(widget, updates_off)
         from planetpdf.core import voice_download
 
-        button = getattr(self, "download_voices", None)  # (there only while the voices aren't downloaded)
-        if voice_download.turned_off() and button is not None:
-            self._lock(button, voice_download.turned_off())
+        if voice_download.turned_off():  # (the buttons are there only while the voices aren't)
+            for button in (getattr(self, "download_voices", None), getattr(self, "install_voices", None)):
+                if button is not None:
+                    self._lock(button, voice_download.turned_off())
         if locked or s.locked("api_enabled") or updates_off or current.off:
             self.policy_note.setText("Some settings here are set by your administrator for everyone on this "
                                      "computer; they are grayed.")
@@ -381,12 +382,23 @@ class PreferencesDialog(QDialog):
         speed_row.addStretch(1)
         speed_row.addWidget(try_it)
         form.addRow("Speed:", speed_row)
-        self.download_voices = None
-        if not NS.kokoro_available() and NS.USER_MODELS is not None:  # (2026-10-14: offered, not bundled)
-            self.download_voices = QPushButton("Download Natural Voices (354 MB)…", self)
-            self.download_voices.setToolTip("Kokoro: the most natural reading voices, a one-time download")
-            self.download_voices.clicked.connect(self._download_voices)
-            form.addRow("", self.download_voices)
+        self.download_voices = self.install_voices = None
+        if not NS.kokoro_available():
+            from planetpdf.ui.phase_d_ui import per_user_voices_offered, voices_installer_offered
+
+            # (Windows, installed: their own installer, for everyone on the computer; 2026-11-27)
+            if voices_installer_offered():
+                self.install_voices = QPushButton("Install Natural Voices for Everyone…", self)
+                self.install_voices.setToolTip("Opens the download page of PlanetPDF Natural Voices, an installer "
+                                               "that adds them for everyone on this computer (an administrator's OK)")
+                self.install_voices.clicked.connect(lambda: self._window.extras.open_voices_page())
+                form.addRow("", self.install_voices)
+            if per_user_voices_offered():  # (2026-10-14: just for this user, in local app data)
+                self.download_voices = QPushButton("Download Natural Voices (354 MB)…", self)
+                self.download_voices.setToolTip("Kokoro: the most natural reading voices, a one-time download "
+                                                "for you alone")
+                self.download_voices.clicked.connect(self._download_voices)
+                form.addRow("", self.download_voices)
         self._form_reading = form
         self._trial = None
         self.read_engine.currentIndexChanged.connect(lambda _i: self._show_voice_rows())

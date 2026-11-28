@@ -8,6 +8,7 @@ from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QHBoxLayout, QHeaderView, QLabel, QPushButton, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
 
 from planetpdf.core.signing.digital import SignatureStatus, Verdict
+from planetpdf.ui import plain
 
 if TYPE_CHECKING:
     from planetpdf.ui.main_window import MainWindow
@@ -59,7 +60,7 @@ class SignaturesPanel(QWidget):
                 when += " (signer's clock)"  # (not proven: no timestamp from a trusted server)
             row = QTreeWidgetItem([text, status.signer, when, status.summary])
             row.setForeground(0, QColor(color))
-            row.setToolTip(3, status.summary)
+            row.setToolTip(3, plain.tip(status.summary))  # (names from the signer's certificate)
             self.tree.addTopLevelItem(row)
         for col in range(3):
             self.tree.resizeColumnToContents(col)

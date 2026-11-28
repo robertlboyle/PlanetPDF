@@ -127,6 +127,8 @@
   <li><b>Changing pages</b> (moving, deleting, inserting, or rotating pages) in a signed document makes its signatures show as changed. PlanetPDF warns you once per document.</li>
   <li><b>Commands that rewrite the whole file</b>, such as compressing it, break the signatures; PlanetPDF asks before doing that on a signed document.</li>
   <li><b>A redacted copy</b> never keeps the signatures (the Apply Redactions window says so).</li>
+  <li><b>What you delete stays in the signed version.</b> Because your changes are added after the signed part, the signed version is still in the file as it was: a page you delete, a title you change, or words you remove can still be read there by anyone who looks inside the file. To share a version without them, use <b>Protect ▸ Remove Hidden Information ▸ Remove Signatures and Sanitize</b>, which writes a whole new file without the signatures.</li>
+  <li>A signature whose page was deleted afterwards is still listed, as <b>Changed after signing</b>: the file holds the signed version, but the document as it is now isn't signed. A file saved again after signing with no change to its pages, form fields, or comments (a new title, for example) says so in its signature's details.</li>
 </ul>
 <p>So sign last: finish editing, then sign. If several people sign, each signs in turn without changing the document in between.</p>
 
@@ -160,7 +162,7 @@
   <tr><td><b>⚠ Changed after signing</b></td><td>The signature itself is intact, but the document was changed afterwards in ways the signer didn't allow.</td></tr>
   <tr><td><b>✖ Invalid</b></td><td>The signed content was altered, or the signature is damaged. Don't rely on this document.</td></tr>
 </table>
-<p>For a certified document the details start with "Certified" and the changes it allows. Checking happens on your computer only: PlanetPDF doesn't go online to check whether a certificate has been revoked.</p>
+<p>For a certified document the details start with "Certified" and the changes it allows. Checking happens on your computer only, unless <b>Preferences ▸ Signatures</b> has PlanetPDF ask online whether a signer's certificate was revoked (your administrator's policy can turn this on or off for everyone). Then the details say "Revocation was checked online" only when a certificate authority answered; when none did (no address in the certificate, or nothing answering there), they say it couldn't be checked. A revoked certificate makes the signature invalid.</p>
 
 <h3 id="trusted-certificates">Trusted certificates</h3>
 <!-- index: trust; trusted root; certificate authority; CA; import certificate; signer not trusted; Also trust the certificates Windows trusts -->

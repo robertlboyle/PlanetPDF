@@ -181,7 +181,9 @@ def _secret(value: str | None, what: str) -> str | None:
 
 def _check_failed(name: str, result: dict) -> bool:
     return (name == "redact" and result.get("verified") is False) or \
-           (name == "check-compliance" and not result.get("passed", True))
+           (name == "check-compliance" and not result.get("passed", True)) or \
+           (name == "signatures" and any(s.get("verdict") in ("invalid", "modified")
+                                         for s in result.get("signatures", [])))  # (a revoked one said 0)
 
 
 # --- running ------------------------------------------------------------------------------------

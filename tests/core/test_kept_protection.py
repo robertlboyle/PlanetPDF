@@ -4,6 +4,7 @@ unprotected first (security review 2026-11-25, finding 7 and "written unprotecte
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pymupdf
 import pytest
@@ -97,3 +98,97 @@ def test_save_pdf_without_protection_is_a_plain_file(tmp_path):
     doc.new_page()
     save_pdf(doc, tmp_path / "plain.pdf")
     assert not _needs_password(tmp_path / "plain.pdf")
+
+
+# --- the 1.0.9 review (2026-11-27): each password keeps its role, limits are kept ------------------
+
+
+@pytest.fixture
+def both(tmp_path):
+    """An open password and a permissions password, no printing or copying (the review's p-both.pdf)."""
+    plain = make_text_pdf(tmp_path / "plain2.pdf")
+    path = tmp_path / "both.pdf"
+    with pymupdf.open(plain) as doc:
+        doc.save(path, **Protection(open_password="openpw1", permissions_password="permpw1", allow_print=False,
+                                    allow_copy=False).save_args())
+    return path
+
+
+@pytest.fixture
+def limits_only(tmp_path):
+    """Opens without a password, but no printing or copying (the review's p-perm.pdf)."""
+    plain = make_text_pdf(tmp_path / "plain3.pdf")
+    path = tmp_path / "perm.pdf"
+    with pymupdf.open(plain) as doc:
+        doc.save(path, **Protection(permissions_password="permpw1", allow_print=False, allow_copy=False).save_args())
+    return path
+
+
+def _allows(path, password: str | None = None) -> int:
+    with pymupdf.open(path) as doc:
+        if password:
+            assert doc.authenticate(password) & 2  # (it opens with it as the open password)
+        return doc.permissions
+
+
+@pytest.mark.parametrize("command", [["compress"], ["extract", "--pages", "1"]])
+def test_limits_without_a_password_are_kept(limits_only, tmp_path, capsys, command):
+    out = tmp_path / "out.pdf"
+    code, result = _run(capsys, command[0], str(limits_only), "--out", str(out), *command[1:])
+    assert code == 0, result
+    assert not _needs_password(out)  # (it opens without one, as the input did)
+    allowed = _allows(out)
+    assert not allowed & pymupdf.PDF_PERM_PRINT and not allowed & pymupdf.PDF_PERM_COPY
+    assert "kept" in result["note"]
+
+
+def test_the_open_password_stays_the_open_password(both, tmp_path, capsys):
+    out = tmp_path / "out.pdf"
+    code, result = _run(capsys, "compress", str(both), "--out", str(out), "--password", "openpw1")
+    assert code == 0, result
+    with pymupdf.open(out) as doc:
+        assert doc.needs_pass and doc.authenticate("openpw1") == 2  # (the open password, not the owner's)
+        assert not doc.permissions & pymupdf.PDF_PERM_PRINT  # (and the limits stay)
+
+
+def test_the_permissions_password_never_becomes_the_open_password(both, tmp_path, capsys):
+    out = tmp_path / "out.pdf"
+    code, _result = _run(capsys, "compress", str(both), "--out", str(out), "--password", "permpw1")
+    assert code != 0 and not out.exists()  # (the open password isn't known: it says so)
+    code, _result = _run(capsys, "compress", str(both), "--out", str(out), "--password", "permpw1", "--no-protect")
+    assert code == 0 and not _needs_password(out)
+
+
+def test_pdf_a_says_it_cant_be_encrypted(protected, tmp_path, capsys):
+    from planetpdf.core import ghostscript
+
+    if ghostscript.find() is None:
+        pytest.skip("Ghostscript isn't installed")
+    out = tmp_path / "out.pdf"
+    code, result = _run(capsys, "save-as-standard", str(protected), "--out", str(out), "--password", PASSWORD,
+                        "--standard", "pdfa")
+    assert code == 0, result
+    assert any("can't be encrypted" in note for note in result["notes"])
+
+
+def test_split_and_page_pictures_never_write_over_files_unasked(protected, tmp_path, capsys):
+    """Security review 2026-11-27: split and a picture per page wrote over files already there."""
+    parts = tmp_path / "parts"
+    code, _result = _run(capsys, "split", str(protected), "--folder", str(parts), "--every", "1", "--password", PASSWORD)
+    assert code == 0
+    first = sorted(parts.iterdir())[0]
+    first.write_bytes(b"MARKER")
+    code, _result = _run(capsys, "split", str(protected), "--folder", str(parts), "--every", "1", "--password", PASSWORD)
+    assert code != 0 and first.read_bytes() == b"MARKER"
+    code, _result = _run(capsys, "split", str(protected), "--folder", str(parts), "--every", "1", "--password", PASSWORD,
+                         "--overwrite")
+    assert code == 0 and first.read_bytes() != b"MARKER"
+    pictures = tmp_path / "pics" / "page.png"
+    code, result = _run(capsys, "export", str(protected), "--out", str(pictures), "--format", "png", "--password",
+                        PASSWORD)
+    assert code == 0 and len(result["outputs"]) > 1
+    one = Path(result["outputs"][0])
+    one.write_bytes(b"MARKER")
+    code, _result = _run(capsys, "export", str(protected), "--out", str(pictures), "--format", "png", "--password",
+                         PASSWORD)
+    assert code != 0 and one.read_bytes() == b"MARKER"

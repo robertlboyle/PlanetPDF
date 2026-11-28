@@ -37,7 +37,7 @@ PROJECT = Path(__file__).resolve().parent.parent
 PUBLIC_URL = "https://github.com/robertlboyle/PlanetPDF.git"
 AUTHOR_NAME = "Robert Boyle"
 AUTHOR_EMAIL = "software@planet.net"
-ATTRIBUTION = "Co-Authored-By: Claude Fable 5.2 <noreply@anthropic.com>"
+ATTRIBUTION = "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 # Paths (relative, forward slashes) never published; a folder covers everything inside it.
 EXCLUDED = (
@@ -49,6 +49,8 @@ EXCLUDED = (
     "docs/SECURITY-PLAN-2026-11-25.md",  # (the fixes aren't out yet)
     "docs/SECURITY-REVIEW-REPLY-2026-11-25.md",  # (a draft, sent once the fixes are out)
     "docs/SECURITY-FINDINGS-2026-11-26.md",  # (our own list: until its items are fixed)
+    "docs/SECURITY-PLAN-2026-11-27.md",  # (the 1.0.9 review: until its fixes ship)
+    "docs/SANDBOX-PLAN.md",  # (a proposal for Robert, until he decides)
     "docs/icons-pro-vs-free.pdf",
     "docs/icons-pro-vs-free.png",
     "docs/menu_layout.csv",

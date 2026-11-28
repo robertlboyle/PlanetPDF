@@ -34,6 +34,7 @@ from planetpdf.core.forms import xfa
 from planetpdf.core.forms.flatten import flatten_forms
 from planetpdf.core.redaction import marks as M
 from planetpdf.ui.commands import FieldDesignCommand, SetFieldValuesCommand
+from planetpdf.ui import plain
 
 if TYPE_CHECKING:
     from planetpdf.ui.main_window import MainWindow
@@ -239,7 +240,7 @@ class FormController(QObject):
         view = self._window.view
         view.set_field_overlays(overlays)
         for key, item in view._field_items.items():
-            item.setToolTip(hints.get(key, ""))
+            item.setToolTip(plain.tip(hints.get(key, "")))  # (field names: the document's)
         return overlays
 
     def values_changed(self, names: set[str]) -> None:

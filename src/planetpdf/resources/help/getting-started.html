@@ -11,15 +11,19 @@ familiar: PlanetPDF follows Acrobat's menus, tool names, and keyboard shortcuts.
 every person who signs in to that computer can use it.</p>
 
 <h3 id="install-windows">Installing on Windows</h3>
-<!-- index: Windows installer; Setup; components; administrator; SmartScreen; unknown publisher -->
+<!-- index: Windows installer; Setup; components; administrator; SmartScreen; publisher; code signing; Planet Networks Inc -->
 <p>The Windows installer is <b>PlanetPDF-Setup.exe</b>. It installs PlanetPDF for everyone who
 uses the computer, so it needs an administrator's OK.</p>
 <ol>
   <li>Double-click <b>PlanetPDF-Setup.exe</b>. If Windows asks whether to let the app make
-  changes, click <b>Yes</b> (or ask your administrator to sign in).</li>
+  changes, check that the verified publisher is <b>Planet Networks Inc</b>, then click
+  <b>Yes</b> (or ask your administrator to sign in).</li>
   <li>If Windows SmartScreen says it protected your PC from an unrecognized app, click
-  <b>More info</b>, then <b>Run anyway</b>. The installer isn't signed with a code-signing
-  certificate, so Windows shows it as coming from an unknown publisher.</li>
+  <b>More info</b>, check that the publisher is <b>Planet Networks Inc</b>, then click
+  <b>Run anyway</b>. The installer and PlanetPDF's programs are signed with Planet Networks'
+  certificate, but SmartScreen can still warn about a new version until enough people have
+  installed it. If the publisher is missing or is anyone else, don't run the file: download it
+  again from software.planet.net.</li>
   <li>Choose where to install it (the usual place is <code>C:\Program Files\PlanetPDF</code>)
   and click <b>Next</b>.</li>
   <li>Choose the components (see below) and click <b>Next</b>.</li>
@@ -35,22 +39,24 @@ Setup can't do this (a drive that doesn't keep Windows permissions), it says so 
 leaves out the PlanetPDF printer, whose service runs with system rights: install PlanetPDF on a
 drive that does, such as in Program Files.</p>
 
-<h3 id="install-components">Components: reading voices and the PlanetPDF printer</h3>
-<!-- index: components; natural voices; Kokoro; Piper; voices component; PlanetPDF printer component; compact installation; full installation -->
-<p>The installer offers three kinds of installation: <b>Full installation (with natural
-reading voices)</b>, <b>Without the natural reading voices (smaller)</b>, and <b>Custom</b>,
-where you tick each part yourself.</p>
+<h3 id="install-components">Components: the PlanetPDF printer and reading voices</h3>
+<!-- index: components; natural voices; Kokoro; Piper; voices component; PlanetPDF printer component; standard installation; voices download; PlanetPDF Natural Voices -->
+<p>The installer offers three kinds of installation: <b>PlanetPDF and the PlanetPDF printer</b>
+(the usual one), <b>PlanetPDF, the printer, and the natural reading voices</b>, and
+<b>Custom</b>, where you tick each part yourself.</p>
 <table>
   <tr><th>Component</th><th>What it is</th></tr>
   <tr><td><b>PlanetPDF</b></td><td>The program itself, with text recognition (OCR) and
   Ghostscript for saving PDF/A, PDF/X, and PDF/E files. Always installed.</td></tr>
-  <tr><td><b>Natural reading voices</b></td><td>The voices View ▸ Read Out Loud uses (about
-  460 MB). Without them, PlanetPDF reads with the Windows voices, and you can download the
-  natural voices later from <b>Preferences ▸ Read Out Loud</b>. See
-  <a href="viewing.html#read-out-loud">Read Out Loud</a>.</td></tr>
   <tr><td><b>The PlanetPDF printer</b></td><td>A printer named PlanetPDF that every program on
   the computer can print to; what you print becomes a PDF that opens in PlanetPDF. See
   <a href="printing.html">Printing and the PlanetPDF Printer</a>.</td></tr>
+  <tr><td><b>Natural reading voices</b></td><td>The most natural voices for View ▸ Read Out Loud
+  (Kokoro, and Piper's Kristin and Joe). They aren't inside the installer, which keeps it small:
+  when you tick them, Setup downloads them from software.planet.net (436 MB, checked before
+  they're used) and installs them right after PlanetPDF. Without them, PlanetPDF reads with the
+  Windows voices, and you can add them later: see
+  <a href="viewing.html#download-voices">Getting the natural voices</a>.</td></tr>
 </table>
 
 <h3 id="install-tasks">Extra tasks: default PDF app, desktop shortcut, PATH</h3>
@@ -69,7 +75,8 @@ where you tick each part yourself.</p>
 </ul>
 <p>All three are ticked every time Setup runs, also when you install a newer version over an older one.</p>
 <p class="note"><b>For IT:</b> Setup runs silently with <code>/VERYSILENT /SUPPRESSMSGBOXES</code>;
-add <code>/COMPONENTS="main"</code> to leave out the voices. A silent install doesn't open the
+add <code>/COMPONENTS="main,printer,voices"</code> to download and install the natural voices too
+(see <a href="administrators.html#it-install">For IT</a>). A silent install doesn't open the
 Default apps page. Uninstalling (Windows Settings ▸ Apps) removes every installed version and the
 voices; your own settings and signatures stay in your profile folder.</p>
 
@@ -402,7 +409,9 @@ the last save. If the file is password-protected, so is the recovery copy.</p>
 <b>Recover Unsaved Work</b> with the documents it has copies of:</p>
 <ul>
   <li><b>Restore</b> saves the copy as "<i>name</i> (recovered).pdf" next to the original and
-  opens it. The original file isn't changed; use <b>View ▸ Compare Files</b> to see what
+  opens it. If the original was in a temporary folder (an e-mail attachment, a file opened from a
+  zip), whose files are deleted without asking, PlanetPDF asks where to save it instead, starting
+  in Documents. The original file isn't changed; use <b>View ▸ Compare Files</b> to see what
   differs.</li>
   <li><b>Discard</b> throws the copy away (it asks first).</li>
   <li><b>Decide Later</b> keeps the copies and asks again next time.</li>

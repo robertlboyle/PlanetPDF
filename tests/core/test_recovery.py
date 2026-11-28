@@ -55,3 +55,24 @@ def test_recovery_bytes_keep_the_password(pdf_copy, tmp_path):
     assert doc.needs_pass  # not left lying around unprotected
     assert doc.authenticate("pw") and "unsaved edit" in doc[0].get_text()
     s.close()
+
+
+def test_a_recovered_copy_never_goes_into_a_temporary_folder(tmp_path):
+    """Security review 2026-11-27: the original was in %TEMP%, and Restore wrote the recovered copy
+    there, where files are deleted without asking."""
+    import tempfile
+    from pathlib import Path
+
+    temp = Path(tempfile.mkdtemp(prefix="ppdf-recovery-"))
+    try:
+        store = RecoveryStore(tmp_path / "recovery")
+        entry = store.write("a", temp / "opened.pdf", b"%PDF-1.7 recovered")
+        target = store.restore_to(entry, tmp_path / "documents")
+        assert target.parent == tmp_path / "documents" and target.name == "opened (recovered).pdf"
+        chosen = tmp_path / "chosen.pdf"
+        again = store.write("b", temp / "opened.pdf", b"%PDF-1.7 recovered")
+        assert store.restore_to(again, tmp_path / "documents", chosen) == chosen and chosen.exists()
+    finally:
+        import shutil
+
+        shutil.rmtree(temp, ignore_errors=True)

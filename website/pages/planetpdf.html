@@ -90,7 +90,12 @@ Free, with no warranty and no support: see the <a href="freeware.html">freeware 
   <div>
     <table class="facts">
       <tr><th>Windows</th><td><a href="downloads/PlanetPDF-Setup.exe">PlanetPDF-Setup.exe</a>, version {{planetpdf_version}}:
-        a 64-bit installer for Windows 10 or 11. It needs an administrator's OK and installs for everyone who uses the computer.</td></tr>
+        a 64-bit installer for Windows 10 or 11, signed by Planet Networks Inc. It needs an administrator's OK and installs for
+        everyone who uses the computer.</td></tr>
+      <tr id="voices"><th>Natural voices</th><td><a href="downloads/PlanetPDF-Voices-Setup.exe">PlanetPDF-Voices-Setup.exe</a>
+        (436 MB, optional, Windows): the most natural voices for Read Out Loud (Kokoro, and Piper's Kristin and Joe), installed
+        into PlanetPDF's folder for everyone on the computer. Install PlanetPDF first, or tick "Natural reading voices" in its
+        Setup, which downloads them for you. Without them, PlanetPDF reads with the Windows voices.</td></tr>
       <tr><th>Mac</th><td><a href="downloads/PlanetPDF.dmg">PlanetPDF.dmg</a>, version {{planetpdf_mac_version}}:
         for Apple Silicon Macs with macOS 15 (Sequoia) or later, signed and notarized by Apple.</td></tr>
       <tr id="linux"><th>Linux</th><td>Version {{planetpdf_linux_version}}, for Ubuntu 24.04, Debian 13, Fedora 40, or newer.
@@ -103,9 +108,12 @@ Free, with no warranty and no support: see the <a href="freeware.html">freeware 
       <tr><th>Feedback</th><td>Bug reports and suggestions: <a href="mailto:software@planet.net">software@planet.net</a></td></tr>
     </table>
     <h3>For IT (Windows)</h3>
-    <p class="note">Silent install, with or without the natural reading voices:</p>
+    <p class="note">Silent install; the second line also downloads and installs the natural reading voices:</p>
     <pre class="code">PlanetPDF-Setup.exe /VERYSILENT /SUPPRESSMSGBOXES
-PlanetPDF-Setup.exe /VERYSILENT /SUPPRESSMSGBOXES /COMPONENTS="main"</pre>
+PlanetPDF-Setup.exe /VERYSILENT /SUPPRESSMSGBOXES /COMPONENTS="main,printer,voices"</pre>
+    <p class="note">Or install the voices from a copy you keep, with no internet needed (after PlanetPDF). On a terminal
+      server, install them this way once for everyone: over Remote Desktop, PlanetPDF offers no one a copy of their own.</p>
+    <pre class="code">PlanetPDF-Voices-Setup.exe /VERYSILENT /SUPPRESSMSGBOXES</pre>
     <p class="note">Where users can't approve the administrator prompt (terminal servers), install updates as SYSTEM:</p>
     <pre class="code">"C:\Program Files\PlanetPDF\PlanetPDF.exe" --install-updates</pre>
     <p class="note">On computers several people share, move up from version 1.0.6 or older with the full installer,
@@ -119,10 +127,12 @@ PlanetPDF-Setup.exe /VERYSILENT /SUPPRESSMSGBOXES /COMPONENTS="main"</pre>
   <div>
     <h3 style="margin-top:0">Installing on Windows</h3>
     <ol class="steps">
-      <li><strong>Run the installer</strong><span>Windows may say "Windows protected your PC", because the installer
-        isn't code-signed. Choose More info, then Run anyway.</span></li>
-      <li><strong>Choose what to install</strong><span>The natural reading voices are ticked; untick them to save
-        disk space (Read Out Loud then uses the Windows voices). The PlanetPDF printer is ticked too.</span></li>
+      <li><strong>Run the installer</strong><span>It's signed by Planet Networks Inc. For a new version, Windows may
+        still say "Windows protected your PC": choose More info, check that the publisher is Planet Networks Inc, then
+        Run anyway.</span></li>
+      <li><strong>Choose what to install</strong><span>The PlanetPDF printer is ticked. The natural reading voices
+        aren't: tick them and Setup downloads and installs them too (436 MB), or add them later. Without them, Read
+        Out Loud uses the Windows voices.</span></li>
       <li><strong>Open PDF files with PlanetPDF</strong><span>Leave "Make PlanetPDF the default app" ticked, and choose
         PlanetPDF when Windows asks how to open PDF files.</span></li>
     </ol>
@@ -157,7 +167,6 @@ PlanetPDF-Setup.exe /VERYSILENT /SUPPRESSMSGBOXES /COMPONENTS="main"</pre>
     See the <a href="planetpdf-release-notes.html">release notes</a> for what's new.</li><!-- /linux-behind -->
   <li><strong>Dynamic XFA forms</strong> can't be opened. Hybrid XFA forms work as normal forms.</li>
   <li><strong>Form scripts</strong> from other programs are never run, for safety.</li>
-  <li><strong>The Windows installer isn't code-signed,</strong> so Windows shows an unknown publisher on first install.</li>
   <li><strong>On Linux,</strong> converting Word, Excel, and PowerPoint files needs Microsoft Office,
     so it's available on Windows and the Mac only; there's no PlanetPDF printer (print to a PDF from the print dialog
     instead), and PDF from Scanner works with network scanners (AirScan). Signing uses a Digital ID file or a smart card.</li>

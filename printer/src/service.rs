@@ -6,14 +6,13 @@
 //! no program can slip a "printout" to someone. One job at a time (the spooler prints one job at a
 //! time per printer); a panic in one job is logged and the next is served.
 
-use std::fs::File;
 use std::io::Write;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::deliver::{self, Job};
 use crate::ffi::{self, DWORD, HANDLE};
-use crate::log::{log, spool_dir};
+use crate::log::{event_log, log, spool_dir};
 use crate::{PIPE_NAME, PRINTER_NAME, SERVICE_NAME};
 
 /// SYSTEM and Administrators full; Everyone may write (the spooler connects with its own,
@@ -45,6 +44,12 @@ const HELD_MAX_BYTES: u64 = 1024 * 1024 * 1024;
 const LEFTOVER_SECONDS: u64 = 24 * 60 * 60;
 
 static STOPPING: AtomicBool = AtomicBool::new(false);
+/// The service holds the pipe's name (so stopping may wake its listener by connecting to it).
+static HOLDING: AtomicBool = AtomicBool::new(false);
+/// What the printer is set to send to while the service doesn't hold the pipe: Windows' own
+/// "print to file" port, which asks the person printing for a file name, so nothing a job holds
+/// can reach a program that took the pipe's name.
+const PORT_WHILE_AWAY: &str = "FILE:";
 static mut STATUS_HANDLE: HANDLE = std::ptr::null_mut();
 
 struct Owned(HANDLE);
@@ -79,8 +84,15 @@ pub fn serve(console: bool) {
     // 2026-11-25): Everyone's write access includes the right to make another instance of a pipe,
     // and the spooler needs that access, so a program could otherwise open a second instance and
     // receive other people's printouts. FIRST_PIPE_INSTANCE: if the name is taken already,
-    // something else got there first; the printer is then paused (jobs wait, nobody receives them)
-    // and the service doesn't run.
+    // something else got there first.
+    //
+    // Then the printer must never send there (security review 2026-11-27, findings 4 and 10: a
+    // user's program that held the name before the first install, or while the service was
+    // stopped, received other people's printouts; pausing the printer wasn't enough, since
+    // resuming it sent them on). So the printer is paused *and* pointed at Windows' own file port,
+    // and the service stays running, taking the name as soon as it is free, and naming in the log
+    // the program that holds it.
+    let mut said = false;
     let pipe = loop {
         // SAFETY: valid name and attributes; the handle is closed by `Owned`.
         let handle = unsafe {
@@ -92,20 +104,47 @@ pub fn serve(console: bool) {
             break Owned(handle);
         }
         // SAFETY: reads this thread's last-error value.
-        if unsafe { ffi::GetLastError() } == ffi::ERROR_ACCESS_DENIED {
-            set_printer_paused(true);
-            log(&format!("another program already holds {PIPE_NAME}, so the print service doesn't run and the \
-                          {PRINTER_NAME} printer is paused (its jobs wait): restart the computer, or find the \
-                          program that holds the pipe"));
-            return;
+        let error = unsafe { ffi::GetLastError() };
+        printer_away();
+        if !said {
+            said = true;
+            let message = if matches!(error, ffi::ERROR_ACCESS_DENIED | ffi::ERROR_PIPE_BUSY) {
+                format!("another program already holds {PIPE_NAME} ({}), so the {PRINTER_NAME} printer is paused \
+                         and set to print to a file until the print service can take the pipe back: find and end \
+                         that program, or restart the computer", describe_holder(PIPE_NAME))
+            } else {
+                format!("the pipe couldn't be made ({}), so the {PRINTER_NAME} printer is paused and set to print \
+                         to a file until it can", std::io::Error::from_raw_os_error(error as i32))
+            };
+            log(&message);
+            event_log(&message);
         }
-        log(&format!("the pipe couldn't be made: {}", std::io::Error::last_os_error()));
-        std::thread::sleep(std::time::Duration::from_secs(5));
-        if STOPPING.load(Ordering::Relaxed) {
-            return;
+        for _ in 0..10 {
+            if STOPPING.load(Ordering::Relaxed) {
+                log("print service stopped");
+                return;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(200));
         }
     };
-    set_printer_paused(false);  // (paused while the service wasn't there to receive the jobs)
+    HOLDING.store(true, Ordering::Relaxed);
+    // Held printouts are kept 30 days: looked at every day, not only when the service starts
+    // (security review 2026-11-27: one that ran for months kept them all).
+    std::thread::spawn(|| {
+        let mut waited = 0u64;
+        while !STOPPING.load(Ordering::Relaxed) {
+            std::thread::sleep(std::time::Duration::from_secs(5));
+            waited += 5;
+            if waited >= 24 * 60 * 60 {
+                waited = 0;
+                tidy_spool();
+            }
+        }
+    });
+    if said {
+        log(&format!("the print service now holds {PIPE_NAME}"));
+    }
+    printer_back();  // (paused and sent to a file while the service wasn't there to receive the jobs)
     tidy_spool();
     while !STOPPING.load(Ordering::Relaxed) {
         // SAFETY: waits for a client on our pipe.
@@ -122,7 +161,8 @@ pub fn serve(console: bool) {
         // SAFETY: our connected pipe.
         unsafe { ffi::DisconnectNamedPipe(pipe.0) };
     }
-    set_printer_paused(true);  // (while nothing receives them, jobs wait in the queue)
+    printer_away();  // (while nothing receives them, jobs wait in the queue, and can't go to the pipe)
+    HOLDING.store(false, Ordering::Relaxed);
     drop(pipe);
     log("print service stopped");
 }
@@ -141,8 +181,18 @@ fn warn_if_open_to_others() {
     }
 }
 
-/// Pauses or resumes the PlanetPDF printer's queue.
-fn set_printer_paused(paused: bool) {
+/// A printer handle, closed with ClosePrinter.
+struct Printer(HANDLE);
+
+impl Drop for Printer {
+    fn drop(&mut self) {
+        // SAFETY: a handle OpenPrinterW gave us.
+        unsafe { ffi::ClosePrinter(self.0) };
+    }
+}
+
+/// The PlanetPDF printer, opened to be administered (None: it isn't there yet).
+fn open_printer_admin() -> Option<Printer> {
     let name = ffi::wide(PRINTER_NAME);
     let defaults = ffi::PRINTER_DEFAULTSW {
         pDatatype: std::ptr::null_mut(),
@@ -150,14 +200,97 @@ fn set_printer_paused(paused: bool) {
         DesiredAccess: ffi::PRINTER_ACCESS_ADMINISTER,
     };
     let mut printer: HANDLE = std::ptr::null_mut();
-    // SAFETY: a NUL-terminated name and valid defaults; the handle is closed below.
+    // SAFETY: a NUL-terminated name and valid defaults; the handle is closed by `Printer`.
+    (unsafe { ffi::OpenPrinterW(name.as_ptr(), &mut printer, &defaults) } != 0).then_some(Printer(printer))
+}
+
+fn set_paused(printer: &Printer, paused: bool) {
+    let command = if paused { ffi::PRINTER_CONTROL_PAUSE } else { ffi::PRINTER_CONTROL_RESUME };
+    // SAFETY: an administer handle; level 0 with a command.
+    unsafe { ffi::SetPrinterW(printer.0, 0, std::ptr::null_mut(), command) };
+}
+
+/// The printer's PRINTER_INFO_5W, in an 8-byte aligned buffer.
+fn printer_info5(printer: &Printer) -> Option<Vec<u64>> {
+    let mut needed = 0u32;
+    // SAFETY: first the size, then a buffer that big.
     unsafe {
-        if ffi::OpenPrinterW(name.as_ptr(), &mut printer, &defaults) == 0 {
-            return;
-        }
-        let command = if paused { ffi::PRINTER_CONTROL_PAUSE } else { ffi::PRINTER_CONTROL_RESUME };
-        ffi::SetPrinterW(printer, 0, std::ptr::null_mut(), command);
-        ffi::ClosePrinter(printer);
+        ffi::GetPrinterW(printer.0, 5, std::ptr::null_mut(), 0, &mut needed);
+        let mut buffer = vec![0u64; (needed as usize).div_ceil(8).max(1)];
+        (needed != 0 && ffi::GetPrinterW(printer.0, 5, buffer.as_mut_ptr() as *mut u8, needed, &mut needed) != 0)
+            .then_some(buffer)
+    }
+}
+
+/// The printer's port.
+fn printer_port(printer: &Printer) -> Option<String> {
+    let info = printer_info5(printer)?;
+    // SAFETY: a PRINTER_INFO_5W filled in by Windows, its strings inside the same buffer.
+    Some(unsafe { ffi::from_wide((*(info.as_ptr() as *const ffi::PRINTER_INFO_5W)).pPortName) })
+}
+
+/// Points the printer at another port (its other settings as they are).
+fn set_printer_port(printer: &Printer, port: &str) -> bool {
+    let Some(mut info) = printer_info5(printer) else { return false };
+    let mut port = ffi::wide(port);
+    let entry = info.as_mut_ptr() as *mut ffi::PRINTER_INFO_5W;
+    // SAFETY: the printer's own PRINTER_INFO_5W with its port changed; `port` outlives the call.
+    unsafe {
+        (*entry).pPortName = port.as_mut_ptr();
+        ffi::SetPrinterW(printer.0, 5, entry as *mut u8, 0) != 0
+    }
+}
+
+/// While the service doesn't hold the pipe: the printer paused and sent to Windows' file port, so
+/// that even resumed, it sends nothing to whoever holds the pipe's name.
+fn printer_away() {
+    let Some(printer) = open_printer_admin() else { return };
+    set_paused(&printer, true);
+    if printer_port(&printer).is_some_and(|p| p.eq_ignore_ascii_case(PIPE_NAME))
+        && !set_printer_port(&printer, PORT_WHILE_AWAY)
+    {
+        log(&format!("the {PRINTER_NAME} printer couldn't be set to print to a file: {}",
+                     std::io::Error::last_os_error()));
+    }
+}
+
+/// Once the service holds the pipe: the printer sent there again (if `printer_away` had moved it)
+/// and resumed.
+fn printer_back() {
+    let Some(printer) = open_printer_admin() else { return };
+    if printer_port(&printer).is_some_and(|p| p.eq_ignore_ascii_case(PORT_WHILE_AWAY))
+        && !set_printer_port(&printer, PIPE_NAME)
+    {
+        log(&format!("the {PRINTER_NAME} printer couldn't be set back to {PIPE_NAME}: {}",
+                     std::io::Error::last_os_error()));
+        return;  // (left paused: resumed, it would print to a file)
+    }
+    set_paused(&printer, false);
+}
+
+/// The process that serves a pipe (asked of Windows by connecting to it). None: there is none,
+/// or it couldn't be told.
+pub fn pipe_server_pid(pipe: &str) -> Option<u32> {
+    let name = ffi::wide(pipe);
+    // SAFETY: a NUL-terminated name; the handle is closed by `Owned`.
+    let handle = unsafe {
+        ffi::CreateFileW(name.as_ptr(), ffi::FILE_READ_ATTRIBUTES, 0, std::ptr::null(), ffi::OPEN_EXISTING, 0,
+                         std::ptr::null_mut())
+    };
+    if handle == ffi::INVALID_HANDLE_VALUE {
+        return None;
+    }
+    let handle = Owned(handle);
+    let mut pid = 0u32;
+    // SAFETY: a handle to the pipe's client end.
+    (unsafe { ffi::GetNamedPipeServerProcessId(handle.0, &mut pid) } != 0 && pid != 0).then_some(pid)
+}
+
+/// Which program holds a pipe, in words for the log.
+pub fn describe_holder(pipe: &str) -> String {
+    match pipe_server_pid(pipe) {
+        Some(pid) => format!("process {pid}, {}", image_path(pid).unwrap_or_else(|| "its program unknown".into())),
+        None => "which program couldn't be told".to_string(),
     }
 }
 
@@ -351,22 +484,29 @@ fn take_job(pipe: HANDLE) {
         log(&format!("refused a connection from {who}: not the print spooler or one of its print helpers"));
         return;
     }
-    let path = spool_dir().join(format!("print-{}-{}.pdf", std::process::id(), stamp()));
-    let mut file = match File::create(&path) {
+    let mut buffer = vec![0u8; BUFFER];
+    let Some(spool) = spool_dir() else {
+        // (no folder only SYSTEM and Administrators can use: the job is read and dropped, never kept
+        // where others could read it; log() says so in Windows' event log)
+        while read_some(pipe, &mut buffer) > 0 {}
+        log("a printout was refused: there is no folder only SYSTEM and Administrators can use to keep it in");
+        return;
+    };
+    let path = spool.join(format!("print-{}-{}.pdf", std::process::id(), stamp()));
+    // (a new file, never one already there)
+    let mut file = match std::fs::OpenOptions::new().write(true).create_new(true).open(&path) {
         Ok(file) => file,
         Err(e) => {
             log(&format!("can't keep a printout in {}: {e}", path.display()));
+            while read_some(pipe, &mut buffer) > 0 {}
             return;
         }
     };
-    let mut buffer = vec![0u8; BUFFER];
     let mut total = 0u64;
     let mut found: Option<(Option<Writer>, Vec<QueueJob>)> = None;
     loop {
-        let mut read = 0;
-        // SAFETY: a buffer of BUFFER bytes; our connected pipe.
-        let ok = unsafe { ffi::ReadFile(pipe, buffer.as_mut_ptr(), BUFFER as u32, &mut read, std::ptr::null_mut()) };
-        if ok == 0 || read == 0 {
+        let read = read_some(pipe, &mut buffer);
+        if read == 0 {
             break;  // (the spooler closed its end: the job is all here)
         }
         if found.is_none() {
@@ -398,17 +538,29 @@ fn take_job(pipe: HANDLE) {
         Ok(job) => match deliver::deliver(&job, &path) {
             Ok(target) => log(&format!("job {} ({}, {total} bytes): {}", job.id, job.user, target.display())),
             Err(deliver::Failure::Unsure(why)) => return hold(&path, total, &why),
-            Err(deliver::Failure::Failed(e)) => log(&format!("job {} ({}): not delivered: {e}", job.id, job.user)),
+            // (kept for an administrator, never thrown away: security review 2026-11-27, a failed
+            // delivery deleted the printout)
+            Err(deliver::Failure::Failed(e)) => {
+                return hold(&path, total, &format!("job {} ({}): not delivered: {e}", job.id, job.user));
+            }
         },
         Err(why) => return hold(&path, total, &why),
     }
     let _ = std::fs::remove_file(&path);
 }
 
+/// Reads what has come on the pipe into `buffer` (0: the other end closed it).
+fn read_some(pipe: HANDLE, buffer: &mut [u8]) -> u32 {
+    let mut read = 0;
+    // SAFETY: a buffer of buffer.len() bytes; our connected pipe.
+    let ok = unsafe { ffi::ReadFile(pipe, buffer.as_mut_ptr(), buffer.len() as u32, &mut read, std::ptr::null_mut()) };
+    if ok == 0 { 0 } else { read }
+}
+
 /// Keeps a printout nobody can be given for sure in the private spool folder, for an
 /// administrator: never delivered to a guess. Older held printouts make room (`tidy_spool`).
 fn hold(path: &std::path::Path, total: u64, why: &str) {
-    let held = spool_dir().join(format!("held-{}.pdf", stamp()));
+    let held = path.with_file_name(format!("held-{}.pdf", stamp()));
     let kept = std::fs::rename(path, &held).is_ok();
     log(&format!("a printout of {total} bytes was held: {why}{}",
                  if kept { format!(" ({})", held.display()) } else { String::new() }));
@@ -452,7 +604,7 @@ fn to_remove(files: &[Kept]) -> Vec<String> {
 
 /// Applies `to_remove` to the spool folder, saying in the log what went.
 fn tidy_spool() {
-    let folder = spool_dir();
+    let Some(folder) = spool_dir() else { return };
     let now = std::time::SystemTime::now();
     let Ok(entries) = std::fs::read_dir(&folder) else { return };
     let files: Vec<Kept> = entries
@@ -530,9 +682,11 @@ unsafe extern "system" fn control(code: DWORD, _type: DWORD, _data: *mut std::ff
         ffi::SERVICE_CONTROL_STOP | ffi::SERVICE_CONTROL_SHUTDOWN => {
             report(ffi::SERVICE_STOP_PENDING, 0);
             STOPPING.store(true, Ordering::Relaxed);
-            // (wake the listener: it's waiting for a connection)
-            let name = ffi::wide(PIPE_NAME);
-            let _ = std::fs::OpenOptions::new().write(true).open(String::from_utf16_lossy(&name[..name.len() - 1]));
+            // (wake the listener, waiting for a connection: only when the pipe is ours, never another
+            // program's that holds the name)
+            if HOLDING.load(Ordering::Relaxed) {
+                let _ = std::fs::OpenOptions::new().write(true).open(PIPE_NAME);
+            }
             0
         }
         ffi::SERVICE_CONTROL_INTERROGATE => 0,
@@ -641,6 +795,24 @@ mod tests {
         assert!(choose_job(Some(&system), &[queued(1, "alice", true), queued(2, "bob", true)]).is_err());
         assert!(choose_job(None, &[queued(1, "alice", false)]).is_err());  // (none printing: was "the first")
         assert!(choose_job(None, &[]).is_err());
+    }
+
+    #[test]
+    fn a_pipe_s_server_is_told_by_windows() {
+        let pipe = format!(r"\\.\pipe\PlanetPDF-test-{}", std::process::id());
+        assert_eq!(pipe_server_pid(&pipe), None);  // (nobody serves it yet)
+        let name = ffi::wide(&pipe);
+        // SAFETY: a valid name; default security; closed by `Owned`.
+        let served = Owned(unsafe {
+            ffi::CreateNamedPipeW(name.as_ptr(), ffi::PIPE_ACCESS_INBOUND | ffi::FILE_FLAG_FIRST_PIPE_INSTANCE,
+                                  ffi::PIPE_TYPE_BYTE_WAIT | ffi::PIPE_REJECT_REMOTE_CLIENTS, 1, 0, 4096, 0,
+                                  std::ptr::null())
+        });
+        assert_ne!(served.0, ffi::INVALID_HANDLE_VALUE);
+        // (one look takes the pipe's one instance until its server lets go and listens again, as
+        // the service does after each client: so the first look says who, in words)
+        assert!(describe_holder(&pipe).contains(&format!("process {}", std::process::id())));
+        assert_eq!(pipe_server_pid(&pipe), None);  // (busy now: told apart from "ours" by the caller)
     }
 
     #[test]

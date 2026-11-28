@@ -14,6 +14,8 @@ mod common;
 const EXE_NAME: &str = if cfg!(windows) { "planetpdf-cli.exe" } else { "planetpdf-cli" };
 
 fn main() -> ExitCode {
+    #[cfg(windows)]
+    common::system32_libraries_only();
     let root = match std::env::current_exe() {
         Ok(exe) => exe.parent().map(Path::to_path_buf).unwrap_or_default(),
         Err(e) => {

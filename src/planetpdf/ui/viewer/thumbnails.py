@@ -41,6 +41,7 @@ from planetpdf.core.document import PdfSession
 from planetpdf.core.render import render_page
 from planetpdf.ui.viewer.page_view import BACKGROUND
 from planetpdf.ui.viewer.qimage import to_pixmap
+from planetpdf.ui import plain
 
 THUMB_W = 110
 THUMB_H = 140
@@ -209,7 +210,7 @@ class ThumbnailList(QListWidget):
             item = self.item(i)
             item.setText(text if text else str(i + 1))
             labeled = f" (labeled “{text}”)" if text and text != str(i + 1) else ""
-            item.setToolTip(f"Page {i + 1}{labeled}")
+            item.setToolTip(plain.tip(f"Page {i + 1}{labeled}"))  # (page labels: the document's)
             # what a screen reader says for it (the number alone said nothing about what it is)
             item.setData(Qt.ItemDataRole.AccessibleTextRole, f"Page {i + 1} of {self.count()}{labeled}")
 

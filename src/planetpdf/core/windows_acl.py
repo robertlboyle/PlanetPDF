@@ -145,6 +145,59 @@ def closed_to_others(path: Path) -> bool:
         return False
 
 
+def open_in_tree(root: Path, *, limit: int = 60_000, most: int = 3) -> list[str]:
+    """What in ``root``'s tree (the folder itself and every folder and file below it) someone other
+    than an administrator can change, or is a link to elsewhere (a junction or a symbolic link:
+    never PlanetPDF's), as lines for a message; empty when nothing is. At most ``most`` lines; past
+    ``limit`` entries the rest is taken as unknown, and said.
+
+    Security review 2026-11-27, finding 3: a folder others could once write can't be trusted by
+    closing it afterwards (a file or folder they made stays theirs, and a DLL they put there stays
+    and is loaded), so PlanetPDF runs nothing from it as administrator (``update.elevation_refusal``)."""
+    found: list[str] = []
+    seen = 0
+
+    def note(path: Path, why: str) -> None:
+        if len(found) < most:
+            found.append(f"{path}: {why}")
+
+    def check(path: Path) -> None:
+        try:
+            others = open_to(path)
+        except (OSError, ValueError) as exc:
+            note(path, f"its permissions can't be read ({exc})")
+            return
+        if others:
+            note(path, "can be changed by " + ", ".join(in_words(o) for o in others))
+
+    check(root)
+    pending = [root]
+    while pending and len(found) < most:
+        folder = pending.pop()
+        try:
+            entries = list(os.scandir(folder))
+        except OSError as exc:
+            note(Path(folder), f"can't be read ({exc})")
+            continue
+        for entry in entries:
+            seen += 1
+            if seen > limit:
+                note(root, f"more than {limit:,} files and folders, so not all of them could be checked")
+                return found
+            path = Path(entry.path)
+            try:
+                link = entry.is_symlink() or entry.is_junction()
+            except OSError:
+                link = True
+            if link:
+                note(path, "a link to another place")
+                continue
+            check(path)
+            if entry.is_dir(follow_symlinks=False):
+                pending.append(path)
+    return found
+
+
 def protect_commands(folder: Path) -> list[list[str]]:
     """What closes ``folder`` to everyone but administrators, as the installer does
     (packaging/PlanetPDF.iss): its owner becomes Administrators; nothing inherited, nothing left

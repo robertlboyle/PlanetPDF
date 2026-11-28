@@ -121,7 +121,11 @@ def models_dir() -> Path | None:
     if exe_dir.parent.name == "versions":  # (installed: shared by every version, beside the launcher)
         candidates.append(exe_dir.parent.parent / "models")
     candidates.append(Path(__file__).resolve().parents[3] / "models")  # (src/planetpdf/core -> project)
-    return next((c for c in candidates if c.is_dir()), None)
+    # the first that holds voices: a user's own folder left empty by a canceled download mustn't hide
+    # the voices installed for everyone in PlanetPDF's folder (their own installer since 2026-11-27)
+    existing = [c for c in candidates if c.is_dir()]
+    with_voices = [c for c in existing if kokoro_available(c) or piper_voices(c)]
+    return (with_voices or existing or [None])[0]
 
 
 def kokoro_available(root: Path | None = None) -> bool:

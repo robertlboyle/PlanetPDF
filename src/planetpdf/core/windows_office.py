@@ -131,6 +131,74 @@ def word_save_as(source: Path, target: Path, file_format: int) -> None:
             document.Close(False)
 
 
+CONVERTERS = {".doc": "wordconv.exe", ".xls": "excelcnv.exe"}
+CONVERT_SECONDS = 120
+
+
+def office_folder() -> Path | None:
+    """Where Office's programs are (beside WINWORD.EXE or EXCEL.EXE, as Windows' App Paths name
+    them), or None."""
+    import winreg
+
+    for program in ("Winword.exe", "excel.exe"):
+        for view in (winreg.KEY_WOW64_64KEY, winreg.KEY_WOW64_32KEY):
+            try:
+                with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
+                                    rf"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\{program}", 0,
+                                    winreg.KEY_READ | view) as key:
+                    path = Path(str(winreg.QueryValueEx(key, "")[0]).strip('"'))
+                if path.is_file():
+                    return path.parent
+            except OSError:
+                continue
+    return None
+
+
+def convert_old(source: Path, target: Path) -> None:
+    """An older binary Word or Excel file in the newer format, by Office's own file converter
+    (``wordconv.exe`` / ``excelcnv.exe``: they translate the format without opening the file in
+    Word or Excel, so its template, fields, and links aren't followed). ``OfficeRefused`` when the
+    converter isn't there, fails, or takes longer than ``CONVERT_SECONDS``."""
+    import subprocess
+
+    from planetpdf.core.office_safety import OfficeRefused
+
+    name = CONVERTERS.get(Path(source).suffix.lower())
+    folder = office_folder()
+    program = folder / name if folder is not None and name else None
+    if program is None or not program.is_file():
+        raise OfficeRefused(f"{Path(source).name} wasn't converted: Office's file converter ({name}) isn't on this "
+                            "computer, and PlanetPDF doesn't give Word or Excel an older-format file as it is. Open it "
+                            "in Office, save it in the newer format, and make the PDF from that copy.")
+    arguments = [str(program), "-oice", *(["-nme"] if name == "wordconv.exe" else []), str(source), str(target)]
+    try:
+        done = subprocess.run(arguments, capture_output=True, timeout=CONVERT_SECONDS,
+                              creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    except subprocess.TimeoutExpired:
+        raise OfficeRefused(f"{Path(source).name} wasn't converted: Office's file converter didn't finish within "
+                            f"{CONVERT_SECONDS} seconds.") from None
+    except OSError as exc:
+        raise OfficeRefused(f"{Path(source).name} wasn't converted: Office's file converter couldn't start "
+                            f"({exc}).") from exc
+    if not Path(target).is_file() or Path(target).stat().st_size == 0:
+        raise OfficeRefused(f"{Path(source).name} wasn't converted: Office's file converter couldn't read it "
+                            f"(exit code {done.returncode}). Open it in Office, save it in the newer format, and "
+                            "make the PDF from that copy.")
+
+
+def in_services_session() -> bool:
+    """This process runs in session 0, the services' session, with no desktop for Office."""
+    import ctypes
+
+    session = ctypes.c_ulong(0)
+    try:
+        ok = ctypes.windll.kernel32.ProcessIdToSessionId(ctypes.windll.kernel32.GetCurrentProcessId(),
+                                                         ctypes.byref(session))
+    except (AttributeError, OSError):
+        return False
+    return bool(ok) and session.value == 0
+
+
 def to_pdf(source: Path, target: Path) -> None:
     """A Word, Excel or PowerPoint file as PDF (Office's own "Save as PDF")."""
     source, target = Path(source).resolve(), Path(target).resolve()

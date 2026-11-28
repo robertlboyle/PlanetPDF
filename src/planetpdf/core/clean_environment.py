@@ -25,7 +25,7 @@ import sys
 
 # (core/update_helper.py's APPLY, INSTALL, and REFRESH: a test keeps them the same. Not --finish-update: it
 # runs as the user and starts the new PlanetPDF, which should get the user's environment.)
-HELPER_FLAGS = ("--apply-update", "--install-updates", "--refresh-install")
+HELPER_FLAGS = ("--apply-update", "--install-updates", "--refresh-install", "--remove-old-versions")
 
 # what the libraries in the program read to decide which files to load or trust
 REMOVED = (

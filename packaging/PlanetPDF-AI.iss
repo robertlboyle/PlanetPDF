@@ -15,6 +15,12 @@
 #define MainKey "Software\Planet Networks\PlanetPDF"
 
 [Setup]
+#ifdef Sign
+; Setup and its uninstaller signed with Planet Networks' certificate (scripts\sign.ps1, passed by
+; scripts\build_ai_addon.ps1 as the sign tool "planet"; user 2026-11-27)
+SignTool=planet
+SignedUninstaller=yes
+#endif
 AppId={{A7C3E2D9-5B41-4F86-9E0A-3D2C71B8F604}
 AppName=PlanetPDF AI Text Reading
 AppVersion={#AddonVersion}
